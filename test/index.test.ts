@@ -251,9 +251,11 @@ describe.sequential(degit, { timeout }, () => {
 
 	describe('git mode old hash', () => {
 		it('is able to clone correctly using git mode with old hash', async () => {
-			await exec(
-				`node ${degitPath} --mode=git https://github.com/tiged/tiged-test.git#525e8fef2c6b5e261511adc55f410d83ca5d8256 .tmp/test-repo`
+			const { stderr, stdout } = await exec(
+				`node ${degitPath} --mode=git https://github.com/tiged/tiged-test#525e8fef2c6b5e261511adc55f410d83ca5d8256 .tmp/test-repo`
 			);
+			console.log({ stdout });
+			console.log({ stderr });
 			compare(`.tmp/test-repo`, {
 				subdir: false,
 				'README.md': '# tiged-test\nFor testing',
@@ -264,6 +266,7 @@ describe.sequential(degit, { timeout }, () => {
 			const { stdout, stderr } = await exec(
 				`node ${degitPath} --mode=git https://github.com/tiged/tiged-test.git/subdir#b09755bc4cca3d3b398fbe5e411daeae79869581 .tmp/test-repo`
 			);
+			console.log(stdout);
 			console.log(stderr);
 			compare(`.tmp/test-repo`, {
 				file: 'Hello, champ!'
