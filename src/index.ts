@@ -608,7 +608,7 @@ class Degit extends EventEmitter {
 			}
 		}
 
-		// if (selector.length < 8) return null;
+		if (selector.length < 8) return null;
 
 		for (const ref of refs) {
 			if (ref.hash.startsWith(selector)) return ref.hash;
