@@ -42,15 +42,11 @@ describe.sequential(degit, { timeout }, () => {
 			const filePath = path.resolve(dir, file);
 			console.log(filePath);
 
-			try {
-				const stat = await fs.lstat(filePath);
-				if (!stat?.isDirectory?.()) {
-					expect(path.join(normalizedPaths[file]).trim()).toBe(
-						(await read(filePath)).trim()
-					);
-				}
-			} catch (err) {
-				console.error(err);
+			const stat = await fs.lstat(filePath);
+			if (!stat?.isDirectory?.()) {
+				expect(path.join(normalizedPaths[file]).trim()).toBe(
+					(await read(filePath)).trim()
+				);
 			}
 		});
 	}
