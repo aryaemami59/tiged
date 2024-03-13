@@ -669,6 +669,7 @@ class Degit extends EventEmitter {
 						message: `${file} already exists locally`
 					});
 				} catch (err) {
+					console.log(err)
 					// Not getting file from cache. Either because there is no cached tar or because option no cache is set to true.
 					await fs.mkdir(path.dirname(file), { recursive: true });
 
