@@ -255,7 +255,7 @@ describe.sequential(degit, { timeout }, () => {
 			);
 			compare(`.tmp/test-repo`, {
 				subdir: false,
-				'README.md': 'tiged is awesome',
+				'README.md': '# tiged-test\nFor testing',
 				'subdir/file': 'Hello, buddy!'
 			});
 		});
