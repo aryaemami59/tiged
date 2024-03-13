@@ -44,7 +44,6 @@ describe.sequential(degit, { timeout }, () => {
 
 			try {
 				const stat = await fs.lstat(filePath);
-				console.log(stat);
 				if (!stat?.isDirectory?.()) {
 					expect(path.join(normalizedPaths[file]).trim()).toBe(
 						(await read(filePath)).trim()
@@ -254,7 +253,7 @@ describe.sequential(degit, { timeout }, () => {
 	});
 
 	describe('git mode old hash', () => {
-		it.only('is able to clone correctly using git mode with old hash', async () => {
+		it('is able to clone correctly using git mode with old hash', async () => {
 			await exec(
 				`node ${degitPath} --mode=git https://github.com/tiged/tiged-test.git#525e8fef2c6b5e261511adc55f410d83ca5d8256 .tmp/test-repo`
 			);
@@ -269,7 +268,7 @@ describe.sequential(degit, { timeout }, () => {
 				`node ${degitPath} --mode=git https://github.com/tiged/tiged-test.git/subdir#b09755bc4cca3d3b398fbe5e411daeae79869581 .tmp/test-repo`
 			);
 			compare(`.tmp/test-repo`, {
-				file: 'Hello, buddy!'
+				file: 'Hello, champ!'
 			});
 		});
 	});
