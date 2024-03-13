@@ -30,7 +30,7 @@ describe.sequential(degit, { timeout }, () => {
 	});
 
 	function compare<T extends Record<string, any>>(dir: string, files: T) {
-		const expected = glob('**', { cwd: path.join(dir) });
+		const expected = glob('**', { cwd: dir });
 		const normalizedPaths = Object.fromEntries(
 			Object.entries(files).map(
 				([fileName, value]) => [path.join(fileName), value] as const
