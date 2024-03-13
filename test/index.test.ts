@@ -256,7 +256,7 @@ describe.sequential(degit, { timeout }, () => {
 			compare(`.tmp/test-repo`, {
 				subdir: false,
 				'README.md': '# tiged-test\nFor testing',
-				'subdir/file': 'Hello, buddy!'
+				'subdir/file': 'Hello, champ!'
 			});
 		});
 		it('is able to clone subdir correctly using git mode with old hash', async () => {
