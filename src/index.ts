@@ -608,7 +608,7 @@ class Degit extends EventEmitter {
 			}
 		}
 
-		if (selector.length < 8) return null;
+		// if (selector.length < 8) return null;
 
 		for (const ref of refs) {
 			if (ref.hash.startsWith(selector)) return ref.hash;
@@ -725,7 +725,11 @@ class Degit extends EventEmitter {
 		if (this.repo.subdir) {
 			await fs.mkdir(path.join(dest, '.tiged'), { recursive: true });
 			const tempDir = path.join(dest, '.tiged');
-			if (this.repo.ref && this.repo.ref !== 'HEAD' && !isWin) {
+			if (isWin) {
+				await exec(
+					`cd ${tempDir} && git init && git remote add origin ${gitPath} && git fetch --depth 1 origin ${this.repo.ref} && git checkout FETCH_HEAD`
+				);
+			} else if (this.repo.ref && this.repo.ref !== 'HEAD' && !isWin) {
 				await exec(
 					`cd ${tempDir}; git init; git remote add origin ${gitPath}; git fetch --depth 1 origin ${this.repo.ref}; git checkout FETCH_HEAD`
 				);
@@ -863,9 +867,7 @@ async function untar(
  */
 async function fetchRefs(repo: Repo) {
 	try {
-		const { stdout, stderr } = await exec(`git ls-remote ${repo.url}`);
-		console.log(stderr);
-
+		const { stdout } = await exec(`git ls-remote ${repo.url}`);
 		return stdout
 			.split('\n')
 			.filter(Boolean)
@@ -880,8 +882,6 @@ async function fetchRefs(repo: Repo) {
 				}
 
 				const match = /refs\/(\w+)\/(.+)/.exec(ref);
-				console.log(match);
-				// const match = /refs\/(\w+)\/(.+)/.test(ref);
 				if (!match)
 					throw new DegitError(`could not parse ${ref}`, {
 						code: 'BAD_REF'
