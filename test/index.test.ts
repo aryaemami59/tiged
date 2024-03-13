@@ -40,13 +40,10 @@ describe.sequential(degit, { timeout }, () => {
 
 		expected.forEach(async file => {
 			const filePath = path.resolve(dir, file);
-			console.log(filePath);
-			// console.log((await exec('ls')).stdout);
 
-			const stat = await fs.lstat(filePath);
-			if (!stat?.isDirectory?.()) {
+			if (!(await fs.lstat(filePath)).isDirectory()) {
 				expect(path.join(normalizedPaths[file]).trim()).toBe(
-					(await read(filePath)).trim()
+					(await read(filePath)).trim().replace('\r\n', '\n')
 				);
 			}
 		});
@@ -251,23 +248,19 @@ describe.sequential(degit, { timeout }, () => {
 
 	describe('git mode old hash', () => {
 		it('is able to clone correctly using git mode with old hash', async () => {
-			const { stderr, stdout } = await exec(
+			await exec(
 				`node ${degitPath} --mode=git https://github.com/tiged/tiged-test#525e8fef2c6b5e261511adc55f410d83ca5d8256 .tmp/test-repo`
 			);
-			console.log({ stdout });
-			console.log({ stderr });
 			compare(`.tmp/test-repo`, {
 				subdir: false,
-				'README.md': '# tiged-test\nFor testing',
+				'README.md': `# tiged-test\nFor testing`,
 				'subdir/file': 'Hello, champ!'
 			});
 		});
 		it('is able to clone subdir correctly using git mode with old hash', async () => {
-			const { stdout, stderr } = await exec(
+			await exec(
 				`node ${degitPath} --mode=git https://github.com/tiged/tiged-test.git/subdir#b09755bc4cca3d3b398fbe5e411daeae79869581 .tmp/test-repo`
 			);
-			console.log(stdout);
-			console.log(stderr);
 			compare(`.tmp/test-repo`, {
 				file: 'Hello, champ!'
 			});
