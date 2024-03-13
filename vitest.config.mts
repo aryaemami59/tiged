@@ -3,7 +3,7 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
 	test: {
 		watch: false,
-    pool: "forks",
+    pool: "vmForks",
     allowOnly: true,
 		globals: true
 	},
