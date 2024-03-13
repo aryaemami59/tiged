@@ -669,7 +669,6 @@ class Degit extends EventEmitter {
 						message: `${file} already exists locally`
 					});
 				} catch (err) {
-					console.log(err)
 					// Not getting file from cache. Either because there is no cached tar or because option no cache is set to true.
 					await fs.mkdir(path.dirname(file), { recursive: true });
 
@@ -744,7 +743,12 @@ class Degit extends EventEmitter {
 			);
 			await rimraf(tempDir);
 		} else {
-			if (this.repo.ref && this.repo.ref !== 'HEAD' && !isWin) {
+			if (isWin) {
+				await fs.mkdir(dest, { recursive: true });
+				await exec(
+					`cd ${dest} && git init && git remote add origin ${gitPath} && git fetch --depth 1 origin ${this.repo.ref} && git checkout FETCH_HEAD`
+				);
+			} else if (this.repo.ref && this.repo.ref !== 'HEAD' && !isWin) {
 				await fs.mkdir(dest, { recursive: true });
 				await exec(
 					`cd ${dest}; git init; git remote add origin ${gitPath}; git fetch --depth 1 origin ${this.repo.ref}; git checkout FETCH_HEAD`
@@ -859,7 +863,8 @@ async function untar(
  */
 async function fetchRefs(repo: Repo) {
 	try {
-		const { stdout } = await exec(`git ls-remote ${repo.url}`);
+		const { stdout, stderr } = await exec(`git ls-remote ${repo.url}`);
+		console.log(stderr);
 
 		return stdout
 			.split('\n')
@@ -875,6 +880,8 @@ async function fetchRefs(repo: Repo) {
 				}
 
 				const match = /refs\/(\w+)\/(.+)/.exec(ref);
+				console.log(match);
+				// const match = /refs\/(\w+)\/(.+)/.test(ref);
 				if (!match)
 					throw new DegitError(`could not parse ${ref}`, {
 						code: 'BAD_REF'
