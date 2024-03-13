@@ -1,5 +1,6 @@
 import child_process from 'node:child_process';
 import fs from 'node:fs/promises';
+import { homedir } from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { rimraf } from 'rimraf';
@@ -11,6 +12,8 @@ const degitPath = path.resolve('dist/bin.mjs');
 
 const timeout = 30_000;
 
+const cachedFolder = path.join(homedir(), '.degit');
+
 describe.sequential(degit, { timeout }, () => {
 	beforeAll(async () => {
 		await exec('npm run build');
@@ -18,10 +21,12 @@ describe.sequential(degit, { timeout }, () => {
 
 	beforeEach(async () => {
 		await rimraf('.tmp');
+		await rimraf(cachedFolder);
 	});
 
 	afterEach(async () => {
 		await rimraf('.tmp');
+		await rimraf(cachedFolder);
 	});
 
 	function compare<T extends Record<string, any>>(dir: string, files: T) {
