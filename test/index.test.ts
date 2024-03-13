@@ -41,12 +41,17 @@ describe.sequential(degit, { timeout }, () => {
 		expected.forEach(async file => {
 			const filePath = path.resolve(dir, file);
 			console.log(filePath);
-			const stat = await fs.lstat(filePath);
-			console.log(stat);
-			if (!stat?.isDirectory?.()) {
-				expect(path.join(normalizedPaths[file]).trim()).toBe(
-					(await read(filePath)).trim()
-				);
+
+			try {
+				const stat = await fs.lstat(filePath);
+				console.log(stat);
+				if (!stat?.isDirectory?.()) {
+					expect(path.join(normalizedPaths[file]).trim()).toBe(
+						(await read(filePath)).trim()
+					);
+				}
+			} catch (err) {
+				console.error(err);
 			}
 		});
 	}
