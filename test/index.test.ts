@@ -260,7 +260,7 @@ describe.sequential(degit, { timeout }, () => {
 				'subdir/file': 'Hello, champ!'
 			});
 		});
-		it.only('is able to clone subdir correctly using git mode with old hash', async () => {
+		it('is able to clone subdir correctly using git mode with old hash', async () => {
 			const { stdout, stderr } = await exec(
 				`node ${degitPath} --mode=git https://github.com/tiged/tiged-test.git/subdir#b09755bc4cca3d3b398fbe5e411daeae79869581 .tmp/test-repo`
 			);
