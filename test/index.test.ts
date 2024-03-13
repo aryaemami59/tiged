@@ -41,6 +41,7 @@ describe.sequential(degit, { timeout }, () => {
 		expected.forEach(async file => {
 			const filePath = path.resolve(dir, file);
 			console.log(filePath);
+			console.log((await exec('ls -R')).stdout);
 
 			const stat = await fs.lstat(filePath);
 			if (!stat?.isDirectory?.()) {
