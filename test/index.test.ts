@@ -39,7 +39,7 @@ describe.sequential(degit, { timeout }, () => {
 		expect(Object.keys(normalizedPaths).sort()).toStrictEqual(expected.sort());
 
 		expected.forEach(async file => {
-			const filePath = path.join(dir, file);
+			const filePath = path.resolve(dir, file);
 			console.log(filePath);
 			const stat = await fs.lstat(filePath);
 			console.log(stat);
