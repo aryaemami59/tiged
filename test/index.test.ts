@@ -12,7 +12,7 @@ const degitPath = path.resolve('dist/bin.mjs');
 
 const timeout = 30_000;
 
-const cachedFolder = path.join(homedir(), '.degit');
+const cachedFolder = path.join(homedir(), '.tiged');
 
 describe.sequential(degit, { timeout }, () => {
 	beforeAll(async () => {
