@@ -40,7 +40,9 @@ describe.sequential(degit, { timeout }, () => {
 
 		expected.forEach(async file => {
 			const filePath = path.join(dir, file);
-			if (!(await fs.lstat(filePath)).isDirectory()) {
+			const stat = await fs.stat(filePath);
+			console.log(stat);
+			if (!stat.isDirectory()) {
 				expect(path.join(normalizedPaths[file]).trim()).toBe(
 					(await read(filePath)).trim()
 				);
