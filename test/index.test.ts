@@ -21,12 +21,12 @@ describe.sequential(degit, { timeout }, () => {
 
 	beforeEach(async () => {
 		await rimraf('.tmp');
-		await rimraf(cachedFolder);
+		// await rimraf(cachedFolder);
 	});
 
 	afterEach(async () => {
 		await rimraf('.tmp');
-		await rimraf(cachedFolder);
+		// await rimraf(cachedFolder);
 	});
 
 	function compare<T extends Record<string, any>>(dir: string, files: T) {
