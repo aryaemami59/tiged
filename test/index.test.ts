@@ -246,7 +246,7 @@ describe.sequential(degit, { timeout }, () => {
 	});
 
 	describe('git mode old hash', () => {
-		it('is able to clone correctly using git mode with old hash', async () => {
+		it.only('is able to clone correctly using git mode with old hash', async () => {
 			await exec(
 				`node ${degitPath} --mode=git https://github.com/tiged/tiged-test.git#525e8fef2c6b5e261511adc55f410d83ca5d8256 .tmp/test-repo`
 			);
