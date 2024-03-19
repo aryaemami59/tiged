@@ -61,6 +61,7 @@ jobs:
           cache: 'npm'
 
       - name: Download Artifact
+        id: download-artifact
         uses: actions/download-artifact@v4
         with:
           name: ${{ matrix.os }}-${{ matrix.node-version }}
@@ -69,7 +70,7 @@ jobs:
         run: npm install
 
       - name: Install Build Artifact
-        run: npm install ./*.tgz
+        run: npm install ${{ steps.download-artifact.outputs.download-path }}
 
       - name: Erase TSConfig path aliases
         run: npx tsx scripts/eraseTSConfigPaths.mts
