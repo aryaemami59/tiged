@@ -3,6 +3,31 @@ name: Node.js CI
 on: [push, pull_request]
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Lint files
+        run: npm run lint
+
+      - name: Are files formatted
+        run: npm run format:check
+
+      - name: Did we fail?
+        if: failure()
+        run: ls -R
+
   build:
     runs-on: ${{ matrix.os }}
     name: Node.js ${{ matrix.node-version }} - ${{ matrix.os }}
@@ -16,16 +41,16 @@ jobs:
         os: [windows-latest, ubuntu-latest, macos-latest]
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Use Node.js ${{ matrix.node-version }}
+      - name: Setup Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
 
-      - name: Install Dependencies
+      - name: Install dependencies
         run: npm install
 
       - name: Pack
@@ -33,9 +58,7 @@ jobs:
         run: |
           echo "tarball=$(npm pack)" >> $GITHUB_OUTPUT
 
-        # run: npm pack
-
-      - name: Upload Artifact
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         id: artifact-upload-step
         with:
@@ -56,37 +79,33 @@ jobs:
         os: [windows-latest, ubuntu-latest, macos-latest]
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Use Node.js ${{ matrix.node-version }}
+      - name: Setup Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
 
-      - name: Download Artifact
+      - name: Download artifact
         id: download-artifact
         uses: actions/download-artifact@v4
         with:
           path: ./
           name: ${{ matrix.os }}-${{ matrix.node-version }}
 
-      - name: Install Dependencies
+      - name: Install dependencies
         run: npm install
 
-      - name: Install Build Artifact
+      - name: Install build artifact
         run: npm install ${{ needs.build.outputs.artifact }}
-        # run: npm install ./tiged-2.12.7.tgz
 
       - name: Erase TSConfig path aliases
         run: npx tsx scripts/eraseTSConfigPaths.mts
 
-      - name: Run Tests
+      - name: Run tests
         run: npm test
-
-      - name: Lint Files
-        run: npm run lint
 
       - name: Did we fail?
         if: failure()
