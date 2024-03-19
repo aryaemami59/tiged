@@ -71,7 +71,7 @@ jobs:
         run: npm install
 
       - name: Install Build Artifact
-        run: npm install ${{ github.workspace }}/tiged-2.12.7.tgz
+        run: npm install *.tgz
 
       - name: Erase TSConfig path aliases
         run: npx tsx scripts/eraseTSConfigPaths.mts
