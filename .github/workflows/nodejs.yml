@@ -35,7 +35,7 @@ jobs:
         id: artifact-upload-step
         with:
           name: ${{ matrix.os }}-${{ matrix.node-version }}
-          path: ./*.tgz
+          path: arifacts/*.tgz
 
   test:
     needs: [build]
@@ -60,7 +60,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: ${{ matrix.os }}-${{ matrix.node-version }}
-          path: ./*.tgz
+          path: arifacts/*.tgz
 
       - name: Install Dependencies
         run: npm install
@@ -76,3 +76,7 @@ jobs:
 
       - name: Lint Files
         run: npm run lint
+
+      - name: Did we fail?
+        if: failure()
+        run: ls -R
