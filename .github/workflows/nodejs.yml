@@ -35,7 +35,7 @@ jobs:
         id: artifact-upload-step
         with:
           name: ${{ matrix.os }}-${{ matrix.node-version }}
-          path: arifacts/*.tgz
+          path: ./artifact/
 
   test:
     needs: [build]
@@ -60,13 +60,12 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: ${{ matrix.os }}-${{ matrix.node-version }}
-          path: arifacts/*.tgz
 
       - name: Install Dependencies
         run: npm install
 
       - name: Install Build Artifact
-        run: npm install ./package/*.tgz
+        run: npm install ./*.tgz
 
       - name: Erase TSConfig path aliases
         run: npx tsx scripts/eraseTSConfigPaths.mts
