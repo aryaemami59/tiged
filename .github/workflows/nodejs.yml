@@ -40,7 +40,9 @@ jobs:
     needs: [build]
     runs-on: ${{ needs.build.runs-on }}
     strategy:
-      matrix: ${{ needs.build.matrix }}
+      matrix:
+        node-version: [18.x, 20.x]
+        os: [windows-latest, ubuntu-latest, macos-latest]
 
     steps:
       - name: Checkout Repository
