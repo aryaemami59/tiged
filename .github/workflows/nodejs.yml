@@ -7,7 +7,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     name: Node.js ${{ matrix.node-version }} - ${{ matrix.os }}
     outputs:
-      artifact: ${{ steps.artifact-upload-step.outputs.artifact-id }}
+      artifact: ${{ steps.pack.outputs.tarball }}
+
     strategy:
       fail-fast: false
       matrix:
@@ -72,10 +73,11 @@ jobs:
           name: ${{ matrix.os }}-${{ matrix.node-version }}
 
       - name: Install Dependencies
-        run: npm install ${{ needs.build.outputs.artifact }}
+        run: npm install
 
       - name: Install Build Artifact
-        run: npm install ./tiged-2.12.7.tgz
+        run: npm install ${{ needs.build.outputs.artifact }}
+        # run: npm install ./tiged-2.12.7.tgz
 
       - name: Erase TSConfig path aliases
         run: npx tsx scripts/eraseTSConfigPaths.mts
