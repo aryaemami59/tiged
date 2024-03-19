@@ -9,8 +9,10 @@ const __dirname = path.dirname(__filename);
 
 const tsConfigPath = path.join(__dirname, '..', 'tsconfig.json');
 
-const tsConfig = JSON.parse(await fs.readFile(tsConfigPath, 'utf-8'));
+const tsConfig = await fs.readFile(tsConfigPath, 'utf-8');
 
-delete tsConfig.compilerOptions.paths;
+const tsConfigJson = JSON.parse(tsConfig);
 
-fs.writeFile(tsConfigPath, tsConfig);
+delete tsConfigJson.compilerOptions.paths;
+
+await fs.writeFile(tsConfigPath, JSON.stringify(tsConfigJson, null, 2));
