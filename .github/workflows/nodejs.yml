@@ -6,6 +6,8 @@ jobs:
   build:
     runs-on: ${{ matrix.os }}
     name: Node.js ${{ matrix.node-version }} - ${{ matrix.os }}
+    outputs:
+      artifact: ${{ steps.artifact-upload-step.outputs.artifact-id }}
     strategy:
       matrix:
         node-version: [18.x, 20.x]
@@ -23,6 +25,47 @@ jobs:
 
       - name: Install Dependencies
         run: npm install
+
+      - name: Pack
+        run: npm pack
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        id: artifact-upload-step
+        with:
+          name: ${{ matrix.os }}-${{ matrix.node-version }}
+          path: ./*.tgz
+
+  test:
+    needs: [build]
+    runs-on: ${{ needs.build.runs-on }}
+    strategy:
+      matrix: ${{ needs.build.matrix }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Download Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.os }}-${{ matrix.node-version }}
+          path: .
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Install Build Artifact
+        run: npm install ./*.tgz
+
+      - name: Erase TSConfig path aliases
+        run: npx tsx scripts/eraseTSConfigPaths.mts
 
       - name: Run Tests
         run: npm test
