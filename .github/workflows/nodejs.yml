@@ -58,13 +58,13 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: ${{ matrix.os }}-${{ matrix.node-version }}
-          path: .
+          path: package
 
       - name: Install Dependencies
         run: npm install
 
       - name: Install Build Artifact
-        run: npm install ./*.tgz
+        run: npm install ./package/*.tgz
 
       - name: Erase TSConfig path aliases
         run: npx tsx scripts/eraseTSConfigPaths.mts
