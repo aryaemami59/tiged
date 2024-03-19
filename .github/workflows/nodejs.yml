@@ -35,7 +35,7 @@ jobs:
         id: artifact-upload-step
         with:
           name: ${{ matrix.os }}-${{ matrix.node-version }}
-          path: ./*.tgz
+          path: package
 
   test:
     needs: [build]
