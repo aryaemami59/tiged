@@ -31,7 +31,7 @@ jobs:
       - name: Pack
         id: pack
         run: |
-          echo "::set-output name=tarball::$(npm pack)"
+          echo "tarball=$(npm pack)" >> $GITHUB_OUTPUT
 
         # run: npm pack
 
