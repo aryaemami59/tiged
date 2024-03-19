@@ -37,6 +37,10 @@ jobs:
           name: ${{ matrix.os }}-${{ matrix.node-version }}
           path: ./*.tgz
 
+      - name: Did we fail?
+        if: failure()
+        run: ls -R
+
   test:
     needs: [build]
     runs-on: ${{ matrix.os }}
