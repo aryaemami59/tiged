@@ -35,7 +35,7 @@ jobs:
         id: artifact-upload-step
         with:
           name: ${{ matrix.os }}-${{ matrix.node-version }}
-          path: package
+          path: ./*.tgz
 
   test:
     needs: [build]
@@ -60,7 +60,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: ${{ matrix.os }}-${{ matrix.node-version }}
-          path: package
+          path: ./*.tgz
 
       - name: Install Dependencies
         run: npm install
