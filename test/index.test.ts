@@ -1,6 +1,5 @@
 import child_process from 'node:child_process';
 import fs from 'node:fs/promises';
-import { homedir } from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { rimraf } from 'rimraf';
@@ -10,25 +9,20 @@ import glob from 'tiny-glob/sync';
 const exec = promisify(child_process.exec);
 const degitPath = process.env.CI
 	? 'tiged'
-	: `node ${path.resolve('dist/bin.mjs')}`;
+	: `node --import=tsx ${path.resolve('src/bin.ts')}`;
 
 const timeout = 30_000;
 
-const cachedFolder = path.join(homedir(), '.tiged');
+const convertSpecialCharsToHyphens = (str: string) =>
+	str.replace(/[^a-zA-Z0-9]+/g, '-');
 
-describe.sequential(degit, { timeout }, () => {
+describe(degit, { timeout }, () => {
 	beforeAll(async () => {
-		await exec('npm run build');
+		await rimraf('.tmp');
 	});
 
-	beforeEach(async () => {
+	afterAll(async () => {
 		await rimraf('.tmp');
-		// await rimraf(cachedFolder);
-	});
-
-	afterEach(async () => {
-		await rimraf('.tmp');
-		// await rimraf(cachedFolder);
 	});
 
 	function compare<T extends Record<string, any>>(dir: string, files: T) {
@@ -59,8 +53,9 @@ describe.sequential(degit, { timeout }, () => {
 			'git@github.com:tiged/tiged-test-repo',
 			'https://github.com/tiged/tiged-test-repo.git'
 		])('%s', async src => {
-			await exec(`${degitPath} ${src} .tmp/test-repo -v`);
-			compare(`.tmp/test-repo`, {
+			const sanitizedPath = convertSpecialCharsToHyphens(src);
+			await exec(`${degitPath} ${src} .tmp/test-repo-${sanitizedPath} -v`);
+			compare(`.tmp/test-repo-${sanitizedPath}`, {
 				'file.txt': 'hello from github!',
 				subdir: null,
 				'subdir/file.txt': 'hello from a subdirectory!'
@@ -74,8 +69,9 @@ describe.sequential(degit, { timeout }, () => {
 			'git@gitlab.com:nake89/tiged-test-repo',
 			'https://gitlab.com/nake89/tiged-test-repo.git'
 		])('%s', async src => {
-			await exec(`${degitPath} ${src} .tmp/test-repo -v`);
-			compare(`.tmp/test-repo`, {
+			const sanitizedPath = convertSpecialCharsToHyphens(src);
+			await exec(`${degitPath} ${src} .tmp/test-repo-${sanitizedPath} -v`);
+			compare(`.tmp/test-repo-${sanitizedPath}`, {
 				'file.txt': 'hello from gitlab!'
 			});
 		});
@@ -85,8 +81,11 @@ describe.sequential(degit, { timeout }, () => {
 		it.each([
 			'https://gitlab.com/group-test-repo/subgroup-test-repo/test-repo'
 		])('%s', async src => {
-			await exec(`${degitPath} --subgroup ${src} .tmp/test-repo -v`);
-			compare(`.tmp/test-repo`, {
+			const sanitizedPath = convertSpecialCharsToHyphens(src);
+			await exec(
+				`${degitPath} --subgroup ${src} .tmp/test-repo-${sanitizedPath} -v`
+			);
+			compare(`.tmp/test-repo-${sanitizedPath}`, {
 				'main.tf': 'Subgroup test',
 				subdir1: null,
 				'subdir1/subdir2': null,
@@ -99,10 +98,11 @@ describe.sequential(degit, { timeout }, () => {
 		it.each([
 			'https://gitlab.com/group-test-repo/subgroup-test-repo/test-repo'
 		])('%s', async src => {
+			const sanitizedPath = `${convertSpecialCharsToHyphens(src)}-0`;
 			await exec(
-				`${degitPath} --subgroup ${src} --sub-directory subdir1 .tmp/test-repo -v`
+				`${degitPath} --subgroup ${src} --sub-directory subdir1 .tmp/test-repo-${sanitizedPath} -v`
 			);
-			compare(`.tmp/test-repo`, {
+			compare(`.tmp/test-repo-${sanitizedPath}`, {
 				subdir2: null,
 				'subdir2/file.txt': "I'm a file."
 			});
@@ -111,10 +111,11 @@ describe.sequential(degit, { timeout }, () => {
 		it.each([
 			'https://gitlab.com/group-test-repo/subgroup-test-repo/test-repo'
 		])('%s', async src => {
+			const sanitizedPath = `${convertSpecialCharsToHyphens(src)}-1`;
 			await exec(
-				`${degitPath} --subgroup ${src} --sub-directory subdir1/subdir2 .tmp/test-repo -v`
+				`${degitPath} --subgroup ${src} --sub-directory subdir1/subdir2 .tmp/test-repo-${sanitizedPath} -v`
 			);
-			compare(`.tmp/test-repo`, {
+			compare(`.tmp/test-repo-${sanitizedPath}`, {
 				'file.txt': "I'm a file."
 			});
 		});
@@ -126,8 +127,9 @@ describe.sequential(degit, { timeout }, () => {
 			'git@bitbucket.org:nake89/tiged-test-repo',
 			'https://bitbucket.org/nake89/tiged-test-repo.git'
 		])('%s', async src => {
-			await exec(`${degitPath} ${src} .tmp/test-repo -v`);
-			compare(`.tmp/test-repo`, {
+			const sanitizedPath = convertSpecialCharsToHyphens(src);
+			await exec(`${degitPath} ${src} .tmp/test-repo-${sanitizedPath} -v`);
+			compare(`.tmp/test-repo-${sanitizedPath}`, {
 				'file.txt': 'hello from bitbucket'
 			});
 		});
@@ -139,8 +141,9 @@ describe.sequential(degit, { timeout }, () => {
 			'https://git.sr.ht/~satotake/degit-test-repo',
 			'git@git.sr.ht:~satotake/degit-test-repo'
 		])('%s', async src => {
-			await exec(`${degitPath} ${src} .tmp/test-repo -v`);
-			compare(`.tmp/test-repo`, {
+			const sanitizedPath = convertSpecialCharsToHyphens(src);
+			await exec(`${degitPath} ${src} .tmp/test-repo-${sanitizedPath} -v`);
+			compare(`.tmp/test-repo-${sanitizedPath}`, {
 				'file.txt': 'hello from sourcehut!'
 			});
 		});
@@ -152,8 +155,9 @@ describe.sequential(degit, { timeout }, () => {
 			'git@huggingface.co:severo/degit-test-repo',
 			'https://huggingface.co/severo/degit-test-repo.git'
 		])('%s', async src => {
-			await exec(`${degitPath} ${src} .tmp/test-repo -v`);
-			compare(`.tmp/test-repo`, {
+			const sanitizedPath = convertSpecialCharsToHyphens(src);
+			await exec(`${degitPath} ${src} .tmp/test-repo-${sanitizedPath} -v`);
+			compare(`.tmp/test-repo-${sanitizedPath}`, {
 				'file.txt': 'hello from Hugging Face',
 				subdir: null,
 				'subdir/file.txt': 'hello from a subdirectory!'
@@ -168,9 +172,10 @@ describe.sequential(degit, { timeout }, () => {
 			'git@github.com:tiged/tiged-test-repo/subdir',
 			'https://github.com/tiged/tiged-test-repo.git/subdir'
 		])('%s', async src => {
-			await exec(`${degitPath} ${src} .tmp/test-repo -v`);
-			compare(`.tmp/test-repo`, {
-				'file.txt': 'hello from a subdirectory!'
+			const sanitizedPath = convertSpecialCharsToHyphens(src);
+			await exec(`${degitPath} ${src} .tmp/test-repo-${sanitizedPath} -v`);
+			compare(`.tmp/test-repo-${sanitizedPath}`, {
+				'file.txt': `hello from a subdirectory!`
 			});
 		});
 	});
@@ -190,9 +195,12 @@ describe.sequential(degit, { timeout }, () => {
 	});
 
 	describe('command line arguments', () => {
-		it('allows flags wherever', async () => {
-			await exec(`${degitPath} -v tiged/tiged-test-repo .tmp/test-repo`);
-			compare(`.tmp/test-repo`, {
+		it('allows flags wherever', async ({ task }) => {
+			const sanitizedPath = convertSpecialCharsToHyphens(task.name);
+			await exec(
+				`${degitPath} -v tiged/tiged-test-repo .tmp/test-repo-${sanitizedPath}`
+			);
+			compare(`.tmp/test-repo-${sanitizedPath}`, {
 				'file.txt': 'hello from github!',
 				subdir: null,
 				'subdir/file.txt': 'hello from a subdirectory!'
@@ -201,12 +209,13 @@ describe.sequential(degit, { timeout }, () => {
 	});
 
 	describe('api', () => {
-		it('is usable from node scripts', async () => {
+		it('is usable from node scripts', async ({ task }) => {
+			const sanitizedPath = convertSpecialCharsToHyphens(task.name);
 			await degit('tiged/tiged-test-repo', { force: true }).clone(
-				'.tmp/test-repo'
+				`.tmp/test-repo-${sanitizedPath}`
 			);
 
-			compare(`.tmp/test-repo`, {
+			compare(`.tmp/test-repo-${sanitizedPath}`, {
 				'file.txt': 'hello from github!',
 				subdir: null,
 				'subdir/file.txt': 'hello from a subdirectory!'
@@ -215,27 +224,32 @@ describe.sequential(degit, { timeout }, () => {
 	});
 
 	describe('actions', () => {
-		it('removes specified file', async () => {
+		it('removes specified file', async ({ task }) => {
+			const sanitizedPath = convertSpecialCharsToHyphens(task.name);
 			await exec(
-				`${degitPath} -v tiged/tiged-test-repo-remove-only .tmp/test-repo`
+				`${degitPath} -v tiged/tiged-test-repo-remove-only .tmp/test-repo-${sanitizedPath}`
 			);
-			compare(`.tmp/test-repo`, {});
+			compare(`.tmp/test-repo-${sanitizedPath}`, {});
 		});
 
-		it('clones repo and removes specified file', async () => {
-			await exec(`${degitPath} -v tiged/tiged-test-repo-remove .tmp/test-repo`);
-			compare(`.tmp/test-repo`, {
+		it('clones repo and removes specified file', async ({ task }) => {
+			const sanitizedPath = convertSpecialCharsToHyphens(task.name);
+			await exec(
+				`${degitPath} -v tiged/tiged-test-repo-remove .tmp/test-repo-${sanitizedPath}`
+			);
+			compare(`.tmp/test-repo-${sanitizedPath}`, {
 				'other.txt': 'hello from github!',
 				subdir: null,
 				'subdir/file.txt': 'hello from a subdirectory!'
 			});
 		});
 
-		it('removes and adds nested files', async () => {
+		it('removes and adds nested files', async ({ task }) => {
+			const sanitizedPath = convertSpecialCharsToHyphens(task.name);
 			await exec(
-				`${degitPath} -v tiged/tiged-test-repo-nested-actions .tmp/test-repo`
+				`${degitPath} -v tiged/tiged-test-repo-nested-actions .tmp/test-repo-${sanitizedPath}`
 			);
-			compare(`.tmp/test-repo`, {
+			compare(`.tmp/test-repo-${sanitizedPath}`, {
 				dir: null,
 				folder: null,
 				subdir: null,
@@ -247,21 +261,27 @@ describe.sequential(degit, { timeout }, () => {
 	});
 
 	describe('git mode old hash', () => {
-		it('is able to clone correctly using git mode with old hash', async () => {
+		it('is able to clone correctly using git mode with old hash', async ({
+			task
+		}) => {
+			const sanitizedPath = convertSpecialCharsToHyphens(task.name);
 			await exec(
-				`${degitPath} --mode=git https://github.com/tiged/tiged-test#525e8fef2c6b5e261511adc55f410d83ca5d8256 .tmp/test-repo`
+				`${degitPath} --mode=git https://github.com/tiged/tiged-test#525e8fef2c6b5e261511adc55f410d83ca5d8256 .tmp/test-repo-${sanitizedPath}`
 			);
-			compare(`.tmp/test-repo`, {
+			compare(`.tmp/test-repo-${sanitizedPath}`, {
 				subdir: false,
 				'README.md': `# tiged-test\nFor testing`,
 				'subdir/file': 'Hello, champ!'
 			});
 		});
-		it('is able to clone subdir correctly using git mode with old hash', async () => {
+		it('is able to clone subdir correctly using git mode with old hash', async ({
+			task
+		}) => {
+			const sanitizedPath = convertSpecialCharsToHyphens(task.name);
 			await exec(
-				`${degitPath} --mode=git https://github.com/tiged/tiged-test.git/subdir#b09755bc4cca3d3b398fbe5e411daeae79869581 .tmp/test-repo`
+				`${degitPath} --mode=git https://github.com/tiged/tiged-test.git/subdir#b09755bc4cca3d3b398fbe5e411daeae79869581 .tmp/test-repo-${sanitizedPath}`
 			);
-			compare(`.tmp/test-repo`, {
+			compare(`.tmp/test-repo-${sanitizedPath}`, {
 				file: 'Hello, champ!'
 			});
 		});
