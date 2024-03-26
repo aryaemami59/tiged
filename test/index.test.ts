@@ -8,7 +8,7 @@ import degit from 'tiged';
 import glob from 'tiny-glob/sync';
 
 const exec = promisify(child_process.exec);
-const degitPath = process.env.CI ? 'tiged' : path.resolve('dist/bin.mjs');
+const degitPath = process.env.CI ? 'tiged' : `node ${path.resolve('dist/bin.mjs')}`;
 
 const timeout = 30_000;
 
@@ -57,7 +57,7 @@ describe.sequential(degit, { timeout }, () => {
 			'git@github.com:tiged/tiged-test-repo',
 			'https://github.com/tiged/tiged-test-repo.git'
 		])('%s', async src => {
-			await exec(`node ${degitPath} ${src} .tmp/test-repo -v`);
+			await exec(`${degitPath} ${src} .tmp/test-repo -v`);
 			compare(`.tmp/test-repo`, {
 				'file.txt': 'hello from github!',
 				subdir: null,
@@ -72,7 +72,7 @@ describe.sequential(degit, { timeout }, () => {
 			'git@gitlab.com:nake89/tiged-test-repo',
 			'https://gitlab.com/nake89/tiged-test-repo.git'
 		])('%s', async src => {
-			await exec(`node ${degitPath} ${src} .tmp/test-repo -v`);
+			await exec(`${degitPath} ${src} .tmp/test-repo -v`);
 			compare(`.tmp/test-repo`, {
 				'file.txt': 'hello from gitlab!'
 			});
@@ -83,7 +83,7 @@ describe.sequential(degit, { timeout }, () => {
 		it.each([
 			'https://gitlab.com/group-test-repo/subgroup-test-repo/test-repo'
 		])('%s', async src => {
-			await exec(`node ${degitPath} --subgroup ${src} .tmp/test-repo -v`);
+			await exec(`${degitPath} --subgroup ${src} .tmp/test-repo -v`);
 			compare(`.tmp/test-repo`, {
 				'main.tf': 'Subgroup test',
 				subdir1: null,
@@ -98,7 +98,7 @@ describe.sequential(degit, { timeout }, () => {
 			'https://gitlab.com/group-test-repo/subgroup-test-repo/test-repo'
 		])('%s', async src => {
 			await exec(
-				`node ${degitPath} --subgroup ${src} --sub-directory subdir1 .tmp/test-repo -v`
+				`${degitPath} --subgroup ${src} --sub-directory subdir1 .tmp/test-repo -v`
 			);
 			compare(`.tmp/test-repo`, {
 				subdir2: null,
@@ -110,7 +110,7 @@ describe.sequential(degit, { timeout }, () => {
 			'https://gitlab.com/group-test-repo/subgroup-test-repo/test-repo'
 		])('%s', async src => {
 			await exec(
-				`node ${degitPath} --subgroup ${src} --sub-directory subdir1/subdir2 .tmp/test-repo -v`
+				`${degitPath} --subgroup ${src} --sub-directory subdir1/subdir2 .tmp/test-repo -v`
 			);
 			compare(`.tmp/test-repo`, {
 				'file.txt': "I'm a file."
@@ -124,7 +124,7 @@ describe.sequential(degit, { timeout }, () => {
 			'git@bitbucket.org:nake89/tiged-test-repo',
 			'https://bitbucket.org/nake89/tiged-test-repo.git'
 		])('%s', async src => {
-			await exec(`node ${degitPath} ${src} .tmp/test-repo -v`);
+			await exec(`${degitPath} ${src} .tmp/test-repo -v`);
 			compare(`.tmp/test-repo`, {
 				'file.txt': 'hello from bitbucket'
 			});
@@ -137,7 +137,7 @@ describe.sequential(degit, { timeout }, () => {
 			'https://git.sr.ht/~satotake/degit-test-repo',
 			'git@git.sr.ht:~satotake/degit-test-repo'
 		])('%s', async src => {
-			await exec(`node ${degitPath} ${src} .tmp/test-repo -v`);
+			await exec(`${degitPath} ${src} .tmp/test-repo -v`);
 			compare(`.tmp/test-repo`, {
 				'file.txt': 'hello from sourcehut!'
 			});
@@ -150,7 +150,7 @@ describe.sequential(degit, { timeout }, () => {
 			'git@huggingface.co:severo/degit-test-repo',
 			'https://huggingface.co/severo/degit-test-repo.git'
 		])('%s', async src => {
-			await exec(`node ${degitPath} ${src} .tmp/test-repo -v`);
+			await exec(`${degitPath} ${src} .tmp/test-repo -v`);
 			compare(`.tmp/test-repo`, {
 				'file.txt': 'hello from Hugging Face',
 				subdir: null,
@@ -166,7 +166,7 @@ describe.sequential(degit, { timeout }, () => {
 			'git@github.com:tiged/tiged-test-repo/subdir',
 			'https://github.com/tiged/tiged-test-repo.git/subdir'
 		])('%s', async src => {
-			await exec(`node ${degitPath} ${src} .tmp/test-repo -v`);
+			await exec(`${degitPath} ${src} .tmp/test-repo -v`);
 			compare(`.tmp/test-repo`, {
 				'file.txt': 'hello from a subdirectory!'
 			});
@@ -178,18 +178,18 @@ describe.sequential(degit, { timeout }, () => {
 			await fs.mkdir(path.join('.tmp/test-repo'), { recursive: true });
 			await exec(`echo "not empty" > .tmp/test-repo/file.txt`);
 			await expect(() =>
-				exec(`node ${degitPath} tiged/tiged-test-repo .tmp/test-repo -v`)
+				exec(`${degitPath} tiged/tiged-test-repo .tmp/test-repo -v`)
 			).rejects.toThrowError(/destination directory is not empty/);
 		});
 
 		it('succeeds with --force', async () => {
-			await exec(`node ${degitPath} tiged/tiged-test-repo .tmp/test-repo -fv`);
+			await exec(`${degitPath} tiged/tiged-test-repo .tmp/test-repo -fv`);
 		});
 	});
 
 	describe('command line arguments', () => {
 		it('allows flags wherever', async () => {
-			await exec(`node ${degitPath} -v tiged/tiged-test-repo .tmp/test-repo`);
+			await exec(`${degitPath} -v tiged/tiged-test-repo .tmp/test-repo`);
 			compare(`.tmp/test-repo`, {
 				'file.txt': 'hello from github!',
 				subdir: null,
@@ -215,14 +215,14 @@ describe.sequential(degit, { timeout }, () => {
 	describe('actions', () => {
 		it('removes specified file', async () => {
 			await exec(
-				`node ${degitPath} -v tiged/tiged-test-repo-remove-only .tmp/test-repo`
+				`${degitPath} -v tiged/tiged-test-repo-remove-only .tmp/test-repo`
 			);
 			compare(`.tmp/test-repo`, {});
 		});
 
 		it('clones repo and removes specified file', async () => {
 			await exec(
-				`node ${degitPath} -v tiged/tiged-test-repo-remove .tmp/test-repo`
+				`${degitPath} -v tiged/tiged-test-repo-remove .tmp/test-repo`
 			);
 			compare(`.tmp/test-repo`, {
 				'other.txt': 'hello from github!',
@@ -233,7 +233,7 @@ describe.sequential(degit, { timeout }, () => {
 
 		it('removes and adds nested files', async () => {
 			await exec(
-				`node ${degitPath} -v tiged/tiged-test-repo-nested-actions .tmp/test-repo`
+				`${degitPath} -v tiged/tiged-test-repo-nested-actions .tmp/test-repo`
 			);
 			compare(`.tmp/test-repo`, {
 				dir: null,
@@ -249,7 +249,7 @@ describe.sequential(degit, { timeout }, () => {
 	describe('git mode old hash', () => {
 		it('is able to clone correctly using git mode with old hash', async () => {
 			await exec(
-				`node ${degitPath} --mode=git https://github.com/tiged/tiged-test#525e8fef2c6b5e261511adc55f410d83ca5d8256 .tmp/test-repo`
+				`${degitPath} --mode=git https://github.com/tiged/tiged-test#525e8fef2c6b5e261511adc55f410d83ca5d8256 .tmp/test-repo`
 			);
 			compare(`.tmp/test-repo`, {
 				subdir: false,
@@ -259,7 +259,7 @@ describe.sequential(degit, { timeout }, () => {
 		});
 		it('is able to clone subdir correctly using git mode with old hash', async () => {
 			await exec(
-				`node ${degitPath} --mode=git https://github.com/tiged/tiged-test.git/subdir#b09755bc4cca3d3b398fbe5e411daeae79869581 .tmp/test-repo`
+				`${degitPath} --mode=git https://github.com/tiged/tiged-test.git/subdir#b09755bc4cca3d3b398fbe5e411daeae79869581 .tmp/test-repo`
 			);
 			compare(`.tmp/test-repo`, {
 				file: 'Hello, champ!'
@@ -271,7 +271,7 @@ describe.sequential(degit, { timeout }, () => {
 		it('is able to clone correctly using git mode', async () => {
 			await rimraf('.tmp');
 			await exec(
-				`node ${degitPath} --mode=git https://github.com/Rich-Harris/degit-test-repo-private.git .tmp/test-repo`
+				`${degitPath} --mode=git https://github.com/Rich-Harris/degit-test-repo-private.git .tmp/test-repo`
 			);
 			compare('.tmp/test-repo', {
 				'file.txt': 'hello from a private repo!'
