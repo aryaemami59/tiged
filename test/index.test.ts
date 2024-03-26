@@ -8,7 +8,9 @@ import degit from 'tiged';
 import glob from 'tiny-glob/sync';
 
 const exec = promisify(child_process.exec);
-const degitPath = process.env.CI ? 'tiged' : `node ${path.resolve('dist/bin.mjs')}`;
+const degitPath = process.env.CI
+	? 'tiged'
+	: `node ${path.resolve('dist/bin.mjs')}`;
 
 const timeout = 30_000;
 
@@ -221,9 +223,7 @@ describe.sequential(degit, { timeout }, () => {
 		});
 
 		it('clones repo and removes specified file', async () => {
-			await exec(
-				`${degitPath} -v tiged/tiged-test-repo-remove .tmp/test-repo`
-			);
+			await exec(`${degitPath} -v tiged/tiged-test-repo-remove .tmp/test-repo`);
 			compare(`.tmp/test-repo`, {
 				'other.txt': 'hello from github!',
 				subdir: null,
