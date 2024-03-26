@@ -22,8 +22,11 @@ jobs:
       - name: Lint files
         run: npm run lint
 
-      - name: Are files formatted
+      - name: Check formatting
         run: npm run format:check
+
+      - name: Test types
+        run: npm run test-types
 
       - name: Did we fail?
         if: failure()
