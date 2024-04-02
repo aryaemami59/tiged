@@ -61,7 +61,8 @@ jobs:
 
       - name: Pack
         id: pack
-        run: echo "tarball=$(npm pack | tail -n1)" >> $GITHUB_OUTPUT
+        run: |
+          echo "tarball=$(npm pack | tail -n1)" >> $GITHUB_OUTPUT
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
