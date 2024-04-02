@@ -98,7 +98,7 @@ jobs:
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
-        id: artifact-upload-step
+        id: artifact-upload
         with:
           name: artifact
           path: ./*.tgz
