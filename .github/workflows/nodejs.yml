@@ -82,7 +82,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node-version: [18.x, 20.x]
+        node-version: [18.x, 20.x, lts]
         os: [windows-latest, ubuntu-latest, macos-latest]
 
     steps:
