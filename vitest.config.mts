@@ -5,7 +5,6 @@ export default defineConfig({
 	plugins: [tsconfigPaths({ projects: ['./tsconfig.json'] })],
 	test: {
 		watch: false,
-		allowOnly: true,
 		globals: true
 	},
 	define: { 'import.meta.vitest': 'undefined' }
