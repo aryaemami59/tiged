@@ -135,7 +135,7 @@ describe.concurrent(degit, { timeout }, () => {
 		});
 	});
 
-	describe('Sourcehut', () => {
+	describe.concurrent('Sourcehut', () => {
 		it.each([
 			'git.sr.ht/~satotake/degit-test-repo',
 			'https://git.sr.ht/~satotake/degit-test-repo',
