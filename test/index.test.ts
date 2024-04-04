@@ -16,7 +16,7 @@ const timeout = 30_000;
 const convertSpecialCharsToHyphens = (str: string) =>
 	str.replace(/[^a-zA-Z0-9]+/g, '-');
 
-describe(degit, { timeout }, () => {
+describe.concurrent(degit, { timeout }, () => {
 	beforeAll(async () => {
 		await rimraf('.tmp');
 	});
@@ -180,7 +180,7 @@ describe(degit, { timeout }, () => {
 		});
 	});
 
-	describe('non-empty directories', () => {
+	describe.sequential('non-empty directories', () => {
 		it('fails without --force', async () => {
 			await fs.mkdir(path.join('.tmp/test-repo'), { recursive: true });
 			await exec(`echo "not empty" > .tmp/test-repo/file.txt`);
