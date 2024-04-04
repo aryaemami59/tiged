@@ -9,11 +9,7 @@ jobs:
     strategy:
       matrix:
         job:
-          [
-            { command: lint, description: Lint files },
-            { command: format:check, description: Check formatting },
-            { command: test-types, description: Test types }
-          ]
+          [{ command: lint, description: Lint files },{ command: format:check, description: Check formatting },{ command: test-types, description: Test types }]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
