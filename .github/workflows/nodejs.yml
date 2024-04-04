@@ -4,8 +4,16 @@ on: [push, pull_request]
 
 jobs:
   lint:
-    name: Lint files
+    name: Lint, format and test types
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        job:
+          [
+            { command: lint, description: Lint files },
+            { command: format:check, description: Check formatting },
+            { command: test-types, description: Test types }
+          ]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -20,50 +28,8 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Lint files
-        run: npm run lint
-
-  check-formatting:
-    name: Check formatting
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20.x
-          check-latest: true
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Check formatting
-        run: npm run format:check
-
-  test-types:
-    name: Test types
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20.x
-          check-latest: true
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Test types
-        run: npm run test-types
+      - name: ${{ matrix.job.description }}
+        run: npm run ${{ matrix.job.command }}
 
   build:
     runs-on: ${{ matrix.os }}
