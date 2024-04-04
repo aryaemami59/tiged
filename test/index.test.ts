@@ -8,7 +8,7 @@ import glob from 'tiny-glob/sync';
 
 const exec = promisify(child_process.exec);
 const degitPath = process.env.CI
-	? 'tiged'
+	? 'tiged -D'
 	: `node --import=tsx ${path.resolve('src/bin.ts')}`;
 
 const timeout = 30_000;
