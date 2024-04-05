@@ -1,5 +1,6 @@
 import child_process from 'node:child_process';
 import fs from 'node:fs/promises';
+import { homedir } from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { rimraf } from 'rimraf';
@@ -9,9 +10,11 @@ import glob from 'tiny-glob/sync';
 const exec = promisify(child_process.exec);
 const degitPath = process.env.CI
 	? 'tiged -D'
-	: `node --import=tsx ${path.resolve('src/bin.ts')}`;
+	: `node --import=tsx ${path.resolve('src/bin.ts')} -D`;
 
 const timeout = 30_000;
+
+const cacheFolder = path.join(homedir(), '.degit');
 
 const convertSpecialCharsToHyphens = (str: string) =>
 	str.replace(/[^a-zA-Z0-9]+/g, '-');
@@ -20,6 +23,13 @@ describe.concurrent(degit, { timeout }, () => {
 	beforeAll(async () => {
 		await rimraf('.tmp');
 	});
+
+	// beforeEach(async () => {
+	// 	await rimraf(cacheFolder);
+	// 	return async () => {
+	// 		await rimraf(cacheFolder);
+	// 	};
+	// });
 
 	afterAll(async () => {
 		await rimraf('.tmp');
@@ -181,16 +191,24 @@ describe.concurrent(degit, { timeout }, () => {
 	});
 
 	describe.sequential('non-empty directories', () => {
-		it('fails without --force', async () => {
-			await fs.mkdir(path.join('.tmp/test-repo'), { recursive: true });
-			await exec(`echo "not empty" > .tmp/test-repo/file.txt`);
+		let sanitizedPath: string;
+		it('fails without --force', async ({ task }) => {
+			sanitizedPath = convertSpecialCharsToHyphens(task.name);
+			await fs.mkdir(path.join(`.tmp/test-repo-${sanitizedPath}`), {
+				recursive: true
+			});
+			await exec(`echo "not empty" > .tmp/test-repo-${sanitizedPath}/file.txt`);
 			await expect(() =>
-				exec(`${degitPath} tiged/tiged-test-repo .tmp/test-repo -v`)
+				exec(
+					`${degitPath} tiged/tiged-test-repo .tmp/test-repo-${sanitizedPath} -v`
+				)
 			).rejects.toThrowError(/destination directory is not empty/);
 		});
 
 		it('succeeds with --force', async () => {
-			await exec(`${degitPath} tiged/tiged-test-repo .tmp/test-repo -fv`);
+			await exec(
+				`${degitPath} tiged/tiged-test-repo .tmp/test-repo-${sanitizedPath} -fv`
+			);
 		});
 	});
 
