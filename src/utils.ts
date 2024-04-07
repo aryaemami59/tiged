@@ -1,5 +1,5 @@
 import fs from 'fs-extra';
-import { HttpsProxyAgent } from 'https-proxy-agent';
+import * as httpsProxyAgent from 'https-proxy-agent';
 import child_process from 'node:child_process';
 import { createWriteStream } from 'node:fs';
 import https from 'node:https';
@@ -9,6 +9,8 @@ import { homedir, tmpdir } from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { rimraf } from 'rimraf';
+
+const { HttpsProxyAgent } = httpsProxyAgent;
 
 const tmpDirName = 'tmp';
 
