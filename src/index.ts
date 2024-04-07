@@ -1008,4 +1008,8 @@ async function updateCache(
 	);
 }
 
+declare namespace degit {
+	export type { Options, Repo };
+}
+
 export default degit;
