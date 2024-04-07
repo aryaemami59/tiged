@@ -333,7 +333,8 @@ describe(degit, { timeout }, () => {
 
 	describe('git mode old hash', () => {
 		it('is able to clone correctly using git mode with old hash', async ({
-			task
+			task,
+			expect
 		}) => {
 			const sanitizedPath = convertSpecialCharsToHyphens(task.name);
 			await exec(
@@ -346,7 +347,8 @@ describe(degit, { timeout }, () => {
 			});
 		});
 		it('is able to clone subdir correctly using git mode with old hash', async ({
-			task
+			task,
+			expect
 		}) => {
 			const sanitizedPath = convertSpecialCharsToHyphens(task.name);
 			await exec(
