@@ -35,7 +35,7 @@ export default defineConfig(options => {
 				};
 			}
 		},
-		{ ...commonOptions, entry: ['src/bin.ts'], external: ['./index'] }
+		{ ...commonOptions, entry: ['src/bin.ts'], external: ['tiged'] }
 	];
 });
 
