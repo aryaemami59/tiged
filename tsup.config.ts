@@ -25,14 +25,12 @@ export default defineConfig(options => {
 			dts: { footer: 'export = degit' },
 			entry: ['src/index.ts'],
 			// https://github.com/egoist/tsup/issues/572
-			esbuildOptions(options) {
-				options.footer = {
-					js: `if (module.exports.default) {
-  Object.assign(module.exports.default, module.exports);
-  module.exports = module.exports.default;
-  delete module.exports.default;
+			footer: {
+				js: `if (module.exports.default) {
+Object.assign(module.exports.default, module.exports);
+module.exports = module.exports.default;
+delete module.exports.default;
 }`
-				};
 			}
 		},
 		{ ...commonOptions, entry: ['src/bin.ts'], external: ['tiged'] }
