@@ -294,7 +294,7 @@ describe(degit, { timeout }, () => {
 		});
 	});
 
-	describe('actions', () => {
+	describe.concurrent('actions', () => {
 		it('removes specified file', async ({ task, expect }) => {
 			const sanitizedPath = convertSpecialCharsToHyphens(task.name);
 			await exec(
