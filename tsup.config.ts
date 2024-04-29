@@ -9,6 +9,7 @@ export default defineConfig(options => {
 		format: ['cjs', 'esm'],
 		tsconfig: path.resolve('tsconfig.build.json'),
 		sourcemap: true,
+		shims: true,
 		...options
 	};
 
@@ -27,9 +28,9 @@ export default defineConfig(options => {
 			// https://github.com/egoist/tsup/issues/572
 			footer: {
 				js: `if (module.exports.default) {
-Object.assign(module.exports.default, module.exports);
-module.exports = module.exports.default;
-delete module.exports.default;
+  Object.assign(module.exports.default, module.exports);
+  module.exports = module.exports.default;
+  delete module.exports.default;
 }`
 			}
 		},
