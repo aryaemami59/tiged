@@ -122,7 +122,7 @@ type InfoCode =
 /**
  * Represents information about a specific entity.
  */
-interface Info {
+export interface Info {
 	/**
 	 * The code associated with the entity.
 	 */
