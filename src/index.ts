@@ -167,7 +167,7 @@ interface Action {
 /**
  * Represents a Tiged action for cloning.
  */
-interface TigedAction extends Action {
+export interface TigedAction extends Action {
 	/**
 	 * The type of action, which is always `'clone'`.
 	 */
