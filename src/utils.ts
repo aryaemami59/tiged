@@ -1,5 +1,5 @@
 import fs from 'fs-extra';
-import * as httpsProxyAgent from 'https-proxy-agent';
+import { HttpsProxyAgent } from 'https-proxy-agent';
 import child_process from 'node:child_process';
 import { createWriteStream } from 'node:fs';
 import https from 'node:https';
@@ -9,35 +9,37 @@ import { homedir, tmpdir } from 'node:os';
 import path from 'node:path';
 import { rimraf } from 'rimraf';
 
-const { HttpsProxyAgent } = httpsProxyAgent;
-
 const tmpDirName = 'tmp';
 
-export const degitConfigName = 'degit.json';
+export const tigedConfigName = 'degit.json';
 
-const homeOrTmp = homedir() || tmpdir();
+const getHomeOrTmp = () => homedir() || tmpdir();
+
+const homeOrTmp = /* @__PURE__ */ getHomeOrTmp();
 
 /**
- * Represents the possible error codes for the Degit utility.
+ * Represents the possible error codes for the Tiged utility.
  */
-export type DegitErrorCode =
+export type TigedErrorCode =
 	| 'DEST_NOT_EMPTY'
 	| 'MISSING_REF'
+	| 'MISSING_GIT'
 	| 'COULD_NOT_DOWNLOAD'
 	| 'BAD_SRC'
 	| 'UNSUPPORTED_HOST'
 	| 'BAD_REF'
 	| 'COULD_NOT_FETCH'
+	| 'NO_FILES'
 	| keyof typeof constants.errno;
 
 /**
- * Represents the options for a Degit error.
+ * Represents the options for a Tiged error.
  */
-interface DegitErrorOptions extends ErrorOptions {
+interface TigedErrorOptions extends ErrorOptions {
 	/**
 	 * The error code associated with the error.
 	 */
-	code?: DegitErrorCode;
+	code?: TigedErrorCode;
 
 	/**
 	 * The original error that caused this error.
@@ -45,7 +47,7 @@ interface DegitErrorOptions extends ErrorOptions {
 	original?: Error;
 
 	/**
-	 * The reference (e.g., branch, tag, commit) that was being degitted.
+	 * The reference (e.g., branch, tag, commit) that was being targeted.
 	 */
 	ref?: string;
 
@@ -56,38 +58,38 @@ interface DegitErrorOptions extends ErrorOptions {
 }
 
 /**
- * Represents an error that occurs during the degit process.
+ * Represents an error that occurs during the tiged process.
  *
  * @extends Error
  */
-export class DegitError extends Error {
+export class TigedError extends Error {
 	/**
 	 * The error code associated with the error.
 	 */
-	public declare code?: DegitErrorOptions['code'];
+	public declare code?: TigedErrorOptions['code'];
 
 	/**
 	 * The original error that caused this error.
 	 */
-	public declare original?: DegitErrorOptions['original'];
+	public declare original?: TigedErrorOptions['original'];
 
 	/**
-	 * The reference (e.g., branch, tag, commit) that was being degitted.
+	 * The reference (e.g., branch, tag, commit) that was being targeted.
 	 */
-	public declare ref?: DegitErrorOptions['ref'];
+	public declare ref?: TigedErrorOptions['ref'];
 
 	/**
 	 * The URL associated with the error.
 	 */
-	public declare url?: DegitErrorOptions['url'];
+	public declare url?: TigedErrorOptions['url'];
 
 	/**
-	 * Creates a new instance of DegitError.
+	 * Creates a new instance of {@linkcode TigedError}.
 	 *
 	 * @param message - The error message.
 	 * @param opts - Additional options for the error.
 	 */
-	constructor(message?: string, opts?: DegitErrorOptions) {
+	constructor(message?: string, opts?: TigedErrorOptions) {
 		super(message);
 		Object.assign(this, opts);
 	}
@@ -258,7 +260,7 @@ export async function unstashFiles(dir: string, dest: string) {
 			await fs.copy(tmpFile, targetPath);
 			await rimraf(tmpFile);
 		} else {
-			if (filename !== 'degit.json') {
+			if (filename !== tigedConfigName) {
 				await fs.copy(tmpFile, targetPath);
 			}
 			await fs.unlink(tmpFile);
@@ -267,4 +269,4 @@ export async function unstashFiles(dir: string, dest: string) {
 	await rimraf(tmpDir);
 }
 
-export const base = path.join(homeOrTmp, '.degit');
+export const base = /* @__PURE__ */ path.join(homeOrTmp, '.degit');

@@ -1,4 +1,4 @@
-> Awesome fork of [degit](https://github.com/Rich-Harris/degit). **Join our [discord](https://discord.com/channels/1209082619984224277/1209082619984224280)**
+> Awesome fork of [degit](https://github.com/Rich-Harris/degit). **Please join our [discord](https://discord.gg/bNHqU797ee) <- new fixed link.**
 
 <div align="center">
 
@@ -42,7 +42,7 @@ tiged git@github.com:user/repo
 tiged https://github.com/user/repo
 ```
 
-Or you can download from GitLab and BitBucket:
+Or you can download from GitLab, BitBucket, Sourcehut, Hugging Face, and Codeberg:
 
 ```bash
 # download from GitLab
@@ -64,6 +64,11 @@ tiged https://git.sr.ht/user/repo
 tiged huggingface:user/repo
 tiged git@huggingface.co:user/repo
 tiged https://huggingface.co/user/repo
+
+# download from Codeberg
+tiged codeberg:user/repo
+tiged git@codeberg.org:user/repo
+tiged https://codeberg.org/user/repo
 ```
 
 ### Specify a tag, branch or commit
@@ -220,6 +225,9 @@ Remove a file at the specified path.
 - Option to not use cache [#36](https://github.com/tiged/tiged/issue/36)
 
 #### It might be time to move on.
+
+## Special Thanks
+
 
 ## See also
 

@@ -58,31 +58,32 @@
 		"fuzzysearch": "1.0.3",
 		"https-proxy-agent": "7.0.4",
 		"mri": "1.2.0",
-		"rimraf": "5.0.5",
-		"tar": "7.0.1",
+		"rimraf": "5.0.7",
+		"tar": "7.4.0",
 		"tiny-glob": "0.2.9"
 	},
 	"devDependencies": {
-		"@eslint/js": "9.1.1",
+		"@eslint/js": "9.5.0",
 		"@types/eslint__js": "8.42.3",
 		"@types/eslint-config-prettier": "6.11.3",
 		"@types/fs-extra": "11.0.4",
 		"@types/fuzzysearch": "1.0.2",
-		"@types/node": "20.12.7",
+		"@types/node": "20.14.6",
 		"del-cli": "3.0.1",
 		"eslint": "8.57.0",
 		"eslint-config-prettier": "9.1.0",
 		"eslint-plugin-import": "2.29.1",
 		"husky": "9.0.11",
 		"lint-staged": "15.2.2",
-		"prettier": "3.2.5",
-		"tsup": "8.0.2",
-		"tsx": "4.7.2",
+		"prettier": "3.3.2",
+		"tsup": "8.1.0",
+		"tsx": "4.15.6",
 		"typescript": "5.4.5",
-		"typescript-eslint": "7.8.0",
+		"typescript-eslint": "7.13.1",
 		"vite-tsconfig-paths": "4.3.2",
-		"vitest": "1.5.2"
+		"vitest": "1.6.0"
 	},
+	"sideEffects": false,
 	"files": [
 		"src",
 		"dist",
@@ -98,7 +99,7 @@
 			"eslint --fix",
 			"git add"
 		],
-		"*.{js, json, yml, md}": [
+		"*.{ts, js, json, yml, md}": [
 			"prettier --write",
 			"git add"
 		]

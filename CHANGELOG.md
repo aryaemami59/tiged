@@ -1,5 +1,23 @@
 # tiged changelog
 
+## 3.0.0
+
+- Renames degit references to tiged ([#102](https://github.com/tiged/tiged/pull/102))
+
+- Breaking changes:
+
+  - Change default export to a named export ([#101](https://github.com/tiged/tiged/pull/101))
+
+- Migrate codebase to TypeScript ([#89](https://github.com/tiged/tiged/pull/89)):
+  - Replace mocha with Vitest as it has better ESM and TypeScript support.
+  - Use `tsup` to output both CJS and ESM entry points.
+  - Replace rollup and other rollup related dev dependencies with tsup.
+  - Migrate ESLint to use the new flat config.
+  - Add JSDocs to everything to make sure the entirety of both the runtime code and types are well documented.
+- Added Codeberg support ([#94](https://github.com/tiged/tiged/issues/94))
+- Fixed misleading error message when git is missing. ([#91](https://github.com/tiged/tiged/issues/91))
+- Fix: Throw error if subdirectory doesn't exist ([#35](https://github.com/tiged/tiged/issues/35))
+
 ## 2.12.7
 
 - Support HTTPS_PROXY ([#86](https://github.com/tiged/tiged/issues/86))
