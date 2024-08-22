@@ -182,7 +182,7 @@ interface TigedAction extends Action {
 /**
  * Represents a remove action.
  */
-interface RemoveAction extends Action {
+export interface RemoveAction extends Action {
 	/**
 	 * The type of action, which is always `'remove'`.
 	 */
