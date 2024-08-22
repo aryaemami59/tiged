@@ -214,7 +214,7 @@ export function tiged(src: string, opts?: Options) {
  *
  * @extends EventEmitter
  */
-class Tiged extends EventEmitter {
+export class Tiged extends EventEmitter {
 	/**
 	 * Enables offline mode, where operations rely on cached data.
 	 */
