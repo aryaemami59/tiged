@@ -298,7 +298,7 @@ export class Tiged extends EventEmitter {
 	 */
 	constructor(
 		public src: string,
-		public opts: Options = {}
+		opts: Options = {}
 	) {
 		super();
 		if (opts['offline-mode']) this.offlineMode = opts['offline-mode'];
