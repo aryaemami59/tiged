@@ -8,6 +8,7 @@ Fetches the `src` repo, and extracts it to `dest` (or the current directory).
 
 The `src` argument can be any of the following:
 
+
 ## GitHub repos
 
 user/repo
