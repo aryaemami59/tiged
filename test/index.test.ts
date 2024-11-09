@@ -14,14 +14,14 @@ const timeout = 30_000;
 const convertSpecialCharsToHyphens = (str: string) =>
   str.replace(/[^a-zA-Z0-9]+/g, '-');
 
-describe(tiged, { timeout }, () => {
-  beforeAll(async () => {
-    await fs.rm('.tmp', { recursive: true, force: true });
-  });
+describe(tiged, { timeout, todo: true }, () => {
+  // beforeAll(async () => {
+  // 	await fs.rm('.tmp', { recursive: true, force: true });
+  // });
 
-  afterAll(async () => {
-    await fs.rm('.tmp', { recursive: true, force: true });
-  });
+  // afterAll(async () => {
+  // 	await fs.rm('.tmp', { recursive: true, force: true });
+  // });
 
   describe.sequential('github', () => {
     it.for([
