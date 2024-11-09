@@ -5,7 +5,13 @@ on: [push, pull_request]
 jobs:
   lint:
     name: Check lint and formatting
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [20]
+        os: [ubuntu-latest]
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -13,9 +19,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20.x
-          check-latest: true
-          cache: 'npm'
+          node-version: ${{ matrix.node-version }}
 
       - name: Install dependencies
         run: npm ci
@@ -42,8 +46,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node-version: [20.x]
-        os: [ubuntu-latest]
+        node-version: [16, 18, 20, latest]
+        os: [windows-latest, ubuntu-latest, macos-latest]
 
     steps:
       - name: Checkout repository
@@ -53,8 +57,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          check-latest: true
-          cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
@@ -68,7 +70,7 @@ jobs:
         uses: actions/upload-artifact@v4
         id: artifact-upload
         with:
-          name: artifact
+          name: artifact-${{ matrix.os }}-${{ matrix.node-version }}
           path: ./*.tgz
 
       - name: Did we fail?
@@ -82,7 +84,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node-version: [18.x, 20.x, latest]
+        node-version: [16, 18, 20, latest]
         os: [windows-latest, ubuntu-latest, macos-latest]
 
     steps:
@@ -93,15 +95,13 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          check-latest: true
-          cache: 'npm'
 
       - name: Download artifact
         id: download-artifact
         uses: actions/download-artifact@v4
         with:
           path: ./
-          name: artifact
+          name: artifact-${{ matrix.os }}-${{ matrix.node-version }}
 
       - name: Install dependencies
         run: npm ci
@@ -126,9 +126,10 @@ jobs:
     needs: [build]
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        node-version: [20.x]
-        os: [ubuntu-latest]
+        node-version: [16, 18, 20, latest]
+        os: [windows-latest, ubuntu-latest, macos-latest]
 
     steps:
       - name: Checkout repository
@@ -138,8 +139,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          check-latest: true
-          cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
@@ -149,7 +148,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: ./
-          name: artifact
+          name: artifact-${{ matrix.os }}-${{ matrix.node-version }}
 
       - name: Run are-the-types-wrong
         run: npx @arethetypeswrong/cli@latest ${{ needs.build.outputs.artifact }}
