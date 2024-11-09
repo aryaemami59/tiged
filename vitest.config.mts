@@ -28,6 +28,7 @@ const vitestConfig = defineConfig({
 
     watch: false,
     setupFiles: ['./test/vitest.setup.ts'],
+    globalSetup: ['./test/vitest-global.setup.ts'],
     globals: true,
   },
 
