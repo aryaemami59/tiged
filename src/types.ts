@@ -109,6 +109,43 @@ export type TigedOptions = {
 };
 
 /**
+ * @internal
+ * @since 3.0.0
+ */
+export type SupportedHosts = {
+  bitbucket: {
+    name: 'BitBucket';
+    topLevelDomain: '.org';
+  };
+  codeberg: {
+    name: 'Codeberg';
+    topLevelDomain: '.org';
+  };
+  'git.sr': {
+    name: 'SourceHut';
+    topLevelDomain: '.ht';
+  };
+  github: {
+    name: 'GitHub';
+    topLevelDomain: '.com';
+  };
+  gitlab: {
+    name: 'GitLab';
+    topLevelDomain: '.com';
+  };
+  huggingface: {
+    name: 'Hugging Face';
+    topLevelDomain: '.co';
+  };
+};
+
+/**
+ * @internal
+ * @since 3.0.0
+ */
+export type SupportedHostNames = NonNullable<keyof SupportedHosts>;
+
+/**
  * Represents a repository.
  *
  * @public
@@ -131,9 +168,18 @@ export type Repo = {
   /**
    * The hosting service or site for the repository (e.g., `github`, `gitlab`).
    *
+   * Possible values are:
+   *
+   * - **`'github'`**: Represents the **`GitHub`** hosting service.
+   * - **`'gitlab'`**: Represents the **`GitLab`** hosting service.
+   * - **`'bitbucket'`**: Represents the **`BitBucket`** hosting service.
+   * - **`'git.sr'`**: Represents the **`SourceHut`** hosting service.
+   * - **`'codeberg'`**: Represents the **`Codeberg`** hosting service.
+   * - **`'huggingface'`**: Represents the **`Hugging Face`** hosting service.
+   *
    * @default 'github'
    */
-  site: string;
+  site: SupportedHostNames;
 
   /**
    * The SSH URL to access the repository for Git
@@ -222,7 +268,7 @@ export type Info = {
  * @public
  * @since 3.0.0
  */
-type Action = {
+type TigedAction = {
   /**
    * The type of action.
    */
@@ -249,7 +295,7 @@ type Action = {
  * @public
  * @since 3.0.0
  */
-export type TigedAction = Action & {
+export type TigedCloneAction = TigedAction & {
   /**
    * The type of action, which is always `'clone'`.
    */
@@ -267,7 +313,7 @@ export type TigedAction = Action & {
  * @public
  * @since 3.0.0
  */
-export type RemoveAction = Action & {
+export type TigedRemoveAction = TigedAction & {
   /**
    * The type of action, which is always `'remove'`.
    */
@@ -278,6 +324,8 @@ export type RemoveAction = Action & {
    */
   files: string[];
 };
+
+export type AnyTigedAction = TigedCloneAction | TigedRemoveAction;
 
 /**
  * Represents the possible error codes for the **`Tiged`** utility.

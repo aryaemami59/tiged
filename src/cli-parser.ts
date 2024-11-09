@@ -23,7 +23,9 @@ type NormalizedOptions = {
 };
 
 const toArray = <T>(value: Arrayable<T> | undefined | null): T[] => {
-  if (value == null) return [];
+  if (value == null) {
+    return [];
+  }
   return Array.isArray(value) ? value : [value];
 };
 
@@ -70,7 +72,9 @@ const normalizeAliases = (opts: NormalizedOptions) => {
     opts.alias[key] = aliases;
     for (let i = 0; i < aliases.length; i += 1) {
       const alias = aliases[i];
-      if (!alias) continue;
+      if (!alias) {
+        continue;
+      }
       const group = aliases.concat(key);
       group.splice(i, 1);
       opts.alias[alias] = group;
@@ -112,21 +116,29 @@ export function parseCliArgs<T = Dict<unknown>>(
 
   for (let i = opts.boolean.length; i-- > 0; ) {
     const key = opts.boolean[i];
-    if (!key) continue;
+    if (!key) {
+      continue;
+    }
     const list = opts.alias[key] ?? [];
     for (let j = list.length; j-- > 0; ) {
       const alias = list[j];
-      if (alias) opts.boolean.push(alias);
+      if (alias) {
+        opts.boolean.push(alias);
+      }
     }
   }
 
   for (let i = opts.string.length; i-- > 0; ) {
     const key = opts.string[i];
-    if (!key) continue;
+    if (!key) {
+      continue;
+    }
     const list = opts.alias[key] ?? [];
     for (let j = list.length; j-- > 0; ) {
       const alias = list[j];
-      if (alias) opts.string.push(alias);
+      if (alias) {
+        opts.string.push(alias);
+      }
     }
   }
 
@@ -143,7 +155,9 @@ export function parseCliArgs<T = Dict<unknown>>(
       if (targetList) {
         targetList.push(key);
         for (const alias of list) {
-          if (alias) targetList.push(alias);
+          if (alias) {
+            targetList.push(alias);
+          }
         }
       }
     }
@@ -166,7 +180,9 @@ export function parseCliArgs<T = Dict<unknown>>(
 
     let dashCount = 0;
     for (; dashCount < arg.length; dashCount += 1) {
-      if (arg.charCodeAt(dashCount) !== 45) break;
+      if (arg.charCodeAt(dashCount) !== 45) {
+        break;
+      }
     }
 
     if (dashCount === 0) {
@@ -187,7 +203,9 @@ export function parseCliArgs<T = Dict<unknown>>(
 
     let idx = dashCount + 1;
     for (; idx < arg.length; idx += 1) {
-      if (arg.charCodeAt(idx) === 61) break;
+      if (arg.charCodeAt(idx) === 61) {
+        break;
+      }
     }
 
     let name = arg.substring(dashCount, idx);
@@ -204,7 +222,9 @@ export function parseCliArgs<T = Dict<unknown>>(
 
     for (let j = 0; j < list.length; j += 1) {
       const nextName = typeof list === 'string' ? list.charAt(j) : list[j];
-      if (!nextName) continue;
+      if (!nextName) {
+        continue;
+      }
       name = nextName;
       if (strict && !allowedKeys.includes(name)) {
         return typeof opts.unknown === 'function'
@@ -228,7 +248,9 @@ export function parseCliArgs<T = Dict<unknown>>(
       const list = opts.alias[key] ?? [];
       while (list.length > 0) {
         const alias = list.shift();
-        if (alias) out[alias] = out[key];
+        if (alias) {
+          out[alias] = out[key];
+        }
       }
     }
   }
