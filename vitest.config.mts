@@ -1,6 +1,6 @@
+import packageJson from 'tiged/package.json' with { type: 'json' };
 import tsconfigPaths from 'vite-tsconfig-paths';
 import { defineConfig } from 'vitest/config';
-import packageJson from './package.json' with { type: 'json' };
 
 const vitestConfig = defineConfig({
   plugins: [
@@ -28,6 +28,7 @@ const vitestConfig = defineConfig({
 
     watch: false,
     setupFiles: ['./test/vitest.setup.ts'],
+    globalSetup: ['./test/vitest-global.setup.ts'],
     globals: true,
   },
 
