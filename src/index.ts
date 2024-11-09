@@ -814,10 +814,11 @@ class Tiged extends EventEmitter {
    * @param dest - The destination directory.
    */
   public async _cloneWithGit(_dir: string, dest: string) {
-    let gitPath = /https:\/\//.test(this.repo.src)
-      ? this.repo.url
-      : this.repo.ssh;
-    gitPath = this.repo.site === 'huggingface' ? this.repo.url : gitPath;
+    const gitPath = this.repo.url;
+    // let gitPath = /https:\/\//.test(this.repo.src)
+    // 	? this.repo.url
+    // 	: this.repo.ssh;
+    // gitPath = this.repo.site === 'huggingface' ? this.repo.url : gitPath;
     const isWin = process.platform === 'win32';
     if (this.repo.subdir) {
       await fs.mkdir(path.join(dest, '.tiged'), { recursive: true });
