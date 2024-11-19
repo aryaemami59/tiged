@@ -2,7 +2,6 @@
 
 import { bold, cyan, magenta, red, underline } from 'colorette';
 import * as enquirer from 'enquirer';
-import fuzzysearch from 'fuzzysearch';
 import mri from 'mri';
 import fs from 'node:fs';
 import * as path from 'node:path';
@@ -10,6 +9,27 @@ import type { Options } from 'tiged';
 import { tiged } from 'tiged';
 import glob from 'tiny-glob/sync.js';
 import { base, tryRequire } from './utils';
+
+function fuzzysearch(needle: string, haystack: string) {
+	const haystackLength = haystack.length;
+	const needleLength = needle.length;
+	if (needleLength > haystackLength) {
+		return false;
+	}
+	if (needleLength === haystackLength) {
+		return needle === haystack;
+	}
+	outer: for (let i = 0, j = 0; i < needleLength; i++) {
+		const needleCharCode = needle.charCodeAt(i);
+		while (j < haystackLength) {
+			if (haystack.charCodeAt(j++) === needleCharCode) {
+				continue outer;
+			}
+		}
+		return false;
+	}
+	return true;
+}
 
 const args = mri<Options & { help?: string }>(process.argv.slice(2), {
 	alias: {
