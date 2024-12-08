@@ -6,6 +6,8 @@ import {
   runTigedCLI,
 } from './test-utils.js';
 
+const validModes = ['tar', 'git'] as const;
+
 describe('github', () => {
   const testCases = [
     'tiged/tiged-test-repo-compose',
@@ -15,68 +17,8 @@ describe('github', () => {
     'https://github.com/tiged/tiged-test-repo.git',
   ] as const;
 
-  it.for(testCases)('%s', async (src, { expect, task }) => {
-    const sanitizedPath = convertSpecialCharsToHyphens(
-      `${task.name}${task.id}`,
-    );
-
-    const outputDirectory = path.join(fixturesDirectoryName, sanitizedPath);
-
-    await expect(
-      runTigedCLI(['-v', src, outputDirectory]),
-    ).resolves.not.toThrow();
-
-    await expect(outputDirectory).toMatchFiles({
-      'file.txt': 'hello from github!',
-      subdir: null,
-      'subdir/file.txt': 'hello from a subdirectory!',
-    });
-  });
-
-  it.for(testCases)('%s with git mode', async (src, { expect, task }) => {
-    const sanitizedPath = convertSpecialCharsToHyphens(
-      `${task.name}${task.id}`,
-    );
-
-    const outputDirectory = path.join(fixturesDirectoryName, sanitizedPath);
-
-    await expect(
-      runTigedCLI(['-v', '--mode=git', src, outputDirectory]),
-    ).resolves.not.toThrow();
-
-    await expect(outputDirectory).toMatchFiles({
-      'file.txt': 'hello from github!',
-      subdir: null,
-      'subdir/file.txt': 'hello from a subdirectory!',
-    });
-  });
-});
-
-describe('gitlab', () => {
-  it.for([
-    'gitlab:nake89/tiged-test-repo',
-    'git@gitlab.com:nake89/tiged-test-repo',
-    'https://gitlab.com/nake89/tiged-test-repo.git',
-  ])('%s', async (src, { expect, task }) => {
-    const sanitizedPath = convertSpecialCharsToHyphens(
-      `${task.name}${task.id}`,
-    );
-
-    const outputDirectory = path.join(fixturesDirectoryName, sanitizedPath);
-
-    await expect(
-      runTigedCLI(['-v', src, outputDirectory]),
-    ).resolves.not.toThrow();
-
-    await expect(outputDirectory).toMatchFiles({
-      'file.txt': 'hello from gitlab!',
-    });
-  });
-
-  describe('subgroup', () => {
-    it('https://gitlab.com/group-test-repo/subgroup-test-repo/test-repo', async ({
-      task,
-    }) => {
+  describe.each(validModes)('with %s mode', mode => {
+    it.for(testCases)('%s', async (src, { expect, task }) => {
       const sanitizedPath = convertSpecialCharsToHyphens(
         `${task.name}${task.id}`,
       );
@@ -84,18 +26,41 @@ describe('gitlab', () => {
       const outputDirectory = path.join(fixturesDirectoryName, sanitizedPath);
 
       await expect(
-        runTigedCLI(['-v', '--subgroup', task.name, outputDirectory]),
+        runTigedCLI(['-v', '--mode', mode, src, outputDirectory]),
       ).resolves.not.toThrow();
 
       await expect(outputDirectory).toMatchFiles({
-        'main.tf': 'Subgroup test',
-        subdir1: null,
-        'subdir1/subdir2': null,
-        'subdir1/subdir2/file.txt': "I'm a file.",
+        'file.txt': 'hello from github!',
+        subdir: null,
+        'subdir/file.txt': 'hello from a subdirectory!',
+      });
+    });
+  });
+});
+
+describe('gitlab', () => {
+  describe.each(validModes)('with %s mode', mode => {
+    it.for([
+      'gitlab:nake89/tiged-test-repo',
+      'git@gitlab.com:nake89/tiged-test-repo',
+      'https://gitlab.com/nake89/tiged-test-repo.git',
+    ] as const)('%s', async (src, { expect, task }) => {
+      const sanitizedPath = convertSpecialCharsToHyphens(
+        `${task.name}${task.id}`,
+      );
+
+      const outputDirectory = path.join(fixturesDirectoryName, sanitizedPath);
+
+      await expect(
+        runTigedCLI(['-v', '--mode', mode, src, outputDirectory]),
+      ).resolves.not.toThrow();
+
+      await expect(outputDirectory).toMatchFiles({
+        'file.txt': 'hello from gitlab!',
       });
     });
 
-    describe('with subdir', () => {
+    describe('subgroup', () => {
       it('https://gitlab.com/group-test-repo/subgroup-test-repo/test-repo', async ({
         task,
       }) => {
@@ -108,44 +73,84 @@ describe('gitlab', () => {
         await expect(
           runTigedCLI([
             '-v',
+            '--mode',
+            mode,
             '--subgroup',
             task.name,
-            '--sub-directory',
-            'subdir1',
             outputDirectory,
           ]),
         ).resolves.not.toThrow();
 
         await expect(outputDirectory).toMatchFiles({
-          subdir2: null,
-          'subdir2/file.txt': "I'm a file.",
+          'main.tf': 'Subgroup test',
+          subdir1: null,
+          'subdir1/subdir2': null,
+          'subdir1/subdir2/file.txt': "I'm a file.",
         });
       });
-    });
 
-    describe('with nested subdir', () => {
-      it('https://gitlab.com/group-test-repo/subgroup-test-repo/test-repo', async ({
-        task,
-      }) => {
-        const sanitizedPath = convertSpecialCharsToHyphens(
-          `${task.name}${task.id}`,
-        );
+      describe('with subdir', () => {
+        it('https://gitlab.com/group-test-repo/subgroup-test-repo/test-repo', async ({
+          task,
+        }) => {
+          const sanitizedPath = convertSpecialCharsToHyphens(
+            `${task.name}${task.id}`,
+          );
 
-        const outputDirectory = path.join(fixturesDirectoryName, sanitizedPath);
+          const outputDirectory = path.join(
+            fixturesDirectoryName,
+            sanitizedPath,
+          );
 
-        await expect(
-          runTigedCLI([
-            '-v',
-            '--subgroup',
-            task.name,
-            '--sub-directory',
-            'subdir1/subdir2',
-            outputDirectory,
-          ]),
-        ).resolves.not.toThrow();
+          await expect(
+            runTigedCLI([
+              '-v',
+              '--mode',
+              mode,
+              '--subgroup',
+              task.name,
+              '--sub-directory',
+              'subdir1',
+              outputDirectory,
+            ]),
+          ).resolves.not.toThrow();
 
-        await expect(outputDirectory).toMatchFiles({
-          'file.txt': "I'm a file.",
+          await expect(outputDirectory).toMatchFiles({
+            subdir2: null,
+            'subdir2/file.txt': "I'm a file.",
+          });
+        });
+      });
+
+      describe('with nested subdir', () => {
+        it('https://gitlab.com/group-test-repo/subgroup-test-repo/test-repo', async ({
+          task,
+        }) => {
+          const sanitizedPath = convertSpecialCharsToHyphens(
+            `${task.name}${task.id}`,
+          );
+
+          const outputDirectory = path.join(
+            fixturesDirectoryName,
+            sanitizedPath,
+          );
+
+          await expect(
+            runTigedCLI([
+              '-v',
+              '--mode',
+              mode,
+              '--subgroup',
+              task.name,
+              '--sub-directory',
+              'subdir1/subdir2',
+              outputDirectory,
+            ]),
+          ).resolves.not.toThrow();
+
+          await expect(outputDirectory).toMatchFiles({
+            'file.txt': "I'm a file.",
+          });
         });
       });
     });
@@ -290,13 +295,16 @@ describe('non-empty directories', async () => {
 
   const sanitizedPath = convertSpecialCharsToHyphens('non-empty directories');
 
-  const outputDirectory = await fs.mkdtemp(
-    path.join(fixturesDirectoryName, sanitizedPath),
-    { encoding: 'utf-8' },
-  );
+  const outputDirectory = path.join(fixturesDirectoryName, sanitizedPath);
 
-  await fs.writeFile(path.join(outputDirectory, 'file.txt'), 'not empty', {
-    encoding: 'utf-8',
+  beforeAll(async () => {
+    await fs.mkdir(path.join(fixturesDirectoryName, sanitizedPath), {
+      recursive: true,
+    });
+
+    await fs.writeFile(path.join(outputDirectory, 'file.txt'), 'not empty', {
+      encoding: 'utf-8',
+    });
   });
 
   it('fails without --force', async () => {

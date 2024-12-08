@@ -821,8 +821,8 @@ class Tiged extends EventEmitter {
     // gitPath = this.repo.site === 'huggingface' ? this.repo.url : gitPath;
     const isWin = process.platform === 'win32';
     if (this.repo.subdir) {
-      await fs.mkdir(path.join(dest, '.tiged'), { recursive: true });
       const tempDir = path.join(dest, '.tiged');
+      await fs.mkdir(tempDir, { recursive: true });
       if (isWin) {
         await exec(
           `cd ${tempDir} && git init && git remote add origin ${gitPath} && git fetch --depth 1 origin ${this.repo.ref} && git checkout FETCH_HEAD`,
@@ -834,14 +834,16 @@ class Tiged extends EventEmitter {
       } else {
         await exec(`git clone --depth 1 ${gitPath} ${tempDir}`);
       }
-      const files = await fs.readdir(`${tempDir}${this.repo.subdir}`, {
-        recursive: true,
-      });
+
+      const tempSubDirectory = path.join(tempDir, this.repo.subdir);
+
+      const files = await fs.readdir(tempSubDirectory);
+
       await Promise.all(
         files.map(async file => {
           return fs.rename(
-            `${tempDir}${this.repo.subdir}/${file}`,
-            `${dest}/${file}`,
+            path.join(tempSubDirectory, file),
+            path.join(dest, file),
           );
         }),
       );
