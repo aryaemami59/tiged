@@ -26,26 +26,24 @@ import type { Options } from 'tiged';
 export const convertSpecialCharsToHyphens = (inputString: string) =>
   inputString.replace(/[^a-zA-Z0-9]+/g, '-');
 
-export const defaultCLICommand = process.env.TEST_DIST ? 'tiged' : 'node';
+const tigedPath = path.join(import.meta.dirname, '..', 'src', 'bin.ts');
+
+export const defaultCLICommand = process.env.TEST_DIST ? 'tiged' : 'tsx';
 
 export const defaultCLIArguments = process.env.TEST_DIST
   ? ['-D']
-  : [path.resolve('src/bin.ts'), '-D'];
+  : [tigedPath, '-D'];
 
 export const defaultExecFileOptions = {
   encoding: 'utf-8',
 
-  env: process.env.TEST_DIST
-    ? process.env
-    : { ...process.env, NODE_OPTIONS: '--import=tsx' },
-
   shell: true,
 } as const satisfies ExecFileOptionsWithOtherEncoding;
 
-export const defaultTigedOptions: Options = {
+export const defaultTigedOptions = {
   cache: false,
   disableCache: true,
-};
+} as const satisfies Options;
 
 export const execFile = promisify(child_process.execFile);
 
