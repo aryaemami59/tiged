@@ -19,7 +19,7 @@ import {
 
 const { bold, cyan, magenta, red } = picocolors;
 
-const validModes = new Set<ValidModes>(['tar', 'git']);
+const validModes = /* @__PURE__ */ new Set<ValidModes>(['tar', 'git']);
 
 /**
  * Represents the valid modes for a file.
@@ -1064,7 +1064,7 @@ async function updateCache(
   // update access logs
   const logs: Record<string, string> =
     tryRequire(path.join(dir, 'access.json')) || {};
-  logs[repo.ref] = new Date().toISOString();
+  logs[repo.ref] = /* @__PURE__ */ new Date().toISOString();
   await fs.writeFile(
     path.join(dir, 'access.json'),
     JSON.stringify(logs, null, '  '),

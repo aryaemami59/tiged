@@ -60,7 +60,7 @@ async function main() {
   } else if (!src) {
     // interactive mode
 
-    const accessLookup = new Map<string, number>();
+    const accessLookup = /* @__PURE__ */ new Map<string, number>();
 
     const hasCacheDir = await pathExists(base);
 
