@@ -22,7 +22,7 @@ import {
   pathExists,
   stashFiles,
   tryRequire,
-  unstashFiles,
+  unStashFiles,
 } from './utils.js';
 
 /**
@@ -280,7 +280,7 @@ export class Tiged extends EventEmitter {
         await this.directiveActions[d.action](dir, dest, d);
       }
       if (this._hasStashed === true) {
-        await unstashFiles(dir, dest);
+        await unStashFiles(dir, dest);
       }
     }
   }
