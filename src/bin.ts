@@ -1,53 +1,103 @@
 #!/usr/bin/env node
 
 import { bold, cyan, magenta, red, underline } from 'ansis';
-import * as enquirer from 'enquirer';
+import enquirer from 'enquirer';
 import fuzzysearch from 'fuzzysearch';
 import mri from 'mri';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import type { Options } from 'tiged';
-import { tiged } from 'tiged';
+import { createTiged } from 'tiged';
 import glob from 'tiny-glob/sync.js';
-import { base, pathExists, tryRequire } from './utils.js';
+import { accessLogsFileName, cacheDirectoryName } from './constants.js';
+import { pathExists, tryRequire } from './utils.js';
 
-const args = mri<Options & { help?: string }>(process.argv.slice(2), {
+const CLIArguments = mri<Options & { help?: string }>(process.argv.slice(2), {
   alias: {
     f: 'force',
-    c: 'cache',
-    o: 'offline-mode',
-    D: 'disable-cache',
+    D: ['disable-cache', 'disableCache'],
     v: 'verbose',
     m: 'mode',
     s: 'subgroup',
-    d: 'sub-directory',
+    d: ['sub-directory', 'subDirectory'],
+    h: 'help',
   },
+
   boolean: [
     'force',
-    'cache',
-    'offline-mode',
-    'disable-cache',
+    'disableCache',
     'verbose',
     'subgroup',
-  ],
+  ] as const satisfies (keyof Options)[],
+
+  string: ['mode', 'subDirectory'] as const satisfies (keyof Options)[],
 });
-const [src, dest = '.'] = args._;
+
+const [src, dest = '.'] = CLIArguments._;
+
+/**
+ * Runs the cloning process from the specified source
+ * to the destination directory.
+ *
+ * @param src - The source repository to clone from.
+ * @param dest - The destination directory where the repository will be cloned to.
+ * @param tigedOptions - Additional options for the cloning process.
+ * @returns A {@linkcode Promise | promise} that resolves when the cloning process is complete.
+ */
+async function run(
+  src: string,
+  dest: string,
+  tigedOptions: Options,
+): Promise<void> {
+  const tiged = createTiged(src, tigedOptions);
+
+  tiged.on('info', event => {
+    console.error(cyan(`> ${event.message?.replace('options.', '--')}`));
+  });
+
+  tiged.on('warn', event => {
+    console.error(magenta(`! ${event.message?.replace('options.', '--')}`));
+  });
+
+  try {
+    await tiged.clone(dest);
+  } catch (error) {
+    if (error instanceof Error) {
+      console.error(red(`! ${error.message.replace('options.', '--')}`));
+
+      process.exit(1);
+    }
+  }
+}
 
 /**
  * The main function of the application.
  * It handles the logic for displaying help,
  * interactive mode, and running the application.
  *
- * @returns A promise that resolves when the main function completes.
+ * @returns A {@linkcode Promise | promise} that resolves when the main function completes.
  */
-async function main() {
-  if (args.help) {
+async function main(): Promise<void> {
+  if (CLIArguments.help) {
     const help = (
-      await fs.readFile(path.join(__dirname, '..', 'help.md'), 'utf-8')
+      await fs.readFile(path.join(__dirname, '..', 'help.md'), {
+        encoding: 'utf-8',
+      })
     )
-      .replace(/^(\s*)#+ (.+)/gm, (m, s, _) => s + bold(_))
-      .replace(/_([^_]+)_/g, (m, _) => underline(_))
-      .replace(/`([^`]+)`/g, (m, _) => cyan(_)); //` syntax highlighter fix
+      .replace(
+        /^(\s*)#+ (.+)/gm,
+        (
+          _headerWithLeadingWhiteSpaces,
+          leadingWhiteSpaces: string,
+          header: string,
+        ) => leadingWhiteSpaces + bold(header),
+      )
+      .replace(/_([^_]+)_/g, (_tigedTitleInItalics, tigedTitle: 'tiged') =>
+        underline(tigedTitle),
+      )
+      .replace(/`([^`]+)`/g, (_inlineCode, inlineCodeContent: string) =>
+        cyan(inlineCodeContent),
+      ); //` syntax highlighter fix
 
     process.stdout.write(`\n${help}\n`);
   } else if (!src) {
@@ -55,13 +105,18 @@ async function main() {
 
     const accessLookup = /* @__PURE__ */ new Map<string, number>();
 
-    const accessJsonFiles = glob(`**/access.json`, { cwd: base });
+    const accessJsonFiles = glob(`**/${accessLogsFileName}`, {
+      cwd: cacheDirectoryName,
+    });
 
     await Promise.all(
       accessJsonFiles.map(async file => {
         const [host, user, repo] = file.split(path.sep);
 
-        const json = await fs.readFile(`${base}/${file}`, 'utf-8');
+        const json = await fs.readFile(`${cacheDirectoryName}/${file}`, {
+          encoding: 'utf-8',
+        });
+
         const logs: Record<string, string> = JSON.parse(json);
 
         Object.entries(logs).forEach(([ref, timestamp]) => {
@@ -74,7 +129,9 @@ async function main() {
     const getChoice = (file: string) => {
       const [host, user, repo] = file.split(path.sep);
 
-      const cacheLogs: Record<string, string> = tryRequire(`${base}/${file}`);
+      const cacheLogs: Record<string, string> = tryRequire(
+        `${cacheDirectoryName}/${file}`,
+      );
 
       return Object.entries(cacheLogs).map(([ref, hash]) => ({
         name: hash,
@@ -83,15 +140,15 @@ async function main() {
       }));
     };
 
-    const choices = glob(`**/map.json`, { cwd: base })
+    const choices = glob(`**/map.json`, { cwd: cacheDirectoryName })
       .map(getChoice)
       .reduce(
         (accumulator, currentValue) => accumulator.concat(currentValue),
         [],
       )
       .sort((a, b) => {
-        const aTime = accessLookup.get(a.value) || 0;
-        const bTime = accessLookup.get(b.value) || 0;
+        const aTime = accessLookup.get(a.value) ?? 0;
+        const bTime = accessLookup.get(b.value) ?? 0;
 
         return bTime - aTime;
       });
@@ -107,7 +164,7 @@ async function main() {
         suggest: (input: string, choices: { value: string }[]) =>
           choices.filter(({ value }) => fuzzysearch(input, value)),
         choices,
-      } as any,
+      } as never,
       {
         type: 'input',
         name: 'dest',
@@ -123,7 +180,7 @@ async function main() {
 
     const empty =
       !(await pathExists(options.dest)) ||
-      (await fs.readdir(options.dest)).length === 0;
+      (await fs.readdir(options.dest, { encoding: 'utf-8' })).length === 0;
 
     if (!empty) {
       const { force } = await enquirer.prompt<Options>([
@@ -140,41 +197,14 @@ async function main() {
       }
     }
 
-    await run(options.src, options.dest, {
+    const { dest, src, ...tigedOptions } = options;
+
+    await run(src, dest, {
+      ...tigedOptions,
       force: true,
-      cache: options.cache,
     });
   } else {
-    await run(src, dest, args);
-  }
-}
-
-/**
- * Runs the cloning process from the specified source
- * to the destination directory.
- *
- * @param src - The source repository to clone from.
- * @param dest - The destination directory where the repository will be cloned to.
- * @param args - Additional options for the cloning process.
- */
-async function run(src: string, dest: string, args: Options) {
-  const t = tiged(src, args);
-
-  t.on('info', event => {
-    console.error(cyan(`> ${event.message?.replace('options.', '--')}`));
-  });
-
-  t.on('warn', event => {
-    console.error(magenta(`! ${event.message?.replace('options.', '--')}`));
-  });
-
-  try {
-    await t.clone(dest);
-  } catch (err) {
-    if (err instanceof Error) {
-      console.error(red(`! ${err.message.replace('options.', '--')}`));
-      process.exit(1);
-    }
+    await run(src, dest, CLIArguments);
   }
 }
 

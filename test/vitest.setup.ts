@@ -49,7 +49,13 @@ expect.extend({
           }
           return [
             file.trim(),
-            (await fs.readFile(filePath, 'utf-8')).trim().replace('\r\n', '\n'),
+            (
+              await fs.readFile(filePath, {
+                encoding: 'utf-8',
+              })
+            )
+              .trim()
+              .replace('\r\n', '\n'),
           ] as const;
         }),
       ),
