@@ -22,7 +22,9 @@ const args = mri<Options & { help?: string }>(process.argv.slice(2), {
     m: 'mode',
     s: 'subgroup',
     d: 'sub-directory',
+    h: 'help',
   },
+
   boolean: [
     'force',
     'cache',
@@ -31,6 +33,8 @@ const args = mri<Options & { help?: string }>(process.argv.slice(2), {
     'verbose',
     'subgroup',
   ],
+
+  string: ['mode', 'sub-directory'],
 });
 const [src, dest = '.'] = args._;
 
@@ -39,16 +43,27 @@ const [src, dest = '.'] = args._;
  * It handles the logic for displaying help,
  * interactive mode, and running the application.
  *
- * @returns A promise that resolves when the main function completes.
+ * @returns A {@linkcode Promise | promise} that resolves when the main function completes.
  */
-async function main() {
+async function main(): Promise<void> {
   if (args.help) {
     const help = (
       await fs.readFile(path.join(__dirname, '..', 'help.md'), 'utf-8')
     )
-      .replace(/^(\s*)#+ (.+)/gm, (m, s, _) => s + bold(_))
-      .replace(/_([^_]+)_/g, (m, _) => underline(_))
-      .replace(/`([^`]+)`/g, (m, _) => cyan(_)); //` syntax highlighter fix
+      .replace(
+        /^(\s*)#+ (.+)/gm,
+        (
+          _headerWithLeadingWhiteSpaces,
+          leadingWhiteSpaces: string,
+          header: string,
+        ) => leadingWhiteSpaces + bold(header),
+      )
+      .replace(/_([^_]+)_/g, (_tigedTitleInItalics, tigedTitle: 'tiged') =>
+        underline(tigedTitle),
+      )
+      .replace(/`([^`]+)`/g, (_inlineCode, inlineCodeContent: string) =>
+        cyan(inlineCodeContent),
+      ); //` syntax highlighter fix
 
     process.stdout.write(`\n${help}\n`);
   } else if (!src) {
@@ -108,7 +123,7 @@ async function main() {
         suggest: (input: string, choices: { value: string }[]) =>
           choices.filter(({ value }) => fuzzysearch(input, value)),
         choices,
-      } as any,
+      } as never,
       {
         type: 'input',
         name: 'dest',
@@ -156,10 +171,15 @@ async function main() {
  *
  * @param src - The source repository to clone from.
  * @param dest - The destination directory where the repository will be cloned to.
- * @param args - Additional options for the cloning process.
+ * @param tigedOptions - Additional options for the cloning process.
+ * @returns A {@linkcode Promise | promise} that resolves when the cloning process is complete.
  */
-async function run(src: string, dest: string, args: Options) {
-  const t = tiged(src, args);
+async function run(
+  src: string,
+  dest: string,
+  tigedOptions: Options,
+): Promise<void> {
+  const t = tiged(src, tigedOptions);
 
   t.on('info', event => {
     console.error(cyan(`> ${event.message?.replace('options.', '--')}`));
@@ -171,9 +191,9 @@ async function run(src: string, dest: string, args: Options) {
 
   try {
     await t.clone(dest);
-  } catch (err) {
-    if (err instanceof Error) {
-      console.error(red(`! ${err.message.replace('options.', '--')}`));
+  } catch (error) {
+    if (error instanceof Error) {
+      console.error(red(`! ${error.message.replace('options.', '--')}`));
       process.exit(1);
     }
   }
