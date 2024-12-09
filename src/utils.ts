@@ -4,47 +4,36 @@ import * as fs from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import * as path from 'node:path';
 import { pipeline } from 'node:stream/promises';
-import { URL } from 'node:url';
 import { promisify } from 'node:util';
 import type { Dispatcher } from 'undici';
 import { ProxyAgent, request } from 'undici';
+import type { SupportedHostNames } from './constants.js';
 import {
   accessLogsFileName,
   homeOrTmpDirectoryPath,
+  stashDirectoryName,
   supportedHostNames,
   supportedHosts,
+  tigedConfigFileName,
 } from './constants.js';
 import type {
   DamerauLevenshteinResult,
   Repo,
-  SupportedHostNames,
   TigedErrorOptions,
 } from './types.js';
 
-/**
- * @internal
- * @since 3.0.0
- */
 export type AppDirs = {
   data: string;
   config: string;
   cache: string;
 };
 
-/**
- * @internal
- * @since 3.0.0
- */
 export type ResolveAppDirsOptions = {
   platform?: NodeJS.Platform;
   env?: NodeJS.ProcessEnv;
   home?: string;
 };
 
-/**
- * @internal
- * @since 3.0.0
- */
 export const resolveAppDirs = (
   appName: string,
   options: ResolveAppDirsOptions = {},
@@ -161,7 +150,7 @@ export function tryRequire(
 
     return require(filePath);
   } catch (error) {
-    return;
+    return null;
   }
 }
 
@@ -201,9 +190,7 @@ export async function downloadTarball(
   proxy?: string,
 ): Promise<void> {
   await fs.mkdir(path.dirname(tarballFilePath), { recursive: true });
-
   const dispatcher = proxy ? new ProxyAgent(proxy) : undefined;
-
   try {
     const maxRedirects = 10;
     const requestHeaders = {
@@ -215,13 +202,10 @@ export async function downloadTarball(
       if (!location) {
         return null;
       }
-
       const value = Array.isArray(location) ? location[0] : location;
-
       if (!value) {
         return null;
       }
-
       return value;
     };
 
@@ -288,47 +272,89 @@ export async function downloadTarball(
 /**
  * Stashes files from a directory to a temporary directory.
  *
- * @param stashDestinationDirectoryPath - The source directory containing the files to be stashed.
- * @param stashSourceDirectoryPath - The destination directory where the stashed files will be stored.
+ * @param dir - The source directory containing the files to be stashed.
+ * @param dest - The destination directory where the stashed files will be stored.
  * @returns A {@linkcode Promise | promise} that resolves when the stashing process is complete.
  *
  * @internal
  */
-export async function stashFiles(
-  stashDestinationDirectoryPath: string,
-  stashSourceDirectoryPath: string,
-): Promise<void> {
-  await fs.cp(stashSourceDirectoryPath, stashDestinationDirectoryPath, {
-    recursive: true,
-  });
+export async function stashFiles(dir: string, dest: string): Promise<void> {
+  const tmpDir = path.join(dir, stashDirectoryName);
 
-  await fs.rm(stashSourceDirectoryPath, {
-    force: true,
-    recursive: true,
-  });
+  try {
+    await fs.rm(tmpDir, { force: true, recursive: true });
+  } catch (error) {
+    if (
+      !(
+        error instanceof Error &&
+        'errno' in error &&
+        'syscall' in error &&
+        'code' in error
+      )
+    ) {
+      return;
+    }
+    if (
+      error.errno !== -2 &&
+      error.syscall !== 'rmdir' &&
+      error.code !== 'ENOENT'
+    ) {
+      throw error;
+    }
+  }
+
+  await fs.mkdir(tmpDir);
+
+  const files = await fs.readdir(dest, { recursive: true });
+  for (const file of files) {
+    const filePath = path.join(dest, file);
+
+    const targetPath = path.join(tmpDir, file);
+
+    const isDir = await isDirectory(filePath);
+
+    if (isDir) {
+      await fs.cp(filePath, targetPath, { recursive: true });
+    } else {
+      await fs.cp(filePath, targetPath);
+
+      await fs.unlink(filePath);
+    }
+  }
 }
 
 /**
  * Un-stashes files from a temporary directory to a destination directory.
  *
- * @param unStashSourceDirectoryPath - The directory where the temporary directory is located.
- * @param unStashDestinationDirectoryPath - The destination directory where the files will be un-stashed.
+ * @param dir - The directory where the temporary directory is located.
+ * @param dest - The destination directory where the files will be un-stashed.
  * @returns A {@linkcode Promise | promise} that resolves when the un-stashing process is complete.
  *
  * @internal
  */
-export async function unStashFiles(
-  unStashSourceDirectoryPath: string,
-  unStashDestinationDirectoryPath: string,
-): Promise<void> {
-  await fs.cp(unStashSourceDirectoryPath, unStashDestinationDirectoryPath, {
-    recursive: true,
-  });
+export async function unStashFiles(dir: string, dest: string): Promise<void> {
+  const tmpDir = path.join(dir, stashDirectoryName);
 
-  await fs.rm(unStashSourceDirectoryPath, {
-    force: true,
-    recursive: true,
-  });
+  const files = await fs.readdir(tmpDir, { recursive: true });
+  for (const filename of files) {
+    const tmpFile = path.join(tmpDir, filename);
+
+    const targetPath = path.join(dest, filename);
+
+    const isDir = await isDirectory(tmpFile);
+
+    if (isDir) {
+      await fs.cp(tmpFile, targetPath, { recursive: true });
+    } else {
+      if (filename !== tigedConfigFileName) {
+        await fs.cp(tmpFile, targetPath);
+      }
+
+      await fs.unlink(tmpFile);
+    }
+  }
+
+  await fs.rm(tmpDir, { force: true, recursive: true });
 }
 
 /**
@@ -385,29 +411,13 @@ export const isDirectory = async (filePath: string): Promise<boolean> => {
   }
 };
 
-/**
- * @internal
- * @since 3.0.0
- */
 const appDirs = /* @__PURE__ */ resolveAppDirs('tiged');
 
-/**
- * @internal
- * @since 3.0.0
- */
 export const base = appDirs.cache;
 
-/**
- * @internal
- * @since 3.0.0
- */
 const getIndex = (rowWidth: number, x: number, y: number) =>
   (y + 1) * rowWidth + (x + 1);
 
-/**
- * @internal
- * @since 3.0.0
- */
 const initializeDPMatrix = (
   a: string,
   b: string,
@@ -428,10 +438,6 @@ const initializeDPMatrix = (
   return { rowWidth, d };
 };
 
-/**
- * @internal
- * @since 3.0.0
- */
 const calculateStringDistance = (
   a: string,
   b: string,
@@ -471,10 +477,6 @@ const calculateStringDistance = (
   return getD(getIndex(rowWidth, aTrimmed.length, bTrimmed.length));
 };
 
-/**
- * @internal
- * @since 3.0.0
- */
 export const damerauLevenshtein = (
   str1: string,
   str2: string,
@@ -486,10 +488,6 @@ export const damerauLevenshtein = (
   return { steps, relative, similarity };
 };
 
-/**
- * @internal
- * @since 3.0.0
- */
 export const damerauLevenshteinSimilarity = (
   str1: string,
   str2: string,
@@ -535,7 +533,7 @@ export const ensureGitExists = async (): Promise<void> => {
  * @internal
  * @since 3.0.0
  */
-const isHostNameSupported = (
+export const isHostNameSupported = (
   hostName: string,
 ): hostName is SupportedHostNames =>
   supportedHostNames.includes(hostName as never);
@@ -559,7 +557,7 @@ export function extractRepositoryInfo(
   subDirectory: string,
 ): Repo {
   const match =
-    /^(?:(?:https:\/\/)?(?<site>[^:/]+)(?:\.[^:/]+)\/|git@(?<siteName>[^:/]+)(?:\.[^:/]+)[:/]|(?<org>[^/:]+):)?(?<repo>[^/\s.]+)(?:\.git)?\/(?<repo2>(?:[^/\s#.]+|[^/\s#.]+)?)?(?:\.git)?(?:\/(?<repo3>(?:[^/\s#.]+)+(?:\.\w+)?))?(?:\.git)?(?:\/)?(?:#(?<commitHash>[^.]+)(?:\.git)?)?/.exec(
+    /^(?:(?:https:\/\/)?(?<site>[^:/]+)(?:\.[^:/]+)\/|git@(?<siteName>[^:/]+)(?:\.[^:/]+)[:/]|(?<org>[^/:]+):)?(?<repo>[^/\s.]+)(?:\.git)?\/(?<repo2>(?:[^/\s#.]+|[^/\s#.]+)?)?(?:\.git)?(?:\/(?<repo3>(?:[^/\s#.]+)+))?(?:\.git)?(?:\/)?(?:#(?<commitHash>[^.]+)(?:\.git)?)?/.exec(
       src,
     );
 
@@ -579,9 +577,7 @@ export function extractRepositoryInfo(
 
   const user = match[4] ?? '';
   const name = match[5]?.replace(/\.git$/, '') ?? '';
-  const repoSubDirectory = addLeadingSlashIfMissing(
-    match[6]?.replace(/\.git$/, ''),
-  );
+  const repoSubDirectory = addLeadingSlashIfMissing(match[6]);
   const ref = match[7] ?? 'HEAD';
 
   if (!isHostNameSupported(siteName)) {
@@ -795,34 +791,23 @@ export async function updateCache(
  * @since 3.0.0
  */
 export const getOldHash = async (repo: Repo): Promise<string> => {
-  await fs.mkdir(base, {
-    recursive: true,
-  });
+  await fs.mkdir(base, { recursive: true });
 
   const temporaryDirectory = await fs.mkdtemp(`${path.join(base)}${path.sep}`, {
     encoding: 'utf-8',
   });
 
-  const { ref, url } = repo;
+  const ref = repo.ref.includes('#')
+    ? repo.ref.split('#').reverse().join(' ')
+    : repo.ref;
 
-  const resolvedRef = ref.includes('#')
-    ? ref.split('#').reverse().join(' ')
-    : ref;
+  await executeCommand('git init');
 
-  await executeCommand('git init', { cwd: temporaryDirectory });
+  await executeCommand(`git fetch --depth 1 ${repo.url} ${ref}`);
 
-  await executeCommand(`git fetch --depth 1 ${url} ${resolvedRef}`, {
-    cwd: temporaryDirectory,
-  });
+  const { stdout } = await executeCommand('git rev-list FETCH_HEAD');
 
-  const { stdout } = await executeCommand('git rev-list FETCH_HEAD', {
-    cwd: temporaryDirectory,
-  });
-
-  await fs.rm(temporaryDirectory, {
-    force: true,
-    recursive: true,
-  });
+  await fs.rm(temporaryDirectory, { force: true, recursive: true });
 
   return stdout.trim().split('\n')[0] ?? '';
 };
