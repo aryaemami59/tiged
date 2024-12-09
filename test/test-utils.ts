@@ -1,4 +1,4 @@
-import type { ExecFileOptionsWithOtherEncoding } from 'node:child_process';
+import type { ExecFileOptionsWithStringEncoding } from 'node:child_process';
 import * as child_process from 'node:child_process';
 import * as path from 'node:path';
 import { promisify } from 'node:util';
@@ -38,7 +38,7 @@ export const defaultExecFileOptions = {
   encoding: 'utf-8',
 
   shell: true,
-} as const satisfies ExecFileOptionsWithOtherEncoding;
+} as const satisfies ExecFileOptionsWithStringEncoding;
 
 export const defaultTigedOptions = {
   cache: false,
@@ -49,7 +49,7 @@ export const execFile = promisify(child_process.execFile);
 
 export const runTigedCLI = (
   CLIArguments: readonly string[] = [],
-  execFileOptions?: ExecFileOptionsWithOtherEncoding,
+  execFileOptions?: ExecFileOptionsWithStringEncoding,
 ) =>
   execFile(defaultCLICommand, [...defaultCLIArguments, ...CLIArguments], {
     ...defaultExecFileOptions,
