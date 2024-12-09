@@ -55,6 +55,7 @@ export default tsEslint.config(
         projectService: {
           defaultProject: './tsconfig.json',
         },
+        tsconfigRootDir: import.meta.dirname,
         ecmaVersion: 'latest',
       },
     },
@@ -71,6 +72,7 @@ export default tsEslint.config(
         2,
         { allowInterfaces: 'with-single-extends' },
       ],
+      '@typescript-eslint/consistent-type-definitions': [2, 'type'],
       'sort-imports': [
         2,
         {
@@ -83,5 +85,13 @@ export default tsEslint.config(
       ],
     },
     linterOptions: { reportUnusedDisableDirectives: 2 },
+  },
+
+  {
+    name: 'declaration-files',
+    files: ['**/*.d.?(c|m)ts'],
+    rules: {
+      '@typescript-eslint/consistent-type-definitions': [0],
+    },
   },
 );

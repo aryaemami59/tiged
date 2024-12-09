@@ -1,15 +1,13 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import {
-  convertSpecialCharsToHyphens,
-  fixturesDirectoryName,
+  getOutputDirectoryPath,
   runTigedCLI,
+  validModes,
 } from './test-utils.js';
 
-const validModes = ['tar', 'git'] as const;
-
-describe('github', () => {
-  describe.each(validModes)('with %s mode', mode => {
+describe('GitHub', () => {
+  describe.for(validModes)('with %s mode', mode => {
     it.for([
       'tiged/tiged-test-repo-compose',
       'tiged/tiged-test-repo',
@@ -17,14 +15,10 @@ describe('github', () => {
       'git@github.com:tiged/tiged-test-repo',
       'https://github.com/tiged/tiged-test-repo.git',
     ] as const)('%s', async (src, { expect, task }) => {
-      const sanitizedPath = convertSpecialCharsToHyphens(
-        `${task.name}${task.id}`,
-      );
-
-      const outputDirectory = path.join(fixturesDirectoryName, sanitizedPath);
+      const outputDirectory = getOutputDirectoryPath(`${task.name}${task.id}`);
 
       await expect(
-        runTigedCLI(['-v', '--mode', mode, src, outputDirectory]),
+        runTigedCLI(['--mode', mode, src, outputDirectory]),
       ).resolves.not.toThrow();
 
       await expect(outputDirectory).toMatchFiles({
@@ -36,21 +30,17 @@ describe('github', () => {
   });
 });
 
-describe('gitlab', () => {
-  describe.each(validModes)('with %s mode', mode => {
+describe('GitLab', () => {
+  describe.for(validModes)('with %s mode', mode => {
     it.for([
       'gitlab:nake89/tiged-test-repo',
       'git@gitlab.com:nake89/tiged-test-repo',
       'https://gitlab.com/nake89/tiged-test-repo.git',
     ] as const)('%s', async (src, { expect, task }) => {
-      const sanitizedPath = convertSpecialCharsToHyphens(
-        `${task.name}${task.id}`,
-      );
-
-      const outputDirectory = path.join(fixturesDirectoryName, sanitizedPath);
+      const outputDirectory = getOutputDirectoryPath(`${task.name}${task.id}`);
 
       await expect(
-        runTigedCLI(['-v', '--mode', mode, src, outputDirectory]),
+        runTigedCLI(['--mode', mode, src, outputDirectory]),
       ).resolves.not.toThrow();
 
       await expect(outputDirectory).toMatchFiles({
@@ -59,24 +49,21 @@ describe('gitlab', () => {
     });
 
     describe('subgroup', () => {
-      it('https://gitlab.com/group-test-repo/subgroup-test-repo/test-repo', async ({
-        task,
-      }) => {
-        const sanitizedPath = convertSpecialCharsToHyphens(
+      const testCases = [
+        'gitlab:group-test-repo/subgroup-test-repo/test-repo',
+        'git@gitlab.com:group-test-repo/subgroup-test-repo/test-repo',
+        'https://gitlab.com/group-test-repo/subgroup-test-repo/test-repo',
+        'https://gitlab.com/group-test-repo.git/subgroup-test-repo/test-repo',
+        'https://gitlab.com/group-test-repo/subgroup-test-repo/test-repo.git',
+      ] as const;
+
+      it.for(testCases)('%s', async (src, { expect, task }) => {
+        const outputDirectory = getOutputDirectoryPath(
           `${task.name}${task.id}`,
         );
 
-        const outputDirectory = path.join(fixturesDirectoryName, sanitizedPath);
-
         await expect(
-          runTigedCLI([
-            '-v',
-            '--mode',
-            mode,
-            '--subgroup',
-            task.name,
-            outputDirectory,
-          ]),
+          runTigedCLI(['--mode', mode, '--subgroup', src, outputDirectory]),
         ).resolves.not.toThrow();
 
         await expect(outputDirectory).toMatchFiles({
@@ -84,29 +71,23 @@ describe('gitlab', () => {
           subdir1: null,
           'subdir1/subdir2': null,
           'subdir1/subdir2/file.txt': "I'm a file.",
+          'subdir1/.gitkeep': '',
+          'subdir1/subdir2/.gitkeep': '',
         });
       });
 
-      describe('with subdir', () => {
-        it('https://gitlab.com/group-test-repo/subgroup-test-repo/test-repo', async ({
-          task,
-        }) => {
-          const sanitizedPath = convertSpecialCharsToHyphens(
+      describe('with sub-directory', () => {
+        it.for(testCases)('%s', async (src, { expect, task }) => {
+          const outputDirectory = getOutputDirectoryPath(
             `${task.name}${task.id}`,
-          );
-
-          const outputDirectory = path.join(
-            fixturesDirectoryName,
-            sanitizedPath,
           );
 
           await expect(
             runTigedCLI([
-              '-v',
               '--mode',
               mode,
               '--subgroup',
-              task.name,
+              src,
               '--sub-directory',
               'subdir1',
               outputDirectory,
@@ -116,30 +97,24 @@ describe('gitlab', () => {
           await expect(outputDirectory).toMatchFiles({
             subdir2: null,
             'subdir2/file.txt': "I'm a file.",
+            '.gitkeep': '',
+            'subdir2/.gitkeep': '',
           });
         });
       });
 
-      describe('with nested subdir', () => {
-        it('https://gitlab.com/group-test-repo/subgroup-test-repo/test-repo', async ({
-          task,
-        }) => {
-          const sanitizedPath = convertSpecialCharsToHyphens(
+      describe('with nested sub-directory', () => {
+        it.for(testCases)('%s', async (src, { expect, task }) => {
+          const outputDirectory = getOutputDirectoryPath(
             `${task.name}${task.id}`,
-          );
-
-          const outputDirectory = path.join(
-            fixturesDirectoryName,
-            sanitizedPath,
           );
 
           await expect(
             runTigedCLI([
-              '-v',
               '--mode',
               mode,
               '--subgroup',
-              task.name,
+              src,
               '--sub-directory',
               'subdir1/subdir2',
               outputDirectory,
@@ -148,6 +123,7 @@ describe('gitlab', () => {
 
           await expect(outputDirectory).toMatchFiles({
             'file.txt': "I'm a file.",
+            '.gitkeep': '',
           });
         });
       });
@@ -155,21 +131,17 @@ describe('gitlab', () => {
   });
 });
 
-describe('bitbucket', { timeout: 10_000 }, () => {
-  describe.each(validModes)('with %s mode', mode => {
+describe('BitBucket', { timeout: 10_000 }, () => {
+  describe.for(validModes)('with %s mode', mode => {
     it.for([
       'bitbucket:nake89/tiged-test-repo',
       'git@bitbucket.org:nake89/tiged-test-repo',
       'https://bitbucket.org/nake89/tiged-test-repo.git',
     ] as const)('%s', async (src, { expect, task }) => {
-      const sanitizedPath = convertSpecialCharsToHyphens(
-        `${task.name}${task.id}`,
-      );
-
-      const outputDirectory = path.join(fixturesDirectoryName, sanitizedPath);
+      const outputDirectory = getOutputDirectoryPath(`${task.name}${task.id}`);
 
       await expect(
-        runTigedCLI(['-v', '--mode', mode, src, outputDirectory]),
+        runTigedCLI(['--mode', mode, src, outputDirectory]),
       ).resolves.not.toThrow();
 
       await expect(outputDirectory).toMatchFiles({
@@ -179,21 +151,17 @@ describe('bitbucket', { timeout: 10_000 }, () => {
   });
 });
 
-describe('Sourcehut', () => {
-  describe.each(validModes)('with %s mode', mode => {
+describe('SourceHut', () => {
+  describe.for(validModes)('with %s mode', mode => {
     it.for([
       'git.sr.ht/~satotake/degit-test-repo',
-      'https://git.sr.ht/~satotake/degit-test-repo',
       'git@git.sr.ht:~satotake/degit-test-repo',
+      'https://git.sr.ht/~satotake/degit-test-repo.git',
     ] as const)('%s', async (src, { expect, task }) => {
-      const sanitizedPath = convertSpecialCharsToHyphens(
-        `${task.name}${task.id}`,
-      );
-
-      const outputDirectory = path.join(fixturesDirectoryName, sanitizedPath);
+      const outputDirectory = getOutputDirectoryPath(`${task.name}${task.id}`);
 
       await expect(
-        runTigedCLI(['-v', '--mode', mode, src, outputDirectory]),
+        runTigedCLI(['--mode', mode, src, outputDirectory]),
       ).resolves.not.toThrow();
 
       await expect(outputDirectory).toMatchFiles({
@@ -204,20 +172,16 @@ describe('Sourcehut', () => {
 });
 
 describe('Codeberg', () => {
-  describe.each(validModes)('with %s mode', mode => {
+  describe.for(validModes)('with %s mode', mode => {
     it.for([
       'codeberg:joaopalmeiro/tiged-test-repo',
-      'https://codeberg.org/joaopalmeiro/tiged-test-repo',
       'git@codeberg.org:joaopalmeiro/tiged-test-repo',
-    ])('%s', async (src, { expect, task }) => {
-      const sanitizedPath = convertSpecialCharsToHyphens(
-        `${task.name}${task.id}`,
-      );
-
-      const outputDirectory = path.join(fixturesDirectoryName, sanitizedPath);
+      'https://codeberg.org/joaopalmeiro/tiged-test-repo.git',
+    ] as const)('%s', async (src, { expect, task }) => {
+      const outputDirectory = getOutputDirectoryPath(`${task.name}${task.id}`);
 
       await expect(
-        runTigedCLI(['-v', '--mode', mode, src, outputDirectory]),
+        runTigedCLI(['--mode', mode, src, outputDirectory]),
       ).resolves.not.toThrow();
 
       await expect(outputDirectory).toMatchFiles({
@@ -227,22 +191,18 @@ describe('Codeberg', () => {
   });
 });
 
-// TODO: This does not work if `tar` mode is explicitly set.
+// TODO: This falls back to `git` mode if `tar` mode is explicitly set.
 describe('Hugging Face', () => {
-  describe.each(validModes.slice(1))('with %s mode', mode => {
+  describe.for(validModes)('with %s mode', mode => {
     it.for([
       'huggingface:severo/degit-test-repo',
       'git@huggingface.co:severo/degit-test-repo',
       'https://huggingface.co/severo/degit-test-repo.git',
-    ])('%s', async (src, { expect, task }) => {
-      const sanitizedPath = convertSpecialCharsToHyphens(
-        `${task.name}${task.id}`,
-      );
-
-      const outputDirectory = path.join(fixturesDirectoryName, sanitizedPath);
+    ] as const)('%s', async (src, { expect, task }) => {
+      const outputDirectory = getOutputDirectoryPath(`${task.name}${task.id}`);
 
       await expect(
-        runTigedCLI(['-v', src, '--mode', mode, outputDirectory]),
+        runTigedCLI([src, '--mode', mode, outputDirectory]),
       ).resolves.not.toThrow();
 
       await expect(outputDirectory).toMatchFiles({
@@ -254,77 +214,212 @@ describe('Hugging Face', () => {
   });
 });
 
-describe('Subdirectories', () => {
-  describe.each(validModes)('with %s mode', mode => {
-    it.for([
-      'tiged/tiged-test-repo/subdir',
-      'github:tiged/tiged-test-repo/subdir',
-      'git@github.com:tiged/tiged-test-repo/subdir',
-      'https://github.com/tiged/tiged-test-repo.git/subdir',
-    ])('%s', async (src, { expect, task }) => {
-      const sanitizedPath = convertSpecialCharsToHyphens(
-        `${task.name}${task.id}`,
-      );
+describe('sub-directories', () => {
+  const testCases = [
+    'tiged/tiged-test-repo',
+    'github:tiged/tiged-test-repo',
+    'git@github.com:tiged/tiged-test-repo',
+    'https://github.com/tiged/tiged-test-repo',
+    'https://github.com/tiged/tiged-test-repo.git',
+  ] as const;
 
-      const outputDirectory = path.join(fixturesDirectoryName, sanitizedPath);
+  describe.for(validModes)('with %s mode', mode => {
+    describe('using inferred sub-directory (repo/subdir) syntax', () => {
+      it.for(testCases)('%s', async (src, { expect, task }) => {
+        const outputDirectory = getOutputDirectoryPath(
+          `${task.name}${task.id}`,
+        );
 
-      await expect(
-        runTigedCLI(['-v', '--mode', mode, src, outputDirectory]),
-      ).resolves.not.toThrow();
+        await expect(
+          runTigedCLI(['--mode', mode, `${src}/subdir`, outputDirectory]),
+        ).resolves.not.toThrow();
 
-      await expect(outputDirectory).toMatchFiles({
-        'file.txt': `hello from a subdirectory!`,
+        await expect(outputDirectory).toMatchFiles({
+          'file.txt': 'hello from a subdirectory!',
+        });
+      });
+    });
+
+    describe('using --sub-directory', () => {
+      it.for(testCases)('%s', async (src, { expect, task }) => {
+        const outputDirectory = getOutputDirectoryPath(
+          `${task.name}${task.id}`,
+        );
+
+        await expect(
+          runTigedCLI([
+            '--mode',
+            mode,
+            '--sub-directory',
+            'subdir',
+            src,
+            outputDirectory,
+          ]),
+        ).resolves.not.toThrow();
+
+        await expect(outputDirectory).toMatchFiles({
+          'file.txt': 'hello from a subdirectory!',
+        });
+      });
+    });
+
+    describe('non-existent sub-directories throw an error', () => {
+      describe('using inferred sub-directory (repo/subdir) syntax', () => {
+        it.for(testCases)('%s', async (src, { expect, task }) => {
+          const outputDirectory = getOutputDirectoryPath(
+            `${task.name}${task.id}`,
+          );
+
+          await expect(
+            runTigedCLI([
+              '--mode',
+              mode,
+              `${src}/non-existent-dir`,
+              outputDirectory,
+            ]),
+          ).rejects.toThrow(
+            /No files to extract\. Make sure you typed in the sub-directory name correctly\./,
+          );
+        });
+      });
+
+      describe('using --sub-directory', () => {
+        it.for(testCases)('%s', async (src, { expect, task }) => {
+          const outputDirectory = getOutputDirectoryPath(
+            `${task.name}${task.id}`,
+          );
+
+          await expect(
+            runTigedCLI([
+              '--mode',
+              mode,
+              src,
+              '--sub-directory',
+              'non-existent-dir',
+              outputDirectory,
+            ]),
+          ).rejects.toThrow(
+            /No files to extract\. Make sure you typed in the sub-directory name correctly\./,
+          );
+        });
+      });
+    });
+
+    describe('using both --sub-directory and repo/subdir', () => {
+      it.for(testCases)('%s', async (src, { expect, task }) => {
+        const outputDirectory = getOutputDirectoryPath(
+          `${task.name}${task.id}`,
+        );
+
+        await expect(
+          runTigedCLI([
+            '--mode',
+            mode,
+            src,
+            outputDirectory,
+            '--sub-directory',
+            'subdir',
+          ]),
+        ).resolves.not.toThrow();
+
+        await expect(outputDirectory).toMatchFiles({
+          'file.txt': 'hello from a subdirectory!',
+        });
+      });
+    });
+
+    describe('--sub-directory overrides repo/subdir', () => {
+      it.for(testCases)('%s', async (src, { expect, task }) => {
+        const outputDirectory = getOutputDirectoryPath(
+          `${task.name}${task.id}`,
+        );
+
+        await expect(
+          runTigedCLI([
+            '--mode',
+            mode,
+            `${src}/non-existent-dir`,
+            outputDirectory,
+            '--sub-directory',
+            'subdir',
+          ]),
+        ).resolves.not.toThrow();
+
+        await expect(outputDirectory).toMatchFiles({
+          'file.txt': 'hello from a subdirectory!',
+        });
+      });
+    });
+
+    describe('does not throw if --sub-directory is an empty string', () => {
+      it.for(testCases)('%s', async (src, { expect, task }) => {
+        const outputDirectory = getOutputDirectoryPath(
+          `${task.name}${task.id}`,
+        );
+
+        await expect(
+          runTigedCLI([
+            '--mode',
+            mode,
+            src,
+            outputDirectory,
+            '--sub-directory',
+            '',
+          ]),
+        ).resolves.not.toThrow();
+
+        await expect(outputDirectory).toMatchFiles({
+          'file.txt': 'hello from github!',
+          subdir: null,
+          'subdir/file.txt': 'hello from a subdirectory!',
+        });
+      });
+    });
+
+    describe('if --sub-directory is an empty string repo/subdir gets used', () => {
+      it.for(testCases)('%s', async (src, { expect, task }) => {
+        const outputDirectory = getOutputDirectoryPath(
+          `${task.name}${task.id}`,
+        );
+
+        await expect(
+          runTigedCLI([
+            '--mode',
+            mode,
+            `${src}/subdir`,
+            outputDirectory,
+            '--sub-directory',
+            '',
+          ]),
+        ).resolves.not.toThrow();
+
+        await expect(outputDirectory).toMatchFiles({
+          'file.txt': 'hello from a subdirectory!',
+        });
       });
     });
   });
 });
 
-// TODO: Come up with better error messages for git mode.
-describe('Non-existent subdirectory', () => {
-  describe.each(validModes)('with %s mode', mode => {
-    it('throws error', async ({ task }) => {
-      const sanitizedPath = convertSpecialCharsToHyphens(
-        `${task.name}${task.id}`,
-      );
-
-      const outputDirectory = path.join(fixturesDirectoryName, sanitizedPath);
-
-      await expect(
-        runTigedCLI([
-          '-v',
-          '--mode',
-          mode,
-          'tiged/tiged-test-repo/non-existent-dir',
-          outputDirectory,
-        ]),
-      ).rejects.toThrow(
-        /No files to extract\. Make sure you typed in the subdirectory name correctly\./,
-      );
-    });
-  });
-});
-
 describe('non-empty directories', () => {
-  const src = 'tiged/tiged-test-repo';
+  describe.for(validModes)('with %s mode', mode => {
+    const src = 'tiged/tiged-test-repo';
 
-  const sanitizedPath = convertSpecialCharsToHyphens('non-empty directories');
+    const outputDirectory = getOutputDirectoryPath(
+      `non-empty directories with ${mode} mode cli test`,
+    );
 
-  const outputDirectory = path.join(fixturesDirectoryName, sanitizedPath);
+    beforeAll(async () => {
+      await fs.mkdir(outputDirectory, { recursive: true });
 
-  beforeAll(async () => {
-    await fs.mkdir(path.join(fixturesDirectoryName, sanitizedPath), {
-      recursive: true,
+      await fs.writeFile(path.join(outputDirectory, 'file.txt'), 'not empty', {
+        encoding: 'utf-8',
+      });
     });
 
-    await fs.writeFile(path.join(outputDirectory, 'file.txt'), 'not empty', {
-      encoding: 'utf-8',
-    });
-  });
-
-  describe.each(validModes)('with %s mode', mode => {
     it('fails without --force', async () => {
       await expect(
-        runTigedCLI(['-v', '--mode', mode, src, outputDirectory]),
+        runTigedCLI(['--mode', mode, src, outputDirectory]),
       ).rejects.toThrow(
         /destination directory is not empty, aborting\. Use --force to override/,
       );
@@ -332,24 +427,19 @@ describe('non-empty directories', () => {
 
     it('succeeds with --force', async () => {
       await expect(
-        runTigedCLI(['-fv', '--mode', mode, src, outputDirectory]),
+        runTigedCLI(['--force', '--mode', mode, src, outputDirectory]),
       ).resolves.not.toThrow();
     });
   });
 });
 
 describe('actions', () => {
-  describe.each(validModes)('with %s mode', mode => {
+  describe.for(validModes)('with %s mode', mode => {
     it('removes specified file', async ({ task }) => {
-      const sanitizedPath = convertSpecialCharsToHyphens(
-        `${task.name}${task.id}`,
-      );
-
-      const outputDirectory = path.join(fixturesDirectoryName, sanitizedPath);
+      const outputDirectory = getOutputDirectoryPath(`${task.name}${task.id}`);
 
       await expect(
         runTigedCLI([
-          '-v',
           '--mode',
           mode,
           'tiged/tiged-test-repo-remove-only',
@@ -361,15 +451,10 @@ describe('actions', () => {
     });
 
     it('clones repo and removes specified file', async ({ task }) => {
-      const sanitizedPath = convertSpecialCharsToHyphens(
-        `${task.name}${task.id}`,
-      );
-
-      const outputDirectory = path.join(fixturesDirectoryName, sanitizedPath);
+      const outputDirectory = getOutputDirectoryPath(`${task.name}${task.id}`);
 
       await expect(
         runTigedCLI([
-          '-v',
           '--mode',
           mode,
           'tiged/tiged-test-repo-remove',
@@ -385,15 +470,10 @@ describe('actions', () => {
     });
 
     it('removes and adds nested files', async ({ task }) => {
-      const sanitizedPath = convertSpecialCharsToHyphens(
-        `${task.name}${task.id}`,
-      );
-
-      const outputDirectory = path.join(fixturesDirectoryName, sanitizedPath);
+      const outputDirectory = getOutputDirectoryPath(`${task.name}${task.id}`);
 
       await expect(
         runTigedCLI([
-          '-v',
           '--mode',
           mode,
           'tiged/tiged-test-repo-nested-actions',
@@ -413,81 +493,153 @@ describe('actions', () => {
   });
 });
 
-describe('git mode old hash', () => {
-  // TODO: Make sure this can also work in tar mode.
-  describe.each(validModes.slice(1))('with %s mode', mode => {
-    it('is able to clone correctly with old hash', async ({ task }) => {
-      const sanitizedPath = convertSpecialCharsToHyphens(
-        `${task.name}${task.id}`,
-      );
-
-      const outputDirectory = path.join(fixturesDirectoryName, sanitizedPath);
+describe('old hash', () => {
+  describe.for(validModes)('with %s mode', mode => {
+    it.for([
+      'tiged/tiged-test#525e8fef2c6b5e261511adc55f410d83ca5d8256',
+      'github:tiged/tiged-test#525e8fef2c6b5e261511adc55f410d83ca5d8256',
+      'git@github.com:tiged/tiged-test#525e8fef2c6b5e261511adc55f410d83ca5d8256',
+      'https://github.com/tiged/tiged-test#525e8fef2c6b5e261511adc55f410d83ca5d8256',
+      'https://github.com/tiged/tiged-test.git#525e8fef2c6b5e261511adc55f410d83ca5d8256',
+    ] as const)('%s', async (src, { expect, task }) => {
+      const outputDirectory = getOutputDirectoryPath(`${task.name}${task.id}`);
 
       await expect(
-        runTigedCLI([
-          '-v',
-          '--mode',
-          mode,
-          'https://github.com/tiged/tiged-test#525e8fef2c6b5e261511adc55f410d83ca5d8256',
-          outputDirectory,
-        ]),
+        runTigedCLI(['--mode', mode, src, outputDirectory]),
       ).resolves.not.toThrow();
 
       await expect(outputDirectory).toMatchFiles({
         subdir: null,
-        'README.md': `# tiged-test\nFor testing`,
+        'README.md': '# tiged-test\nFor testing',
         'subdir/file': 'Hello, champ!',
       });
     });
 
-    it('is able to clone subdir correctly using git mode with old hash', async ({
-      task,
-    }) => {
-      const sanitizedPath = convertSpecialCharsToHyphens(
-        `${task.name}${task.id}`,
-      );
+    describe('using HEAD and commit hash at the same time', () => {
+      it.for([
+        'tiged/tiged-test#HEAD#525e8fef2c6b5e261511adc55f410d83ca5d8256',
+        'github:tiged/tiged-test#HEAD#525e8fef2c6b5e261511adc55f410d83ca5d8256',
+        'git@github.com:tiged/tiged-test#HEAD#525e8fef2c6b5e261511adc55f410d83ca5d8256',
+        'https://github.com/tiged/tiged-test#HEAD#525e8fef2c6b5e261511adc55f410d83ca5d8256',
+        'https://github.com/tiged/tiged-test.git#HEAD#525e8fef2c6b5e261511adc55f410d83ca5d8256',
+        'https://github.com/tiged/tiged-test#HEAD#525e8fef2c6b5e261511adc55f410d83ca5d8256.git',
+      ] as const)('%s', async (src, { expect, task }) => {
+        const outputDirectory = getOutputDirectoryPath(
+          `${task.name}${task.id}`,
+        );
 
-      const outputDirectory = path.join(fixturesDirectoryName, sanitizedPath);
+        await expect(
+          runTigedCLI(['--mode', mode, src, outputDirectory]),
+        ).resolves.not.toThrow();
 
-      await expect(
-        runTigedCLI([
-          '-v',
-          '--mode',
-          mode,
-          'https://github.com/tiged/tiged-test.git/subdir#b09755bc4cca3d3b398fbe5e411daeae79869581',
-          outputDirectory,
-        ]),
-      ).resolves.not.toThrow();
+        await expect(outputDirectory).toMatchFiles({
+          subdir: null,
+          'README.md': '# tiged-test\nFor testing',
+          'subdir/file': 'Hello, champ!',
+        });
+      });
+    });
 
-      await expect(outputDirectory).toMatchFiles({
-        file: 'Hello, champ!',
+    describe('is able to clone sub-directory', () => {
+      it.for([
+        'tiged/tiged-test/subdir#b09755bc4cca3d3b398fbe5e411daeae79869581',
+        'github:tiged/tiged-test/subdir#b09755bc4cca3d3b398fbe5e411daeae79869581',
+        'git@github.com:tiged/tiged-test/subdir#b09755bc4cca3d3b398fbe5e411daeae79869581',
+        'https://github.com/tiged/tiged-test/subdir#b09755bc4cca3d3b398fbe5e411daeae79869581',
+        'https://github.com/tiged/tiged-test/subdir#HEAD#b09755bc4cca3d3b398fbe5e411daeae79869581',
+        'https://github.com/tiged/tiged-test.git/subdir#b09755bc4cca3d3b398fbe5e411daeae79869581',
+        'https://github.com/tiged/tiged-test.git/subdir#HEAD#b09755bc4cca3d3b398fbe5e411daeae79869581',
+        'https://github.com/tiged/tiged-test/subdir#HEAD#b09755bc4cca3d3b398fbe5e411daeae79869581.git',
+      ] as const)('%s', async (src, { expect, task }) => {
+        const outputDirectory = getOutputDirectoryPath(
+          `${task.name}${task.id}`,
+        );
+
+        await expect(
+          runTigedCLI(['--mode', mode, src, outputDirectory]),
+        ).resolves.not.toThrow();
+
+        await expect(outputDirectory).toMatchFiles({
+          file: 'Hello, champ!',
+        });
       });
     });
   });
 });
 
-describe('git mode', () => {
-  describe.each(validModes)('with %s mode', mode => {
-    it('is able to clone correctly using git mode', async ({ task }) => {
-      const sanitizedPath = convertSpecialCharsToHyphens(
-        `${task.name}${task.id}`,
-      );
-
-      const outputDirectory = path.join(fixturesDirectoryName, sanitizedPath);
+describe('is able to clone correctly', () => {
+  describe.for(validModes)('using %s mode', mode => {
+    it.for([
+      'tiged/tiged-test',
+      'github:tiged/tiged-test.git',
+      'git@github.com:tiged/tiged-test.git',
+      'https://github.com/tiged/tiged-test.git',
+    ] as const)('%s', async (src, { expect, task }) => {
+      const outputDirectory = getOutputDirectoryPath(`${task.name}${task.id}`);
 
       await expect(
-        runTigedCLI([
-          '--mode',
-          mode,
-          'https://github.com/tiged/tiged-test.git',
-          outputDirectory,
-        ]),
+        runTigedCLI(['--mode', mode, src, outputDirectory]),
       ).resolves.not.toThrow();
 
       await expect(outputDirectory).toMatchFiles({
         subdir: null,
-        'README.md': `tiged is awesome`,
+        'README.md': 'tiged is awesome',
         'subdir/file': 'Hello, buddy!',
+      });
+    });
+  });
+});
+
+describe('can clone a single file', () => {
+  const testCases = [
+    'tiged/tiged-test-repo',
+    'github:tiged/tiged-test-repo.git',
+    'git@github.com:tiged/tiged-test-repo.git',
+    'https://github.com/tiged/tiged-test-repo.git',
+  ] as const;
+
+  describe.for(validModes)('using %s mode', mode => {
+    describe('with inferred sub-directory (repo/file.txt) syntax', () => {
+      it.for(testCases)('%s', async (src, { task, expect }) => {
+        const outputDirectory = getOutputDirectoryPath(
+          `${task.name}${task.id}`,
+        );
+
+        await expect(
+          runTigedCLI([
+            '--mode',
+            mode,
+            `${src}/subdir/file.txt`,
+            outputDirectory,
+          ]),
+        ).resolves.not.toThrow();
+
+        await expect(outputDirectory).toMatchFiles({
+          'file.txt': 'hello from a subdirectory!',
+        });
+      });
+    });
+
+    describe('using --sub-directory', () => {
+      it.for(testCases)('%s', async (src, { task, expect }) => {
+        const outputDirectory = getOutputDirectoryPath(
+          `${task.name}${task.id}`,
+        );
+
+        await expect(
+          runTigedCLI([
+            '--mode',
+            mode,
+            src,
+            outputDirectory,
+            '--sub-directory',
+            'subdir/file.txt',
+          ]),
+        ).resolves.not.toThrow();
+
+        await expect(outputDirectory).toMatchFiles({
+          'file.txt': 'hello from a subdirectory!',
+        });
       });
     });
   });
@@ -495,9 +647,7 @@ describe('git mode', () => {
 
 describe('commit hash', () => {
   it('is able to clone non ref hash', async ({ task, expect }) => {
-    const sanitizedPath = convertSpecialCharsToHyphens(task.name);
-
-    const outputDirectory = path.join(fixturesDirectoryName, sanitizedPath);
+    const outputDirectory = getOutputDirectoryPath(`${task.name}${task.id}`);
 
     await expect(
       runTigedCLI([

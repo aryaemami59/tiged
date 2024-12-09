@@ -35,14 +35,14 @@
     "tiged": "dist/bin.js"
   },
   "scripts": {
-    "lint": "eslint --color .",
-    "lint:fix": "eslint --color . --fix",
+    "lint": "eslint --config=eslint.config.mjs --color .",
+    "lint:fix": "eslint --config=eslint.config.mjs --color . --fix",
     "erase-ts-config-paths": "tsx scripts/eraseTSConfigPaths.mts",
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
+    "format": "prettier --config=prettier.config.mjs --write .",
+    "format:check": "prettier --config=prettier.config.mjs --check .",
     "clean": "tsx scripts/remove.mts",
-    "build": "npm run clean && tsup",
-    "test": "vitest --typecheck",
+    "build": "npm run clean && tsup --config=tsup.config.ts",
+    "test": "vitest --config=vitest.config.mts",
     "test-types": "tsc -p tsconfig.json --noEmit",
     "prepack": "npm run build"
   },
@@ -72,9 +72,9 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.25.1",
-    "@types/eslint-config-prettier": "^6.11.3",
     "@types/fuzzysearch": "^1.0.2",
     "@types/node": "^22.14.1",
+    "@vitest/eslint-plugin": "^1.1.43",
     "eslint": "^9.25.1",
     "eslint-config-prettier": "^10.1.2",
     "husky": "^9.1.7",
