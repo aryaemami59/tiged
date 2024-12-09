@@ -4,28 +4,28 @@ import { stdin as input, stdout as output } from 'node:process';
 
 const defaultListLimit = 10;
 
-export interface PromptChoice {
+export type PromptChoice = {
   name?: string;
   message: string;
   value: string;
-}
+};
 
-export interface InputPromptConfig {
+export type InputPromptConfig = {
   message: string;
   initial?: string;
-}
+};
 
-export interface TogglePromptConfig {
+export type TogglePromptConfig = {
   message: string;
   initial?: boolean;
-}
+};
 
-export interface AutocompletePromptConfig {
+export type AutocompletePromptConfig = {
   message: string;
   choices: PromptChoice[];
   suggest: (input: string, choices: PromptChoice[]) => PromptChoice[];
   limit?: number;
-}
+};
 
 /**
  * Creates a readline interface configured for prompting users.

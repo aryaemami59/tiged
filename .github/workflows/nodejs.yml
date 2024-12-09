@@ -96,7 +96,6 @@ jobs:
       matrix:
         node-version: [22.x, 24.x, latest]
         os: [windows-latest, ubuntu-latest, macos-latest]
-        shard: [1, 2]
         exclude:
           - os: windows-latest
             node-version: 22.x
@@ -135,7 +134,7 @@ jobs:
         run: npm run erase-ts-config-paths
 
       - name: Run tests on the final build artifact
-        run: npm test -- --shard=${{ matrix.shard }}/2
+        run: npm test
         env:
           TEST_DIST: true
 

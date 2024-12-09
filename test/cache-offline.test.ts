@@ -1,20 +1,22 @@
 import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, it, vi } from 'vitest';
+import { createTiged } from '../src/index.js';
+import * as utils from '../src/utils.js';
 
-vi.mock('../src/tar.js', () => {
+vi.mock(import('../src/tar.js'), async importOriginal => {
+  const actual = await importOriginal();
+
   return {
+    ...actual,
     untarToDir: vi.fn(async () => {
       // Keep these unit tests focused on cache/offline control flow.
       // The tarball files created in this suite are not real archives.
-      return ['README.md'];
+      return Promise.resolve(['README.md']);
     }),
   };
 });
-
-import { tiged } from '../src/index.js';
-import * as utils from '../src/utils.js';
 
 const mkTmpDir = async () => {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'tiged-cache-test-'));
@@ -34,12 +36,12 @@ describe('cache + offline behavior (unit)', () => {
     dir = await mkTmpDir();
     dest = await mkTmpDir();
 
-    vi.spyOn(utils, 'fetch').mockImplementation(async () => {
+    vi.spyOn(utils, 'downloadTarball').mockImplementation(() => {
       throw new Error('network fetch should not be called in this test');
     });
 
     // Default exec mock: fail fast if we accidentally try to hit git.
-    vi.spyOn(utils, 'exec').mockImplementation(async () => {
+    vi.spyOn(utils, 'executeCommand').mockImplementation(() => {
       throw new Error('git exec should not be called in this test');
     });
   });
@@ -50,53 +52,63 @@ describe('cache + offline behavior (unit)', () => {
     await fs.rm(dest, { recursive: true, force: true });
   });
 
-  it('offline mode without cached ref mapping fails with MISSING_REF (and never downloads)', async () => {
-    const emitter: any = tiged('tiged/tiged-test-repo', {
-      offlineMode: true,
+  it('offline mode without cached ref mapping fails with MISSING_REF (and never downloads)', async ({
+    expect,
+  }) => {
+    const emitter = createTiged('tiged/tiged-test-repo', {
       force: true,
+      offlineMode: true,
+      mode: 'tar',
     });
 
-    await expect(emitter._cloneWithTar(dir, dest)).rejects.toMatchObject({
+    await expect(emitter.clone(dest)).rejects.toMatchObject({
       code: 'MISSING_REF',
     });
 
-    expect(utils.fetch).not.toHaveBeenCalled();
+    expect(utils.downloadTarball).not.toHaveBeenCalled();
   });
 
-  it('offline mode never downloads; throws CACHE_MISS when tarball is missing', async () => {
+  it('offline mode never downloads; throws CACHE_MISS when tarball is missing', async ({
+    expect,
+  }) => {
     const hash = 'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee';
     await fs.writeFile(
       path.join(dir, 'map.json'),
       JSON.stringify({ HEAD: hash }, null, '  '),
     );
 
-    const emitter: any = tiged('tiged/tiged-test-repo', {
-      offlineMode: true,
+    const emitter = createTiged('tiged/tiged-test-repo', {
       force: true,
+      mode: 'tar',
+      offlineMode: true,
     });
 
-    await expect(emitter._cloneWithTar(dir, dest)).rejects.toMatchObject({
+    await expect(emitter.clone(dest)).rejects.toMatchObject({
       code: 'CACHE_MISS',
     });
 
-    expect(utils.fetch).not.toHaveBeenCalled();
+    expect(utils.downloadTarball).not.toHaveBeenCalled();
   });
 
-  it('offline mode accepts a full 40-char commit hash without map.json', async () => {
+  it('offline mode accepts a full 40-char commit hash without map.json', async ({
+    expect,
+  }) => {
     const hash = '0123456789abcdef0123456789abcdef01234567';
     const tarPath = path.join(dir, `${hash}.tar.gz`);
     await touch(tarPath);
 
-    const emitter: any = tiged(`tiged/tiged-test-repo#${hash}`, {
+    const emitter = createTiged(`tiged/tiged-test-repo#${hash}`, {
       offlineMode: true,
       force: true,
     });
 
-    await expect(emitter._cloneWithTar(dir, dest)).resolves.toBeUndefined();
-    expect(utils.fetch).not.toHaveBeenCalled();
+    await expect(emitter.clone(dest)).resolves.toBeUndefined();
+    expect(utils.downloadTarball).not.toHaveBeenCalled();
   });
 
-  it('updateCache does not delete old tarball when still referenced by another ref', async () => {
+  it('updateCache does not delete old tarball when still referenced by another ref', async ({
+    expect,
+  }) => {
     const oldHash = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
     const newHash = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
 
@@ -108,17 +120,18 @@ describe('cache + offline behavior (unit)', () => {
     await touch(path.join(dir, `${oldHash}.tar.gz`));
     await touch(path.join(dir, `${newHash}.tar.gz`));
 
-    vi.mocked(utils.exec).mockResolvedValue({
+    vi.mocked(utils.executeCommand).mockResolvedValue({
       stdout: `${newHash}\trefs/heads/main\n`,
       stderr: '',
     });
 
-    const emitter: any = tiged('tiged/tiged-test-repo#main', {
+    const emitter = createTiged('tiged/tiged-test-repo#main', {
       force: true,
       verbose: false,
+      mode: 'tar',
     });
 
-    await expect(emitter._cloneWithTar(dir, dest)).resolves.toBeUndefined();
+    await expect(emitter.clone(dest)).resolves.toBeUndefined();
 
     // Old tarball should remain because dev still points to it.
     await expect(
@@ -126,7 +139,9 @@ describe('cache + offline behavior (unit)', () => {
     ).resolves.toBeTypeOf('object');
   });
 
-  it('updateCache deletes old tarball when no refs reference it anymore', async () => {
+  it('updateCache deletes old tarball when no refs reference it anymore', async ({
+    expect,
+  }) => {
     const oldHash = 'cccccccccccccccccccccccccccccccccccccccc';
     const newHash = 'dddddddddddddddddddddddddddddddddddddddd';
 
@@ -138,17 +153,18 @@ describe('cache + offline behavior (unit)', () => {
     await touch(path.join(dir, `${oldHash}.tar.gz`));
     await touch(path.join(dir, `${newHash}.tar.gz`));
 
-    vi.mocked(utils.exec).mockResolvedValue({
+    vi.mocked(utils.executeCommand).mockResolvedValue({
       stdout: `${newHash}\trefs/heads/main\n`,
       stderr: '',
     });
 
-    const emitter: any = tiged('tiged/tiged-test-repo#main', {
+    const emitter = createTiged('tiged/tiged-test-repo#main', {
+      mode: 'tar',
       force: true,
       verbose: false,
     });
 
-    await expect(emitter._cloneWithTar(dir, dest)).resolves.toBeUndefined();
+    await expect(emitter.clone(dest)).resolves.toBeUndefined();
 
     await expect(
       fs.stat(path.join(dir, `${oldHash}.tar.gz`)),
