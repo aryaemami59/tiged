@@ -90,6 +90,7 @@ jobs:
       matrix:
         node-version: [18.x, 20.x, 22.x, latest]
         os: [windows-latest, ubuntu-latest, macos-latest]
+        shard: [1, 2]
 
     steps:
       - name: Checkout repository
@@ -119,7 +120,7 @@ jobs:
         run: npx tsx scripts/eraseTSConfigPaths.mts
 
       - name: Run tests on the final build artifact
-        run: npm test
+        run: npm test -- --shard=${{ matrix.shard }}/2
         env:
           TEST_DIST: true
 
