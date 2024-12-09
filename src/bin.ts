@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { bold, cyan, magenta, red, underline } from 'colorette';
-import * as enquirer from 'enquirer';
+import enquirer from 'enquirer';
 import fuzzysearch from 'fuzzysearch';
 import mri from 'mri';
 import * as fs from 'node:fs/promises';
