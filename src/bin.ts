@@ -9,7 +9,8 @@ import * as path from 'node:path';
 import type { Options } from 'tiged';
 import { tiged } from 'tiged';
 import glob from 'tiny-glob/sync.js';
-import { base, pathExists, tryRequire } from './utils.js';
+import { base } from './constants.js';
+import { pathExists, tryRequire } from './utils.js';
 
 const args = mri<Options & { help?: string }>(process.argv.slice(2), {
   alias: {
