@@ -15,6 +15,7 @@ const vitestConfig = defineConfig({
     name: packageJson.name,
     root: import.meta.dirname,
     dir: 'test',
+    fileParallelism: false,
 
     reporters: process.env.GITHUB_ACTIONS
       ? [['github-actions'], ['verbose']]
