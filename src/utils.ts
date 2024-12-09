@@ -4,58 +4,10 @@ import { createWriteStream } from 'node:fs';
 import * as fs from 'node:fs/promises';
 import * as https from 'node:https';
 import { createRequire } from 'node:module';
-import type { constants } from 'node:os';
-import { homedir, tmpdir } from 'node:os';
 import * as path from 'node:path';
 import { rimraf } from 'rimraf';
-
-const tmpDirName = 'tmp';
-
-export const tigedConfigName = 'degit.json';
-
-const getHomeOrTmp = () => homedir() || tmpdir();
-
-const homeOrTmp = /* @__PURE__ */ getHomeOrTmp();
-
-/**
- * Represents the possible error codes for the Tiged utility.
- */
-export type TigedErrorCode =
-  | 'DEST_NOT_EMPTY'
-  | 'MISSING_REF'
-  | 'MISSING_GIT'
-  | 'COULD_NOT_DOWNLOAD'
-  | 'BAD_SRC'
-  | 'UNSUPPORTED_HOST'
-  | 'BAD_REF'
-  | 'COULD_NOT_FETCH'
-  | 'NO_FILES'
-  | keyof typeof constants.errno;
-
-/**
- * Represents the options for a Tiged error.
- */
-interface TigedErrorOptions extends ErrorOptions {
-  /**
-   * The error code associated with the error.
-   */
-  code?: TigedErrorCode;
-
-  /**
-   * The original error that caused this error.
-   */
-  original?: Error;
-
-  /**
-   * The reference (e.g., branch, tag, commit) that was being targeted.
-   */
-  ref?: string;
-
-  /**
-   * The URL associated with the error.
-   */
-  url?: string;
-}
+import { tigedConfigName, tmpDirName } from './constants.js';
+import type { TigedErrorOptions } from './types.js';
 
 /**
  * Represents an error that occurs during the tiged process.
@@ -312,5 +264,3 @@ export const isDirectory = async (filePath: string): Promise<boolean> => {
     return false;
   }
 };
-
-export const base = /* @__PURE__ */ path.join(homeOrTmp, '.degit');
