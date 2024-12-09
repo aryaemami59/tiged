@@ -821,6 +821,11 @@ class Tiged extends EventEmitter {
     // gitPath = this.repo.site === 'huggingface' ? this.repo.url : gitPath;
     const isWin = process.platform === 'win32';
     if (this.repo.subdir) {
+      this._verbose({
+        code: 'EXTRACTING',
+        message: `extracting the ${this.repo.subdir} subdirectory from ${gitPath} repo to ${dest} directory`,
+      });
+
       const tempDir = path.join(dest, '.tiged');
       await fs.mkdir(tempDir, { recursive: true });
       if (isWin) {
@@ -837,10 +842,17 @@ class Tiged extends EventEmitter {
 
       const tempSubDirectory = path.join(tempDir, this.repo.subdir);
 
-      const files = await fs.readdir(tempSubDirectory);
+      if (!(await isDirectory(tempSubDirectory))) {
+        throw new TigedError(
+          'No files to extract. Make sure you typed in the subdirectory name correctly.',
+          { code: 'NO_FILES' },
+        );
+      }
+
+      const filesToExtract = await fs.readdir(tempSubDirectory);
 
       await Promise.all(
-        files.map(async file => {
+        filesToExtract.map(async file => {
           return fs.rename(
             path.join(tempSubDirectory, file),
             path.join(dest, file),
@@ -862,6 +874,16 @@ class Tiged extends EventEmitter {
       } else {
         await exec(`git clone --depth 1 ${gitPath} ${dest}`);
       }
+
+      const extractedFiles = await fs.readdir(dest);
+
+      if (extractedFiles.length === 0) {
+        throw new TigedError(
+          'No files to extract. The git repo seems to be empty',
+          { code: 'NO_FILES' },
+        );
+      }
+
       await fs.rm(path.resolve(dest, '.git'), { recursive: true, force: true });
     }
   }
