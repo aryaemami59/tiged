@@ -309,7 +309,7 @@ describe('Non-existent subdirectory', () => {
   });
 });
 
-describe('non-empty directories', async () => {
+describe('non-empty directories', () => {
   const src = 'tiged/tiged-test-repo';
 
   const sanitizedPath = convertSpecialCharsToHyphens('non-empty directories');
