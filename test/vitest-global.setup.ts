@@ -7,7 +7,3 @@ export async function setup({ provide }: TestProject) {
   await rimraf(fixturesDirectoryName);
   await fs.mkdir(fixturesDirectoryName, { recursive: true });
 }
-
-export async function teardown() {
-  await rimraf(fixturesDirectoryName);
-}
