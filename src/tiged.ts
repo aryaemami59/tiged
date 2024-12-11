@@ -103,11 +103,6 @@ export class Tiged extends EventEmitter {
   declare public mode: ValidModes;
 
   /**
-   * Flags whether stash operations have been performed to avoid duplication.
-   */
-  declare public _hasStashed: boolean;
-
-  /**
    * Defines actions for directives such as
    * cloning and removing files or directories.
    */
@@ -120,6 +115,11 @@ export class Tiged extends EventEmitter {
     event: 'info' | 'warn',
     callback: (info: Info) => void,
   ) => this;
+
+  /**
+   * Flags whether stash operations have been performed to avoid duplication.
+   */
+  private _hasStashed = false;
 
   /**
    * Constructs a new {@linkcode Tiged} instance
@@ -139,7 +139,6 @@ export class Tiged extends EventEmitter {
       ...tigedOptions,
       repo: parse(src),
       proxy: this._getHttpsProxy(),
-      _hasStashed: false,
     };
 
     Object.assign(this, resolvedTigedOptions);
@@ -216,7 +215,7 @@ export class Tiged extends EventEmitter {
    *
    * @returns The HTTPS proxy value, or `undefined` if not found.
    */
-  public _getHttpsProxy(): string | undefined {
+  private _getHttpsProxy(): string | undefined {
     const result = process.env.https_proxy;
 
     if (!result) {
@@ -232,7 +231,7 @@ export class Tiged extends EventEmitter {
    * @param dest - The destination path.
    * @returns An array of {@linkcode TigedAction} directives, or `false` if no directives are found.
    */
-  public async _getDirectives(dest: string): Promise<false | TigedAction[]> {
+  private async _getDirectives(dest: string): Promise<false | TigedAction[]> {
     const directivesPath = path.resolve(dest, tigedConfigName);
 
     const directives: TigedAction[] | false =
@@ -356,7 +355,7 @@ export class Tiged extends EventEmitter {
    *
    * @param dir - The directory path to check.
    */
-  public async _checkDirIsEmpty(dir: string): Promise<void> {
+  private async _checkDirIsEmpty(dir: string): Promise<void> {
     try {
       const files = await fs.readdir(dir, { encoding: 'utf-8' });
 
@@ -394,7 +393,7 @@ export class Tiged extends EventEmitter {
    *
    * @param info - The information to be emitted.
    */
-  public _info(info: Info): void {
+  private _info(info: Info): void {
     this.emit('info', info);
   }
 
@@ -403,7 +402,7 @@ export class Tiged extends EventEmitter {
    *
    * @param tigedError - The information to be emitted.
    */
-  public _warn(tigedError: TigedError): void {
+  private _warn(tigedError: TigedError): void {
     this.emit('warn', tigedError);
 
     if (this.verbose && tigedError.original) {
@@ -417,7 +416,7 @@ export class Tiged extends EventEmitter {
    *
    * @param info - The information to be logged.
    */
-  public _verbose(info: Info): void {
+  private _verbose(info: Info): void {
     if (this.verbose) {
       this._info(info);
     }
@@ -430,7 +429,7 @@ export class Tiged extends EventEmitter {
    * @param cached - The cached records.
    * @returns The hash value.
    */
-  public async _getHash(
+  private async _getHash(
     repo: Repo,
     cached: Record<string, string>,
   ): Promise<string | null | undefined> {
@@ -466,7 +465,7 @@ export class Tiged extends EventEmitter {
    * @param cached - The cached commit hashes.
    * @returns The commit hash if found in the cache; otherwise, `undefined`.
    */
-  public _getHashFromCache(
+  private _getHashFromCache(
     repo: Repo,
     cached: Record<string, string>,
   ): string | undefined {
@@ -492,7 +491,7 @@ export class Tiged extends EventEmitter {
    * @param selector - The selector used to match the desired reference.
    * @returns The commit hash that matches the selector, or `null` if no match is found.
    */
-  public _selectRef(
+  private _selectRef(
     refs: { type: string; name?: string; hash: string }[],
     selector: string,
   ): string | undefined {
@@ -530,7 +529,7 @@ export class Tiged extends EventEmitter {
    * @throws A {@linkcode TigedError} If the tarball cannot be downloaded.
    * @returns A {@linkcode Promise | promise} that resolves when the cloning and extraction process is complete.
    */
-  public async _cloneWithTar(dir: string, dest: string): Promise<void> {
+  private async _cloneWithTar(dir: string, dest: string): Promise<void> {
     const { repo } = this;
 
     const cached: Record<string, string> =
@@ -644,7 +643,7 @@ export class Tiged extends EventEmitter {
    * @param _dir - The source directory.
    * @param dest - The destination directory.
    */
-  public async _cloneWithGit(_dir: string, dest: string): Promise<void> {
+  private async _cloneWithGit(_dir: string, dest: string): Promise<void> {
     const { repo } = this;
     const gitPath = repo.url;
     // let gitPath = /https:\/\//.test(repo.src)
