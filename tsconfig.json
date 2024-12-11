@@ -29,6 +29,7 @@
     "target": "ESNext",
     "types": ["vitest/globals", "vitest/importMeta"],
     "useDefineForClassFields": true,
+    "useUnknownInCatchVariables": true,
     "verbatimModuleSyntax": true
   }
 }
