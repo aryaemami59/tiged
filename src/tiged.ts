@@ -638,7 +638,7 @@ export class Tiged extends EventEmitter {
   private async _getHash(
     repo: Repo,
     cached: Record<string, string>,
-  ): Promise<string | null | undefined> {
+  ): Promise<string | undefined> {
     try {
       const refs = await fetchRefs(repo);
 
