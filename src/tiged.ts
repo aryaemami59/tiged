@@ -41,7 +41,7 @@ import {
  *
  * @public
  */
-export function tiged(src: string, opts?: Options) {
+export function tiged(src: string, opts?: Options): Tiged {
   return new Tiged(src, opts);
 }
 
@@ -209,7 +209,7 @@ export class Tiged extends EventEmitter {
    *
    * @returns The HTTPS proxy value, or `undefined` if not found.
    */
-  public _getHttpsProxy() {
+  public _getHttpsProxy(): string | undefined {
     const result = process.env.https_proxy;
 
     if (!result) {
@@ -225,7 +225,7 @@ export class Tiged extends EventEmitter {
    * @param dest - The destination path.
    * @returns An array of {@linkcode TigedAction} directives, or `false` if no directives are found.
    */
-  public async _getDirectives(dest: string) {
+  public async _getDirectives(dest: string): Promise<false | TigedAction[]> {
     const directivesPath = path.resolve(dest, tigedConfigName);
 
     const directives: TigedAction[] | false =
@@ -243,7 +243,7 @@ export class Tiged extends EventEmitter {
    *
    * @param dest - The destination directory where the repository will be cloned.
    */
-  public async clone(dest: string) {
+  public async clone(dest: string): Promise<void> {
     try {
       execSync('git --version', { stdio: 'ignore' });
     } catch (error) {
@@ -293,7 +293,11 @@ export class Tiged extends EventEmitter {
    * @param dest - The destination path.
    * @param action - The action object containing the files to be removed.
    */
-  public async remove(_dir: string, dest: string, action: RemoveAction) {
+  public async remove(
+    _dir: string,
+    dest: string,
+    action: RemoveAction,
+  ): Promise<void> {
     let { files } = action;
     if (!Array.isArray(files)) {
       files = [files];
@@ -333,7 +337,7 @@ export class Tiged extends EventEmitter {
    *
    * @param dir - The directory path to check.
    */
-  public async _checkDirIsEmpty(dir: string) {
+  public async _checkDirIsEmpty(dir: string): Promise<void> {
     try {
       const files = await fs.readdir(dir);
       if (files.length > 0) {
@@ -370,17 +374,17 @@ export class Tiged extends EventEmitter {
    *
    * @param info - The information to be emitted.
    */
-  public _info(info: Info) {
+  public _info(info: Info): void {
     this.emit('info', info);
   }
 
   /**
    * Emits a `'warn'` event with the provided info.
    *
-   * @param info - The information to be emitted.
+   * @param tigedError - The information to be emitted.
    */
-  public _warn(info: Info) {
-    this.emit('warn', info);
+  public _warn(tigedError: TigedError): void {
+    this.emit('warn', tigedError);
   }
 
   /**
@@ -389,8 +393,10 @@ export class Tiged extends EventEmitter {
    *
    * @param info - The information to be logged.
    */
-  public _verbose(info: Info) {
-    if (this.verbose) this._info(info);
+  public _verbose(info: Info): void {
+    if (this.verbose) {
+      this._info(info);
+    }
   }
 
   /**
@@ -400,7 +406,10 @@ export class Tiged extends EventEmitter {
    * @param cached - The cached records.
    * @returns The hash value.
    */
-  public async _getHash(repo: Repo, cached: Record<string, string>) {
+  public async _getHash(
+    repo: Repo,
+    cached: Record<string, string>,
+  ): Promise<string | null | undefined> {
     try {
       const refs = await fetchRefs(repo);
 
@@ -437,7 +446,10 @@ export class Tiged extends EventEmitter {
    * @param cached - The cached commit hashes.
    * @returns The commit hash if found in the cache; otherwise, `undefined`.
    */
-  public _getHashFromCache(repo: Repo, cached: Record<string, string>) {
+  public _getHashFromCache(
+    repo: Repo,
+    cached: Record<string, string>,
+  ): string | undefined {
     if (!(repo.ref in cached)) {
       return;
     }
@@ -463,7 +475,7 @@ export class Tiged extends EventEmitter {
   public _selectRef(
     refs: { type: string; name?: string; hash: string }[],
     selector: string,
-  ) {
+  ): string | null | undefined {
     for (const ref of refs) {
       if (ref.name === selector) {
         this._verbose({
@@ -498,7 +510,7 @@ export class Tiged extends EventEmitter {
    * @throws A {@linkcode TigedError} If the tarball cannot be downloaded.
    * @returns A {@linkcode Promise | promise} that resolves when the cloning and extraction process is complete.
    */
-  public async _cloneWithTar(dir: string, dest: string) {
+  public async _cloneWithTar(dir: string, dest: string): Promise<void> {
     const { repo } = this;
 
     const cached: Record<string, string> =
@@ -604,34 +616,38 @@ export class Tiged extends EventEmitter {
    * @param _dir - The source directory.
    * @param dest - The destination directory.
    */
-  public async _cloneWithGit(_dir: string, dest: string) {
-    const gitPath = this.repo.url;
-    // let gitPath = /https:\/\//.test(this.repo.src)
-    // 	? this.repo.url
-    // 	: this.repo.ssh;
-    // gitPath = this.repo.site === 'huggingface' ? this.repo.url : gitPath;
+  public async _cloneWithGit(_dir: string, dest: string): Promise<void> {
+    const { repo } = this;
+    const gitPath = repo.url;
+    // let gitPath = /https:\/\//.test(repo.src)
+    // 	? repo.url
+    // 	: repo.ssh;
+    // gitPath = repo.site === 'huggingface' ? repo.url : gitPath;
     const isWin = process.platform === 'win32';
-    if (this.repo.subDirectory) {
+
+    if (repo.subDirectory) {
       this._verbose({
         code: 'EXTRACTING',
-        message: `extracting the ${this.repo.subDirectory} subdirectory from ${gitPath} repo to ${dest} directory`,
+        message: `extracting the ${repo.subDirectory} subdirectory from ${gitPath} repo to ${dest} directory`,
       });
 
       const tempDir = path.join(dest, '.tiged');
+
       await fs.mkdir(tempDir, { recursive: true });
+
       if (isWin) {
         await exec(
-          `cd ${tempDir} && git init && git remote add origin ${gitPath} && git fetch --depth 1 origin ${this.repo.ref} && git checkout FETCH_HEAD`,
+          `cd ${tempDir} && git init && git remote add origin ${gitPath} && git fetch --depth 1 origin ${repo.ref} && git checkout FETCH_HEAD`,
         );
-      } else if (this.repo.ref && this.repo.ref !== 'HEAD' && !isWin) {
+      } else if (repo.ref && repo.ref !== 'HEAD' && !isWin) {
         await exec(
-          `cd ${tempDir}; git init; git remote add origin ${gitPath}; git fetch --depth 1 origin ${this.repo.ref}; git checkout FETCH_HEAD`,
+          `cd ${tempDir}; git init; git remote add origin ${gitPath}; git fetch --depth 1 origin ${repo.ref}; git checkout FETCH_HEAD`,
         );
       } else {
         await exec(`git clone --depth 1 ${gitPath} ${tempDir}`);
       }
 
-      const tempSubDirectory = path.join(tempDir, this.repo.subDirectory);
+      const tempSubDirectory = path.join(tempDir, repo.subDirectory);
 
       if (!(await isDirectory(tempSubDirectory))) {
         throw new TigedError(
@@ -643,24 +659,24 @@ export class Tiged extends EventEmitter {
       const filesToExtract = await fs.readdir(tempSubDirectory);
 
       await Promise.all(
-        filesToExtract.map(async file => {
-          return fs.rename(
-            path.join(tempSubDirectory, file),
-            path.join(dest, file),
-          );
-        }),
+        filesToExtract.map(async file =>
+          fs.rename(path.join(tempSubDirectory, file), path.join(dest, file)),
+        ),
       );
+
       await rimraf(tempDir);
     } else {
       if (isWin) {
         await fs.mkdir(dest, { recursive: true });
+
         await exec(
-          `cd ${dest} && git init && git remote add origin ${gitPath} && git fetch --depth 1 origin ${this.repo.ref} && git checkout FETCH_HEAD`,
+          `cd ${dest} && git init && git remote add origin ${gitPath} && git fetch --depth 1 origin ${repo.ref} && git checkout FETCH_HEAD`,
         );
-      } else if (this.repo.ref && this.repo.ref !== 'HEAD' && !isWin) {
+      } else if (repo.ref && repo.ref !== 'HEAD' && !isWin) {
         await fs.mkdir(dest, { recursive: true });
+
         await exec(
-          `cd ${dest}; git init; git remote add origin ${gitPath}; git fetch --depth 1 origin ${this.repo.ref}; git checkout FETCH_HEAD`,
+          `cd ${dest}; git init; git remote add origin ${gitPath}; git fetch --depth 1 origin ${repo.ref}; git checkout FETCH_HEAD`,
         );
       } else {
         await exec(`git clone --depth 1 ${gitPath} ${dest}`);
@@ -747,7 +763,7 @@ function untar(
   file: string,
   dest: string,
   subDirectory?: Repo['subDirectory'],
-) {
+): string[] {
   const extractedFiles: string[] = [];
   extract(
     {
@@ -771,7 +787,21 @@ function untar(
  * @returns An array of objects representing the fetched references, each containing the type, name, and hash.
  * @throws A {@linkcode TigedError} If there is an error fetching the remote repository.
  */
-async function fetchRefs(repo: Repo) {
+async function fetchRefs(repo: Repo): Promise<
+  | (
+      | {
+          type: string;
+          hash: string;
+          name?: never;
+        }
+      | {
+          type: string;
+          name: string;
+          hash: string;
+        }
+    )[]
+  | undefined
+> {
   try {
     const { stdout } = await exec(`git ls-remote ${repo.url}`);
 
@@ -832,7 +862,7 @@ async function updateCache(
   repo: Repo,
   hash: string,
   cached: Record<string, string>,
-) {
+): Promise<void> {
   // update access logs
   const accessLogs: Record<string, string> =
     tryRequire(path.join(dir, accessLogsFileName)) || {};

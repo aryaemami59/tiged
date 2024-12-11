@@ -9,8 +9,10 @@ const __dirname = path.dirname(__filename);
 
 const tsConfigPath = path.join(__dirname, '..', 'tsconfig.json');
 
-const eraseTSConfigPaths = async () => {
-  const tsConfig = await fs.readFile(tsConfigPath, 'utf-8');
+const eraseTSConfigPaths = async (): Promise<void> => {
+  const tsConfig = await fs.readFile(tsConfigPath, {
+    encoding: 'utf-8',
+  });
 
   const tsConfigJson = JSON.parse(tsConfig);
 

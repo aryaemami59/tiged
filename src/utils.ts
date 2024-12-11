@@ -64,7 +64,7 @@ export function tryRequire(
      */
     clearCache?: true | undefined;
   },
-) {
+): any {
   const require = createRequire(import.meta.url);
   try {
     if (options && options.clearCache === true) {
@@ -122,7 +122,11 @@ export async function exec(
  *
  * @internal
  */
-export async function fetch(url: string, dest: string, proxy?: string) {
+export async function fetch(
+  url: string,
+  dest: string,
+  proxy?: string,
+): Promise<void> {
   return new Promise<void>((fulfill, reject) => {
     const parsedUrl = new URL(url);
 

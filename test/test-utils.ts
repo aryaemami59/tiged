@@ -23,7 +23,7 @@ import type { Options } from 'tiged';
  *
  * @internal
  */
-export const convertSpecialCharsToHyphens = (inputString: string) =>
+export const convertSpecialCharsToHyphens = (inputString: string): string =>
   inputString.replace(/[^a-zA-Z0-9]+/g, '-');
 
 const tigedPath = path.join(import.meta.dirname, '..', 'src', 'bin.ts');
