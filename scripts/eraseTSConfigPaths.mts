@@ -17,7 +17,9 @@ const eraseTSConfigPaths = async (): Promise<void> => {
   const tsConfigJson = JSON.parse(tsConfig);
 
   delete tsConfigJson.compilerOptions.paths;
-  await fs.writeFile(tsConfigPath, JSON.stringify(tsConfigJson, null, 2));
+  await fs.writeFile(tsConfigPath, JSON.stringify(tsConfigJson, null, 2), {
+    encoding: 'utf-8',
+  });
 };
 
 eraseTSConfigPaths();

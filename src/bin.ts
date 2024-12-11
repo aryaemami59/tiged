@@ -45,7 +45,9 @@ const [src, dest = '.'] = args._;
 async function main(): Promise<void> {
   if (args.help) {
     const help = (
-      await fs.readFile(path.join(__dirname, '..', 'help.md'), 'utf-8')
+      await fs.readFile(path.join(__dirname, '..', 'help.md'), {
+        encoding: 'utf-8',
+      })
     )
       .replace(
         /^(\s*)#+ (.+)/gm,
@@ -74,7 +76,10 @@ async function main(): Promise<void> {
       accessJsonFiles.map(async file => {
         const [host, user, repo] = file.split(path.sep);
 
-        const json = await fs.readFile(`${base}/${file}`, 'utf-8');
+        const json = await fs.readFile(`${base}/${file}`, {
+          encoding: 'utf-8',
+        });
+
         const logs: Record<string, string> = JSON.parse(json);
 
         Object.entries(logs).forEach(([ref, timestamp]) => {
@@ -136,7 +141,7 @@ async function main(): Promise<void> {
 
     const empty =
       !(await pathExists(options.dest)) ||
-      (await fs.readdir(options.dest)).length === 0;
+      (await fs.readdir(options.dest, { encoding: 'utf-8' })).length === 0;
 
     if (!empty) {
       const { force } = await enquirer.prompt<Options>([

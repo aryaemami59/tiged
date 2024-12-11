@@ -3,7 +3,11 @@ import prettierConfig from 'eslint-config-prettier';
 import * as fs from 'node:fs/promises';
 import tsEslint from 'typescript-eslint';
 
-const gitIgnoreFiles = (await fs.readFile('.gitignore', 'utf-8'))
+const gitIgnoreFiles = (
+  await fs.readFile('.gitignore', {
+    encoding: 'utf-8',
+  })
+)
   .trim()
   .split('\n');
 

@@ -339,7 +339,8 @@ export class Tiged extends EventEmitter {
    */
   public async _checkDirIsEmpty(dir: string): Promise<void> {
     try {
-      const files = await fs.readdir(dir);
+      const files = await fs.readdir(dir, { encoding: 'utf-8' });
+
       if (files.length > 0) {
         if (this.force) {
           this._info({
@@ -656,7 +657,9 @@ export class Tiged extends EventEmitter {
         );
       }
 
-      const filesToExtract = await fs.readdir(tempSubDirectory);
+      const filesToExtract = await fs.readdir(tempSubDirectory, {
+        encoding: 'utf-8',
+      });
 
       await Promise.all(
         filesToExtract.map(async file =>
@@ -682,7 +685,7 @@ export class Tiged extends EventEmitter {
         await exec(`git clone --depth 1 ${gitPath} ${dest}`);
       }
 
-      const extractedFiles = await fs.readdir(dest);
+      const extractedFiles = await fs.readdir(dest, { encoding: 'utf-8' });
 
       if (extractedFiles.length === 0) {
         throw new TigedError(
@@ -906,5 +909,6 @@ async function updateCache(
   await fs.writeFile(
     path.join(dir, 'map.json'),
     JSON.stringify(cached, null, 2),
+    { encoding: 'utf-8' },
   );
 }

@@ -203,7 +203,7 @@ export async function stashFiles(dir: string, dest: string): Promise<void> {
 
   await fs.mkdir(tmpDir);
 
-  const files = await fs.readdir(dest, { recursive: true });
+  const files = await fs.readdir(dest, { encoding: 'utf-8', recursive: true });
 
   for (const file of files) {
     const filePath = path.join(dest, file);
@@ -231,7 +231,11 @@ export async function stashFiles(dir: string, dest: string): Promise<void> {
 export async function unStashFiles(dir: string, dest: string): Promise<void> {
   const tmpDir = path.join(dir, tmpDirName);
 
-  const files = await fs.readdir(tmpDir, { recursive: true });
+  const files = await fs.readdir(tmpDir, {
+    encoding: 'utf-8',
+    recursive: true,
+  });
+
   for (const filename of files) {
     const tmpFile = path.join(tmpDir, filename);
 
