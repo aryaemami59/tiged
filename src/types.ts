@@ -151,7 +151,7 @@ export type Repo = {
  * @public
  * @since 3.0.0
  */
-type InfoCode =
+export type InfoCode =
   | 'SUCCESS'
   | 'REMOVED'
   | 'DEST_NOT_EMPTY'
