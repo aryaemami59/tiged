@@ -37,13 +37,13 @@ import {
  * the specified source and options.
  *
  * @param src - The source path to clone from.
- * @param opts - The optional configuration options.
+ * @param tigedOptions - The optional configuration options.
  * @returns A new instance of the {@linkcode Tiged} class.
  *
  * @public
  */
-export function tiged(src: string, opts?: Options): Tiged {
-  return new Tiged(src, opts);
+export function createTiged(src: string, tigedOptions?: Options): Tiged {
+  return new Tiged(src, tigedOptions);
 }
 
 /**
@@ -181,7 +181,7 @@ export class Tiged extends EventEmitter {
           verbose: action.verbose ?? tigedDefaultOptions.verbose,
         };
 
-        const t = tiged(action.src, tigedOptions);
+        const t = createTiged(action.src, tigedOptions);
 
         t.on('info', event => {
           console.error(cyan(`> ${event.message?.replace('options.', '--')}`));

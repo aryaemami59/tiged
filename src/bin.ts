@@ -7,7 +7,7 @@ import mri from 'mri';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import type { Options } from 'tiged';
-import { tiged } from 'tiged';
+import { createTiged } from 'tiged';
 import glob from 'tiny-glob/sync.js';
 import { accessLogsFileName, base } from './constants.js';
 import { pathExists, tryRequire } from './utils.js';
@@ -183,7 +183,7 @@ async function run(
   dest: string,
   tigedOptions: Options,
 ): Promise<void> {
-  const t = tiged(src, tigedOptions);
+  const t = createTiged(src, tigedOptions);
 
   t.on('info', event => {
     console.error(cyan(`> ${event.message?.replace('options.', '--')}`));

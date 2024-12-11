@@ -1,7 +1,7 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import type { Options } from 'tiged';
-import { tiged } from 'tiged';
+import { createTiged } from 'tiged';
 import {
   convertSpecialCharsToHyphens,
   defaultTigedOptions,
@@ -11,7 +11,7 @@ import {
 const validModes = ['tar', 'git'] as const;
 
 const runTigedAPI = async (src: string, dest: string, options?: Options) => {
-  return tiged(src, { ...defaultTigedOptions, ...options }).clone(dest);
+  return createTiged(src, { ...defaultTigedOptions, ...options }).clone(dest);
 };
 
 describe('github', () => {
