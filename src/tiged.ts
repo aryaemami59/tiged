@@ -695,7 +695,7 @@ export class Tiged extends EventEmitter {
    *
    * @param refs - An array of references containing type, name, and hash.
    * @param selector - The selector used to match the desired reference.
-   * @returns The commit hash that matches the selector, or `null` if no match is found.
+   * @returns The commit hash that matches the selector, or `undefined` if no match is found.
    */
   private _selectRef(
     refs: { type: string; name?: string; hash: string }[],
