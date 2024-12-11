@@ -88,7 +88,7 @@ function parse(src: string): Repo {
  *
  * @param file - The path to the tar file.
  * @param dest - The destination directory where the contents will be extracted.
- * @param subDirectory - Optional subdirectory within the tar file to extract. Defaults to null.
+ * @param subDirectory - Optional subdirectory within the tar file to extract.
  * @returns A list of extracted files.
  *
  * @internal
