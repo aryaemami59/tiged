@@ -24,7 +24,7 @@ describe('github', () => {
       const outputDirectory = path.join(fixturesDirectoryName, sanitizedPath);
 
       await expect(
-        runTigedCLI(['-v', '--mode', mode, src, outputDirectory]),
+        runTigedCLI(['--mode', mode, src, outputDirectory]),
       ).resolves.not.toThrow();
 
       await expect(outputDirectory).toMatchFiles({
@@ -50,7 +50,7 @@ describe('gitlab', () => {
       const outputDirectory = path.join(fixturesDirectoryName, sanitizedPath);
 
       await expect(
-        runTigedCLI(['-v', '--mode', mode, src, outputDirectory]),
+        runTigedCLI(['--mode', mode, src, outputDirectory]),
       ).resolves.not.toThrow();
 
       await expect(outputDirectory).toMatchFiles({
@@ -70,7 +70,6 @@ describe('gitlab', () => {
 
         await expect(
           runTigedCLI([
-            '-v',
             '--mode',
             mode,
             '--subgroup',
@@ -102,7 +101,6 @@ describe('gitlab', () => {
 
           await expect(
             runTigedCLI([
-              '-v',
               '--mode',
               mode,
               '--subgroup',
@@ -135,7 +133,6 @@ describe('gitlab', () => {
 
           await expect(
             runTigedCLI([
-              '-v',
               '--mode',
               mode,
               '--subgroup',
@@ -169,7 +166,7 @@ describe('bitbucket', { timeout: 10_000 }, () => {
       const outputDirectory = path.join(fixturesDirectoryName, sanitizedPath);
 
       await expect(
-        runTigedCLI(['-v', '--mode', mode, src, outputDirectory]),
+        runTigedCLI(['--mode', mode, src, outputDirectory]),
       ).resolves.not.toThrow();
 
       await expect(outputDirectory).toMatchFiles({
@@ -193,7 +190,7 @@ describe('Sourcehut', () => {
       const outputDirectory = path.join(fixturesDirectoryName, sanitizedPath);
 
       await expect(
-        runTigedCLI(['-v', '--mode', mode, src, outputDirectory]),
+        runTigedCLI(['--mode', mode, src, outputDirectory]),
       ).resolves.not.toThrow();
 
       await expect(outputDirectory).toMatchFiles({
@@ -217,7 +214,7 @@ describe('Codeberg', () => {
       const outputDirectory = path.join(fixturesDirectoryName, sanitizedPath);
 
       await expect(
-        runTigedCLI(['-v', '--mode', mode, src, outputDirectory]),
+        runTigedCLI(['--mode', mode, src, outputDirectory]),
       ).resolves.not.toThrow();
 
       await expect(outputDirectory).toMatchFiles({
@@ -242,7 +239,7 @@ describe('Hugging Face', () => {
       const outputDirectory = path.join(fixturesDirectoryName, sanitizedPath);
 
       await expect(
-        runTigedCLI(['-v', src, '--mode', mode, outputDirectory]),
+        runTigedCLI([src, '--mode', mode, outputDirectory]),
       ).resolves.not.toThrow();
 
       await expect(outputDirectory).toMatchFiles({
@@ -269,7 +266,7 @@ describe('Subdirectories', () => {
       const outputDirectory = path.join(fixturesDirectoryName, sanitizedPath);
 
       await expect(
-        runTigedCLI(['-v', '--mode', mode, src, outputDirectory]),
+        runTigedCLI(['--mode', mode, src, outputDirectory]),
       ).resolves.not.toThrow();
 
       await expect(outputDirectory).toMatchFiles({
@@ -291,7 +288,6 @@ describe('Non-existent subdirectory', () => {
 
       await expect(
         runTigedCLI([
-          '-v',
           '--mode',
           mode,
           'tiged/tiged-test-repo/non-existent-dir',
@@ -324,7 +320,7 @@ describe('non-empty directories', () => {
   describe.each(validModes)('with %s mode', mode => {
     it('fails without --force', async () => {
       await expect(
-        runTigedCLI(['-v', '--mode', mode, src, outputDirectory]),
+        runTigedCLI(['--mode', mode, src, outputDirectory]),
       ).rejects.toThrow(
         /destination directory is not empty, aborting\. Use --force to override/,
       );
@@ -349,7 +345,6 @@ describe('actions', () => {
 
       await expect(
         runTigedCLI([
-          '-v',
           '--mode',
           mode,
           'tiged/tiged-test-repo-remove-only',
@@ -369,7 +364,6 @@ describe('actions', () => {
 
       await expect(
         runTigedCLI([
-          '-v',
           '--mode',
           mode,
           'tiged/tiged-test-repo-remove',
@@ -393,7 +387,6 @@ describe('actions', () => {
 
       await expect(
         runTigedCLI([
-          '-v',
           '--mode',
           mode,
           'tiged/tiged-test-repo-nested-actions',
@@ -425,7 +418,6 @@ describe('git mode old hash', () => {
 
       await expect(
         runTigedCLI([
-          '-v',
           '--mode',
           mode,
           'https://github.com/tiged/tiged-test#525e8fef2c6b5e261511adc55f410d83ca5d8256',
@@ -451,7 +443,6 @@ describe('git mode old hash', () => {
 
       await expect(
         runTigedCLI([
-          '-v',
           '--mode',
           mode,
           'https://github.com/tiged/tiged-test.git/subdir#b09755bc4cca3d3b398fbe5e411daeae79869581',
