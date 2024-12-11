@@ -161,6 +161,8 @@ async function fetchRefs(repo: Repo): Promise<
         if (!match)
           throw new TigedError(`could not parse ${ref}`, {
             code: 'BAD_REF',
+            ref,
+            url: repo.url,
           });
 
         const type =
@@ -180,6 +182,7 @@ async function fetchRefs(repo: Repo): Promise<
         code: 'COULD_NOT_FETCH',
         url: repo.url,
         original: error,
+        ref: repo.ref,
       });
     }
 
@@ -464,6 +467,7 @@ export class Tiged extends EventEmitter {
         'could not find git. Make the directory of your git executable is found in your PATH environment variable.',
         {
           code: 'MISSING_GIT',
+          original: error instanceof Error ? error : undefined,
         },
       );
     }
@@ -755,6 +759,7 @@ export class Tiged extends EventEmitter {
       throw new TigedError(`could not find commit hash for ${repo.ref}`, {
         code: 'MISSING_REF',
         ref: repo.ref,
+        url: repo.url,
       });
     }
 
@@ -810,6 +815,7 @@ export class Tiged extends EventEmitter {
           code: 'COULD_NOT_DOWNLOAD',
           url,
           original: error,
+          ref: repo.ref,
         });
       }
     }
@@ -836,6 +842,8 @@ export class Tiged extends EventEmitter {
 
       throw new TigedError(noFilesErrorMessage, {
         code: 'NO_FILES',
+        ref: repo.ref,
+        url: repo.url,
       });
     }
 
@@ -886,7 +894,11 @@ export class Tiged extends EventEmitter {
       if (!(await isDirectory(tempSubDirectory))) {
         throw new TigedError(
           'No files to extract. Make sure you typed in the subdirectory name correctly.',
-          { code: 'NO_FILES' },
+          {
+            code: 'NO_FILES',
+            ref: repo.ref,
+            url: repo.url,
+          },
         );
       }
 
@@ -923,7 +935,11 @@ export class Tiged extends EventEmitter {
       if (extractedFiles.length === 0) {
         throw new TigedError(
           'No files to extract. The git repo seems to be empty',
-          { code: 'NO_FILES' },
+          {
+            code: 'NO_FILES',
+            ref: repo.ref,
+            url: repo.url,
+          },
         );
       }
 
