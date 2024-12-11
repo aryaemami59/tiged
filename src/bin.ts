@@ -9,33 +9,30 @@ import * as path from 'node:path';
 import type { Options } from 'tiged';
 import { tiged } from 'tiged';
 import glob from 'tiny-glob/sync.js';
-import { base } from './constants.js';
+import { accessLogsFileName, base } from './constants.js';
 import { pathExists, tryRequire } from './utils.js';
 
 const args = mri<Options & { help?: string }>(process.argv.slice(2), {
   alias: {
     f: 'force',
-    c: 'cache',
-    o: 'offline-mode',
-    D: 'disable-cache',
+    D: ['disable-cache', 'disableCache'],
     v: 'verbose',
     m: 'mode',
     s: 'subgroup',
-    d: 'sub-directory',
+    d: ['sub-directory', 'subDirectory'],
     h: 'help',
   },
 
   boolean: [
     'force',
-    'cache',
-    'offline-mode',
-    'disable-cache',
+    'disableCache',
     'verbose',
     'subgroup',
-  ],
+  ] as const satisfies (keyof Options)[],
 
-  string: ['mode', 'sub-directory'],
+  string: ['mode', 'subDirectory'] as const satisfies (keyof Options)[],
 });
+
 const [src, dest = '.'] = args._;
 
 /**
@@ -71,7 +68,7 @@ async function main(): Promise<void> {
 
     const accessLookup = /* @__PURE__ */ new Map<string, number>();
 
-    const accessJsonFiles = glob(`**/access.json`, { cwd: base });
+    const accessJsonFiles = glob(`**/${accessLogsFileName}`, { cwd: base });
 
     await Promise.all(
       accessJsonFiles.map(async file => {
@@ -156,9 +153,11 @@ async function main(): Promise<void> {
       }
     }
 
-    await run(options.src, options.dest, {
+    const { dest, src, ...tigedOptions } = options;
+
+    await run(src, dest, {
+      ...tigedOptions,
       force: true,
-      cache: options.cache,
     });
   } else {
     await run(src, dest, args);

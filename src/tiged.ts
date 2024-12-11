@@ -5,7 +5,13 @@ import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { rimraf } from 'rimraf';
 import { extract } from 'tar';
-import { base, tigedConfigName, validModes } from './constants.js';
+import {
+  accessLogsFileName,
+  base,
+  tigedConfigName,
+  tigedDefaultOptions,
+  validModes,
+} from './constants.js';
 import type {
   Info,
   Options,
@@ -51,21 +57,10 @@ export function tiged(src: string, opts?: Options) {
  */
 export class Tiged extends EventEmitter {
   /**
-   * Enables offline mode, where operations rely on cached data.
-   */
-  declare public offlineMode?: boolean;
-
-  /**
    * Disables the use of cache for operations,
    * ensuring data is always fetched anew.
    */
-  declare public noCache?: boolean;
-
-  /**
-   * Enables caching of data for future operations.
-   * @deprecated Will be removed in v3.X
-   */
-  declare public cache?: boolean;
+  declare public disableCache?: boolean;
 
   /**
    * Forces the operation to proceed, despite non-empty destination directory
@@ -91,7 +86,7 @@ export class Tiged extends EventEmitter {
   /**
    * Specifies a subdirectory within the repository to focus on.
    */
-  declare public subdir?: string;
+  declare public subDirectory?: string;
 
   /**
    * Holds the parsed repository information.
@@ -129,45 +124,40 @@ export class Tiged extends EventEmitter {
    * with the specified source and options.
    *
    * @param src - The source repository string.
-   * @param opts - Optional parameters to customize the behavior.
+   * @param tigedOptions - Optional parameters to customize the behavior.
    */
   constructor(
     public src: string,
-    opts: Options = {},
+    tigedOptions: Options = {},
   ) {
     super();
-    if (opts['offline-mode']) this.offlineMode = opts['offline-mode'];
-    if (opts.offlineMode) this.offlineMode = opts.offlineMode;
-    if (opts['disable-cache']) this.noCache = opts['disable-cache'];
-    if (opts.disableCache) this.noCache = opts.disableCache;
-    // Left cache for backward compatibility. Deprecated. Remove in next major version.
-    this.cache = opts.cache;
-    this.force = opts.force;
-    this.verbose = opts.verbose;
-    this.proxy = this._getHttpsProxy(); // TODO allow setting via --proxy
-    this.subgroup = opts.subgroup;
-    this.subdir = opts['sub-directory'];
 
-    this.repo = parse(src);
+    const resolvedTigedOptions = {
+      ...tigedDefaultOptions,
+      ...tigedOptions,
+      repo: parse(src),
+      proxy: this._getHttpsProxy(),
+      _hasStashed: false,
+    };
+
+    Object.assign(this, resolvedTigedOptions);
+
     if (this.subgroup) {
       this.repo.subgroup = true;
-      this.repo.name = this.repo.subdir?.slice(1) ?? '';
-      this.repo.url += this.repo.subdir;
-      this.repo.ssh = `${this.repo.ssh + this.repo.subdir}.git`;
-      this.repo.subdir = null;
-      if (this.subdir) {
-        this.repo.subdir = this.subdir.startsWith('/')
-          ? this.subdir
-          : `/${this.subdir}`;
+      this.repo.name = this.repo.subDirectory?.slice(1) ?? '';
+      this.repo.url += this.repo.subDirectory;
+      this.repo.ssh = `${this.repo.ssh + this.repo.subDirectory}.git`;
+      this.repo.subDirectory = undefined;
+      if (this.subDirectory) {
+        this.repo.subDirectory = this.subDirectory.startsWith('/')
+          ? this.subDirectory
+          : `/${this.subDirectory}`;
       }
     }
-    this.mode = opts.mode || this.repo.mode;
 
     if (!validModes.has(this.mode)) {
       throw new Error(`Valid modes are ${Array.from(validModes).join(', ')}`);
     }
-
-    this._hasStashed = false;
 
     this.directiveActions = {
       clone: async (dir, dest, action) => {
@@ -175,11 +165,16 @@ export class Tiged extends EventEmitter {
           await stashFiles(dir, dest);
           this._hasStashed = true;
         }
-        const opts = Object.assign(
+
+        const tigedOptions = Object.assign(
           { force: true },
-          { cache: action.cache, verbose: action.verbose },
+          {
+            verbose: action.verbose,
+            disableCache: action.cache === true ? false : true,
+          },
         );
-        const t = tiged(action.src, opts);
+
+        const t = tiged(action.src, tigedOptions);
 
         t.on('info', event => {
           console.error(cyan(`> ${event.message?.replace('options.', '--')}`));
@@ -200,6 +195,7 @@ export class Tiged extends EventEmitter {
           }
         }
       },
+
       remove: this.remove.bind(this),
     };
   }
@@ -207,7 +203,7 @@ export class Tiged extends EventEmitter {
   // Return the HTTPS proxy address. Try to get the value by environment
   // variable `https_proxy` or `HTTPS_PROXY`.
   //
-  // TODO allow setting via --proxy
+  // TODO allow setting via --proxy. We also need to test this.
   /**
    * Retrieves the HTTPS proxy from the environment variables.
    *
@@ -215,9 +211,11 @@ export class Tiged extends EventEmitter {
    */
   public _getHttpsProxy() {
     const result = process.env.https_proxy;
+
     if (!result) {
       return process.env.HTTPS_PROXY;
     }
+
     return result;
   }
 
@@ -229,8 +227,10 @@ export class Tiged extends EventEmitter {
    */
   public async _getDirectives(dest: string) {
     const directivesPath = path.resolve(dest, tigedConfigName);
+
     const directives: TigedAction[] | false =
       tryRequire(directivesPath, { clearCache: true }) || false;
+
     if (directives) {
       await fs.unlink(directivesPath);
     }
@@ -470,14 +470,19 @@ export class Tiged extends EventEmitter {
           code: 'FOUND_MATCH',
           message: `found matching commit hash: ${ref.hash}`,
         });
+
         return ref.hash;
       }
     }
 
-    if (selector.length < 8) return null;
+    if (selector.length < 8) {
+      return null;
+    }
 
     for (const ref of refs) {
-      if (ref.hash.startsWith(selector)) return ref.hash;
+      if (ref.hash.startsWith(selector)) {
+        return ref.hash;
+      }
     }
 
     return;
@@ -491,19 +496,21 @@ export class Tiged extends EventEmitter {
    * @param dest - The destination directory where the repository will be extracted.
    * @throws A {@linkcode TigedError} If the commit hash for the repository reference cannot be found.
    * @throws A {@linkcode TigedError} If the tarball cannot be downloaded.
-   * @returns A promise that resolves when the cloning and extraction process is complete.
+   * @returns A {@linkcode Promise | promise} that resolves when the cloning and extraction process is complete.
    */
   public async _cloneWithTar(dir: string, dest: string) {
     const { repo } = this;
 
     const cached: Record<string, string> =
       tryRequire(path.join(dir, 'map.json')) || {};
-    const hash =
-      this.offlineMode || this.cache
-        ? this._getHashFromCache(repo, cached)
-        : await this._getHash(repo, cached);
 
-    const subdir = repo.subdir ? `${repo.name}-${hash}${repo.subdir}` : null;
+    const hash = this.disableCache
+      ? await this._getHash(repo, cached)
+      : this._getHashFromCache(repo, cached);
+
+    const subDirectory = repo.subDirectory
+      ? `${repo.name}-${hash}${repo.subDirectory}`
+      : undefined;
 
     if (!hash) {
       // TODO 'did you mean...?'
@@ -522,9 +529,9 @@ export class Tiged extends EventEmitter {
           : `${repo.url}/archive/${hash}.tar.gz`;
 
     try {
-      if (!this.offlineMode || !this.cache) {
+      if (this.disableCache) {
         try {
-          if (this.noCache) {
+          if (this.disableCache) {
             this._verbose({
               code: 'NO_CACHE',
               message: `Not using cache. noCache set to true.`,
@@ -565,26 +572,28 @@ export class Tiged extends EventEmitter {
       }
     }
 
-    if (!this.noCache) await updateCache(dir, repo, hash, cached);
+    if (!this.disableCache) {
+      await updateCache(dir, repo, hash, cached);
+    }
 
     this._verbose({
       code: 'EXTRACTING',
       message: `extracting ${
-        subdir ? `${repo.subdir} from ` : ''
+        subDirectory ? `${repo.subDirectory} from ` : ''
       }${file} to ${dest}`,
     });
 
     await fs.mkdir(dest, { recursive: true });
-    const extractedFiles = untar(file, dest, subdir);
+    const extractedFiles = untar(file, dest, subDirectory);
     if (extractedFiles.length === 0) {
-      const noFilesErrorMessage: string = subdir
+      const noFilesErrorMessage: string = subDirectory
         ? 'No files to extract. Make sure you typed in the subdirectory name correctly.'
         : 'No files to extract. The tar file seems to be empty';
       throw new TigedError(noFilesErrorMessage, {
         code: 'NO_FILES',
       });
     }
-    if (this.noCache) {
+    if (this.disableCache) {
       await rimraf(file);
     }
   }
@@ -602,10 +611,10 @@ export class Tiged extends EventEmitter {
     // 	: this.repo.ssh;
     // gitPath = this.repo.site === 'huggingface' ? this.repo.url : gitPath;
     const isWin = process.platform === 'win32';
-    if (this.repo.subdir) {
+    if (this.repo.subDirectory) {
       this._verbose({
         code: 'EXTRACTING',
-        message: `extracting the ${this.repo.subdir} subdirectory from ${gitPath} repo to ${dest} directory`,
+        message: `extracting the ${this.repo.subDirectory} subdirectory from ${gitPath} repo to ${dest} directory`,
       });
 
       const tempDir = path.join(dest, '.tiged');
@@ -622,7 +631,7 @@ export class Tiged extends EventEmitter {
         await exec(`git clone --depth 1 ${gitPath} ${tempDir}`);
       }
 
-      const tempSubDirectory = path.join(tempDir, this.repo.subdir);
+      const tempSubDirectory = path.join(tempDir, this.repo.subDirectory);
 
       if (!(await isDirectory(tempSubDirectory))) {
         throw new TigedError(
@@ -706,7 +715,7 @@ function parse(src: string): Repo {
 
   const user = match[4];
   const name = match[5].replace(/\.git$/, '');
-  const subdir = match[6];
+  const subDirectory = match[6];
   const ref = match[7] || 'HEAD';
 
   const domain = `${siteName}${
@@ -723,7 +732,7 @@ function parse(src: string): Repo {
         ? 'tar'
         : 'git';
 
-  return { site: siteName, user, name, ref, url, ssh, subdir, mode, src };
+  return { site: siteName, user, name, ref, url, ssh, subDirectory, mode, src };
 }
 
 /**
@@ -731,22 +740,26 @@ function parse(src: string): Repo {
  *
  * @param file - The path to the tar file.
  * @param dest - The destination directory where the contents will be extracted.
- * @param subdir - Optional subdirectory within the tar file to extract. Defaults to null.
+ * @param subDirectory - Optional subdirectory within the tar file to extract. Defaults to null.
  * @returns A list of extracted files.
  */
-function untar(file: string, dest: string, subdir: Repo['subdir'] = null) {
+function untar(
+  file: string,
+  dest: string,
+  subDirectory?: Repo['subDirectory'],
+) {
   const extractedFiles: string[] = [];
   extract(
     {
       file,
-      strip: subdir ? subdir.split('/').length : 1,
+      strip: subDirectory ? subDirectory.split('/').length : 1,
       C: dest,
       sync: true,
       onReadEntry: entry => {
         extractedFiles.push(entry.path);
       },
     },
-    subdir ? [subdir] : [],
+    subDirectory ? [subDirectory] : [],
   );
   return extractedFiles;
 }
@@ -821,19 +834,26 @@ async function updateCache(
   cached: Record<string, string>,
 ) {
   // update access logs
-  const logs: Record<string, string> =
-    tryRequire(path.join(dir, 'access.json')) || {};
-  logs[repo.ref] = /* @__PURE__ */ new Date().toISOString();
+  const accessLogs: Record<string, string> =
+    tryRequire(path.join(dir, accessLogsFileName)) || {};
+
+  accessLogs[repo.ref] = new Date().toISOString();
+
   await fs.writeFile(
-    path.join(dir, 'access.json'),
-    JSON.stringify(logs, null, '  '),
+    path.join(dir, accessLogsFileName),
+    JSON.stringify(accessLogs, null, 2),
+    { encoding: 'utf-8' },
   );
 
-  if (cached[repo.ref] === hash) return;
+  if (cached[repo.ref] === hash) {
+    return;
+  }
 
   const oldHash = cached[repo.ref];
+
   if (oldHash) {
     let used = false;
+
     for (const key in cached) {
       if (cached[key] === hash) {
         used = true;
@@ -852,8 +872,9 @@ async function updateCache(
   }
 
   cached[repo.ref] = hash;
+
   await fs.writeFile(
     path.join(dir, 'map.json'),
-    JSON.stringify(cached, null, '  '),
+    JSON.stringify(cached, null, 2),
   );
 }

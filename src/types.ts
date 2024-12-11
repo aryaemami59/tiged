@@ -17,20 +17,6 @@ export type ValidModes = 'tar' | 'git';
  */
 export type Options = {
   /**
-   * Specifies whether to use caching.
-   *
-   * **CLI-Equivalent**: `-c`, `--cache`
-   *
-   * @alias {@linkcode Options.offlineMode | offlineMode}
-   * @alias {@linkcode Options.offlineMode | 'offline-mode'}
-   *
-   * @default true
-   *
-   * @deprecated Use {@linkcode Options.disableCache | disableCache} instead.
-   */
-  cache?: boolean;
-
-  /**
    * Forces the operation to proceed, despite non-empty destination directory
    * potentially overwriting existing files.
    *
@@ -63,46 +49,9 @@ export type Options = {
   verbose?: boolean;
 
   /**
-   * Specifies whether to enable offline mode, which uses the cache.
-   *
-   * **CLI-Equivalent**: `-o`, `--offline-mode`
-   *
-   * @alias {@linkcode Options.offlineMode | offlineMode}
-   * @alias {@linkcode Options.cache | cache}
-   *
-   * @default true
-   */
-  'offline-mode'?: boolean;
-
-  /**
-   * Specifies whether to enable offline mode, which uses the cache.
-   *
-   * **CLI-Equivalent**: `-o`, `--offline-mode`
-   *
-   * @alias {@linkcode Options.offlineMode | 'offline-mode'}
-   * @alias {@linkcode Options.cache | cache}
-   *
-   * @default true
-   */
-  offlineMode?: boolean;
-
-  /**
    * Specifies whether to disable caching.
    *
-   * **CLI-Equivalent**: `-D`, `--disable-cache`
-   *
-   * @alias {@linkcode Options.disableCache | disableCache}
-   *
-   * @default false
-   */
-  'disable-cache'?: boolean;
-
-  /**
-   * Specifies whether to disable caching.
-   *
-   * **CLI-Equivalent**: `-D`, `--disable-cache`
-   *
-   * @alias {@linkcode Options.disableCache | 'disable-cache'}
+   * **CLI-Equivalent**: `-D`, `--disable-cache`, `--disableCache`
    *
    * @default false
    */
@@ -120,20 +69,7 @@ export type Options = {
   /**
    * Specifies the sub-directory for the operation.
    *
-   * **CLI-Equivalent**: `-d`, `--sub-directory`
-   *
-   * @alias {@linkcode Options.subDirectory | subDirectory}
-   *
-   * @default undefined
-   */
-  'sub-directory'?: string;
-
-  /**
-   * Specifies the sub-directory for the operation.
-   *
-   * **CLI-Equivalent**: `-d`, `--sub-directory`
-   *
-   * @alias {@linkcode Options.subDirectory | 'sub-directory'}
+   * **CLI-Equivalent**: `-d`, `--sub-directory`, `--subDirectory`
    *
    * @default undefined
    */
@@ -176,9 +112,9 @@ export type Repo = {
 
   /**
    * Optional. A specific subdirectory within the repository to work with,
-   * if applicable. Can be `null` if not used.
+   * if applicable. Can be `undefined` if not used.
    */
-  subdir?: string | null;
+  subDirectory?: string;
 
   /**
    * Specifies the mode for the operation.

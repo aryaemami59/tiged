@@ -5,7 +5,6 @@ import * as fs from 'node:fs/promises';
 import * as https from 'node:https';
 import { createRequire } from 'node:module';
 import * as path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { rimraf } from 'rimraf';
 import { tigedConfigName, tmpDirName } from './constants.js';
 import type { TigedErrorOptions } from './types.js';
@@ -300,7 +299,3 @@ export const isDirectory = async (filePath: string): Promise<boolean> => {
     return false;
   }
 };
-
-const getDirname = () => path.dirname(fileURLToPath(import.meta.url));
-
-export { getDirname as '__dirname' };

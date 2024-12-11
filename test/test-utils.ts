@@ -41,7 +41,6 @@ export const defaultExecFileOptions = {
 } as const satisfies ExecFileOptionsWithOtherEncoding;
 
 export const defaultTigedOptions = {
-  cache: false,
   disableCache: true,
 } as const satisfies Options;
 

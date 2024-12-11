@@ -103,7 +103,7 @@ describe('gitlab', () => {
             runTigedAPI(task.name, outputDirectory, {
               mode,
               subgroup: true,
-              'sub-directory': 'subdir1',
+              subDirectory: 'subdir1',
             }),
           ).resolves.not.toThrow();
 
@@ -131,7 +131,7 @@ describe('gitlab', () => {
             runTigedAPI(task.name, outputDirectory, {
               mode,
               subgroup: true,
-              'sub-directory': 'subdir1/subdir2',
+              subDirectory: 'subdir1/subdir2',
             }),
           ).resolves.not.toThrow();
 
