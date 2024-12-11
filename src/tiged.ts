@@ -193,9 +193,9 @@ export class Tiged extends EventEmitter {
 
         try {
           await t.clone(dest);
-        } catch (err) {
-          if (err instanceof Error) {
-            console.error(red(`! ${err.message}`));
+        } catch (error) {
+          if (error instanceof Error) {
+            console.error(red(`! ${error.message}`));
             process.exit(1);
           }
         }
@@ -246,7 +246,7 @@ export class Tiged extends EventEmitter {
   public async clone(dest: string) {
     try {
       execSync('git --version', { stdio: 'ignore' });
-    } catch (e) {
+    } catch (error) {
       throw new TigedError(
         'could not find git. Make the directory of your git executable is found in your PATH environment variable.',
         {
@@ -358,8 +358,10 @@ export class Tiged extends EventEmitter {
           message: `destination directory is empty`,
         });
       }
-    } catch (err) {
-      if (err instanceof TigedError && err.code !== 'ENOENT') throw err;
+    } catch (error) {
+      if (error instanceof TigedError && error.code !== 'ENOENT') {
+        throw error;
+      }
     }
   }
 
@@ -411,12 +413,16 @@ export class Tiged extends EventEmitter {
       }
 
       return this._selectRef(refs, repo.ref);
-    } catch (err) {
-      if (err instanceof TigedError && 'code' in err && 'message' in err) {
-        this._warn(err);
+    } catch (error) {
+      if (
+        error instanceof TigedError &&
+        'code' in error &&
+        'message' in error
+      ) {
+        this._warn(error);
 
-        if (err.original != null) {
-          this._verbose(err.original);
+        if (error.original != null) {
+          this._verbose(error.original);
         }
       }
 
@@ -530,7 +536,7 @@ export class Tiged extends EventEmitter {
             code: 'FILE_EXISTS',
             message: `${file} already exists locally`,
           });
-        } catch (err) {
+        } catch (error) {
           // Not getting file from cache. Either because there is no cached tar or because option no cache is set to true.
           await fs.mkdir(path.dirname(file), { recursive: true });
 
@@ -549,12 +555,12 @@ export class Tiged extends EventEmitter {
           await fetch(url, file, this.proxy);
         }
       }
-    } catch (err) {
-      if (err instanceof Error) {
+    } catch (error) {
+      if (error instanceof Error) {
         throw new TigedError(`could not download ${url}`, {
           code: 'COULD_NOT_DOWNLOAD',
           url,
-          original: err,
+          original: error,
         });
       }
     }
@@ -839,7 +845,7 @@ async function updateCache(
       // we no longer need this tar file
       try {
         await fs.unlink(path.join(dir, `${oldHash}.tar.gz`));
-      } catch (err) {
+      } catch (error) {
         // ignore
       }
     }
