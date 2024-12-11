@@ -54,7 +54,7 @@ function parse(src: string): Repo {
     });
   }
 
-  const site = match[1] || match[2] || match[3] || 'github.com';
+  const site = match[1] ?? match[2] ?? match[3] ?? 'github.com';
   const topLevelDomainMatch = /\.([a-z]{2,})$/.exec(site);
   const topLevelDomain = topLevelDomainMatch ? topLevelDomainMatch[0] : null;
   const siteName = topLevelDomain
@@ -64,10 +64,10 @@ function parse(src: string): Repo {
   const user = match[4] ?? '';
   const name = match[5]?.replace(/\.git$/, '') ?? '';
   const subDirectory = match[6] ?? '';
-  const ref = match[7] || 'HEAD';
+  const ref = match[7] ?? 'HEAD';
 
   const domain = `${siteName}${
-    topLevelDomain || supported[siteName] || supported[site] || ''
+    topLevelDomain ?? supported[siteName] ?? supported[site] ?? ''
   }`;
 
   const url = `https://${domain}/${user}/${name}`;

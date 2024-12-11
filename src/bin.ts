@@ -142,8 +142,8 @@ async function main(): Promise<void> {
         [],
       )
       .sort((a, b) => {
-        const aTime = accessLookup.get(a.value) || 0;
-        const bTime = accessLookup.get(b.value) || 0;
+        const aTime = accessLookup.get(a.value) ?? 0;
+        const bTime = accessLookup.get(b.value) ?? 0;
 
         return bTime - aTime;
       });
