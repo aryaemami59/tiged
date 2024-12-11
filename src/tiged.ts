@@ -1,5 +1,4 @@
 import { bold, cyan, magenta, red } from 'colorette';
-import { execSync } from 'node:child_process';
 import { EventEmitter } from 'node:events';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
@@ -459,7 +458,7 @@ export class Tiged extends EventEmitter {
    */
   public async clone(dest: string): Promise<void> {
     try {
-      execSync('git --version', { stdio: 'ignore' });
+      await exec('git --version');
     } catch (error) {
       throw new TigedError(
         'could not find git. Make the directory of your git executable is found in your PATH environment variable.',
