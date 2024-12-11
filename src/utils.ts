@@ -7,8 +7,9 @@ import { createRequire } from 'node:module';
 import * as path from 'node:path';
 import { promisify } from 'node:util';
 import { rimraf } from 'rimraf';
+import { extract } from 'tar';
 import { tigedConfigName, tmpDirName } from './constants.js';
-import type { TigedErrorOptions } from './types.js';
+import type { Repo, TigedErrorOptions } from './types.js';
 
 /**
  * Represents an error that occurs during the tiged process.
@@ -95,6 +96,39 @@ export function tryRequire(
  * @internal
  */
 export const exec = promisify(child_process.exec);
+
+/**
+ * Extracts the contents of a tar file to a specified destination.
+ *
+ * @param tarballFileName - The path to the tar file.
+ * @param dest - The destination directory where the contents will be extracted.
+ * @param subDirectory - Optional subdirectory within the tar file to extract.
+ * @returns A list of extracted files.
+ *
+ * @internal
+ */
+export async function untar(
+  tarballFileName: string,
+  dest: string,
+  subDirectory?: Repo['subDirectory'],
+): Promise<string[]> {
+  const extractedFiles: string[] = [];
+
+  await extract(
+    {
+      file: tarballFileName,
+      strip: subDirectory ? subDirectory.split('/').length : 1,
+      C: dest,
+      onReadEntry: entry => {
+        extractedFiles.push(entry.path);
+      },
+    },
+
+    subDirectory ? [subDirectory] : [],
+  );
+
+  return extractedFiles;
+}
 
 /**
  * Fetches a resource from the specified URL

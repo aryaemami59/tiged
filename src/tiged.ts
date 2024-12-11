@@ -3,7 +3,6 @@ import { EventEmitter } from 'node:events';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { rimraf } from 'rimraf';
-import { extract } from 'tar';
 import {
   accessLogsFileName,
   cacheDirectoryName,
@@ -29,6 +28,7 @@ import {
   stashFiles,
   tryRequire,
   unStashFiles,
+  untar,
 } from './utils.js';
 
 /**
@@ -80,39 +80,6 @@ function extractRepositoryInfo(src: string): Repo {
         : 'git';
 
   return { site: siteName, user, name, ref, url, ssh, subDirectory, mode, src };
-}
-
-/**
- * Extracts the contents of a tar file to a specified destination.
- *
- * @param tarballFileName - The path to the tar file.
- * @param dest - The destination directory where the contents will be extracted.
- * @param subDirectory - Optional subdirectory within the tar file to extract.
- * @returns A list of extracted files.
- *
- * @internal
- */
-async function untar(
-  tarballFileName: string,
-  dest: string,
-  subDirectory?: Repo['subDirectory'],
-): Promise<string[]> {
-  const extractedFiles: string[] = [];
-
-  await extract(
-    {
-      file: tarballFileName,
-      strip: subDirectory ? subDirectory.split('/').length : 1,
-      C: dest,
-      onReadEntry: entry => {
-        extractedFiles.push(entry.path);
-      },
-    },
-
-    subDirectory ? [subDirectory] : [],
-  );
-
-  return extractedFiles;
 }
 
 /**
@@ -376,14 +343,16 @@ export class Tiged extends EventEmitter {
 
     this.directiveActions = {
       clone: async (dir, dest, action) => {
+        const absoluteDestination = path.resolve(dest);
+
         if (this._hasStashed === false) {
-          await stashFiles(dir, dest);
+          await stashFiles(dir, absoluteDestination);
 
           this._hasStashed = true;
         }
 
         const tigedOptions = {
-          disableCache: action.cache === true ? false : true,
+          disableCache: action.cache === false ? true : this.disableCache,
           force: true,
           verbose: action.verbose ?? tigedDefaultOptions.verbose,
         };
@@ -401,7 +370,7 @@ export class Tiged extends EventEmitter {
         });
 
         try {
-          await tiged.clone(dest);
+          await tiged.clone(absoluteDestination);
         } catch (error) {
           if (error instanceof Error) {
             console.error(red(`! ${error.message}`));
@@ -471,16 +440,18 @@ export class Tiged extends EventEmitter {
       );
     }
 
-    await this._checkDirIsEmpty(dest);
+    const absoluteDestination = path.resolve(dest);
+
+    await this._checkDirIsEmpty(absoluteDestination);
 
     const { repo } = this;
 
     const dir = path.join(cacheDirectoryName, repo.site, repo.user, repo.name);
 
     if (this.mode === 'tar') {
-      await this._cloneWithTar(dir, dest);
+      await this._cloneWithTar(dir, absoluteDestination);
     } else {
-      await this._cloneWithGit(dir, dest);
+      await this._cloneWithGit(dir, absoluteDestination);
     }
 
     this._info({
@@ -489,19 +460,23 @@ export class Tiged extends EventEmitter {
         dest !== '.' ? ` to ${dest}` : ''
       }`,
       repo,
-      dest,
+      dest: absoluteDestination,
     });
 
-    const directives = await this._getDirectives(dest);
+    const directives = await this._getDirectives(absoluteDestination);
 
     if (directives) {
-      for (const d of directives) {
+      for (const directive of directives) {
         // TODO, can this be a loop with an index to pass for better error messages?
-        await this.directiveActions[d.action](dir, dest, d);
+        await this.directiveActions[directive.action](
+          dir,
+          absoluteDestination,
+          directive,
+        );
       }
 
       if (this._hasStashed === true) {
-        await unStashFiles(dir, dest);
+        await unStashFiles(dir, absoluteDestination);
       }
     }
   }
@@ -519,16 +494,16 @@ export class Tiged extends EventEmitter {
     dest: string,
     action: RemoveAction,
   ): Promise<void> {
-    let { files } = action;
+    const filesToBeRemoved = Array.isArray(action.files)
+      ? action.files
+      : [action.files];
 
-    if (!Array.isArray(files)) {
-      files = [files];
-    }
+    const absoluteDestination = path.resolve(dest);
 
     const removedFiles: string[] = [];
 
-    for (const file of files) {
-      const filePath = path.resolve(dest, file);
+    for (const file of filesToBeRemoved) {
+      const filePath = path.resolve(absoluteDestination, file);
 
       if (await pathExists(filePath)) {
         const isDir = await isDirectory(filePath);
@@ -762,14 +737,16 @@ export class Tiged extends EventEmitter {
       });
     }
 
-    const file = `${dir}/${hash}.tar.gz`;
+    const tarballFileName = `${hash}.tar.gz`;
+
+    const tarballFilePath = path.join(dir, tarballFileName);
 
     const url =
       repo.site === 'gitlab'
-        ? `${repo.url}/-/archive/${hash}/${repo.name}-${hash}.tar.gz`
+        ? `${repo.url}/-/archive/${hash}/${repo.name}-${tarballFileName}`
         : repo.site === 'bitbucket'
-          ? `${repo.url}/get/${hash}.tar.gz`
-          : `${repo.url}/archive/${hash}.tar.gz`;
+          ? `${repo.url}/get/${tarballFileName}`
+          : `${repo.url}/archive/${tarballFileName}`;
 
     try {
       if (this.disableCache) {
@@ -777,21 +754,21 @@ export class Tiged extends EventEmitter {
           if (this.disableCache) {
             this._verbose({
               code: 'NO_CACHE',
-              message: `Not using cache. noCache set to true.`,
+              message: `Not using cache. disableCache set to true.`,
             });
 
             throw "don't use cache";
           }
 
-          await fs.stat(file);
+          await fs.stat(tarballFilePath);
 
           this._verbose({
             code: 'FILE_EXISTS',
-            message: `${file} already exists locally`,
+            message: `${tarballFilePath} already exists locally`,
           });
         } catch (error) {
           // Not getting file from cache. Either because there is no cached tar or because option no cache is set to true.
-          await fs.mkdir(path.dirname(file), { recursive: true });
+          await fs.mkdir(dir, { recursive: true });
 
           if (this.proxy) {
             this._verbose({
@@ -802,10 +779,10 @@ export class Tiged extends EventEmitter {
 
           this._verbose({
             code: 'DOWNLOADING',
-            message: `downloading ${url} to ${file}`,
+            message: `downloading ${url} to ${tarballFilePath}`,
           });
 
-          await downloadTarball(url, file, this.proxy);
+          await downloadTarball(url, tarballFilePath, this.proxy);
         }
       }
     } catch (error) {
@@ -827,12 +804,12 @@ export class Tiged extends EventEmitter {
       code: 'EXTRACTING',
       message: `extracting ${
         subDirectory ? `${repo.subDirectory} from ` : ''
-      }${file} to ${dest}`,
+      }${tarballFilePath} to ${dest}`,
     });
 
     await fs.mkdir(dest, { recursive: true });
 
-    const extractedFiles = await untar(file, dest, subDirectory);
+    const extractedFiles = await untar(tarballFilePath, dest, subDirectory);
 
     if (extractedFiles.length === 0) {
       const noFilesErrorMessage: string = subDirectory
@@ -847,7 +824,7 @@ export class Tiged extends EventEmitter {
     }
 
     if (this.disableCache) {
-      await rimraf(file);
+      await rimraf(tarballFilePath);
     }
   }
 
