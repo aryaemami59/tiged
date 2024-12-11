@@ -221,7 +221,7 @@ export type RemoveAction = Action & {
 /**
  * Represents the possible error codes for the Tiged utility.
  */
-export type TigedErrorCode =
+type TigedErrorCode =
   | 'DEST_NOT_EMPTY'
   | 'MISSING_REF'
   | 'MISSING_GIT'
