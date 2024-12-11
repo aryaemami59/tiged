@@ -195,7 +195,7 @@ async function fetchRefs(repo: Repo): Promise<
  * @param repo - The repository object containing the reference and other details.
  * @param hash - The hash value of the repository.
  * @param cached - The cached records.
- * @returns A Promise that resolves when the cache is updated.
+ * @returns A {@linkcode Promise | promise} that resolves when the cache is updated.
  *
  * @internal
  */
