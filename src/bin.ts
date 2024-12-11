@@ -49,21 +49,22 @@ async function run(
   dest: string,
   tigedOptions: Options,
 ): Promise<void> {
-  const t = createTiged(src, tigedOptions);
+  const tiged = createTiged(src, tigedOptions);
 
-  t.on('info', event => {
+  tiged.on('info', event => {
     console.error(cyan(`> ${event.message?.replace('options.', '--')}`));
   });
 
-  t.on('warn', event => {
+  tiged.on('warn', event => {
     console.error(magenta(`! ${event.message?.replace('options.', '--')}`));
   });
 
   try {
-    await t.clone(dest);
+    await tiged.clone(dest);
   } catch (error) {
     if (error instanceof Error) {
       console.error(red(`! ${error.message.replace('options.', '--')}`));
+
       process.exit(1);
     }
   }

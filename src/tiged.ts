@@ -377,6 +377,7 @@ export class Tiged extends EventEmitter {
       clone: async (dir, dest, action) => {
         if (this._hasStashed === false) {
           await stashFiles(dir, dest);
+
           this._hasStashed = true;
         }
 
@@ -386,23 +387,24 @@ export class Tiged extends EventEmitter {
           verbose: action.verbose ?? tigedDefaultOptions.verbose,
         };
 
-        const t = createTiged(action.src, tigedOptions);
+        const tiged = createTiged(action.src, tigedOptions);
 
-        t.on('info', event => {
+        tiged.on('info', event => {
           console.error(cyan(`> ${event.message?.replace('options.', '--')}`));
         });
 
-        t.on('warn', event => {
+        tiged.on('warn', event => {
           console.error(
             magenta(`! ${event.message?.replace('options.', '--')}`),
           );
         });
 
         try {
-          await t.clone(dest);
+          await tiged.clone(dest);
         } catch (error) {
           if (error instanceof Error) {
             console.error(red(`! ${error.message}`));
+
             process.exit(1);
           }
         }
