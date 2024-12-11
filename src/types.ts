@@ -68,7 +68,7 @@ export type Options = {
   subgroup?: boolean;
 
   /**
-   * Specifies the sub-directory for the operation.
+   * Specifies the sub-directory for the operation (Gitlab only).
    *
    * **CLI-Equivalent**: `-d`, `--sub-directory`, `--subDirectory`
    *

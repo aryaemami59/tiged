@@ -74,10 +74,12 @@ export function tryRequire(
   },
 ): any {
   const require = createRequire(import.meta.url);
+
   try {
     if (options && options.clearCache === true) {
       delete require.cache[require.resolve(filePath)];
     }
+
     return require(filePath);
   } catch (error) {
     return null;
@@ -201,6 +203,7 @@ export async function stashFiles(dir: string, dest: string): Promise<void> {
     const targetPath = path.join(tmpDir, file);
 
     const isDir = await isDirectory(filePath);
+
     if (isDir) {
       await fs.cp(filePath, targetPath, { recursive: true });
     } else {
@@ -234,6 +237,7 @@ export async function unStashFiles(dir: string, dest: string): Promise<void> {
     const targetPath = path.join(dest, filename);
 
     const isDir = await isDirectory(tmpFile);
+
     if (isDir) {
       await fs.cp(tmpFile, targetPath, { recursive: true });
     } else {

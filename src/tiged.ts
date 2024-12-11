@@ -288,13 +288,13 @@ export class Tiged extends EventEmitter {
   declare public proxy?: string;
 
   /**
-   * Indicates if the repository is a subgroup, affecting repository parsing.
+   * Indicates if the repository is a subgroup,
+   * affecting repository parsing (Gitlab only).
    */
   declare public subgroup?: boolean;
 
   /**
-   * Specifies a subdirectory within the repository to focus on.
-   * Gitlab only.
+   * Specifies a subdirectory within the repository to focus on (Gitlab only).
    */
   declare public subDirectory?: string;
 
