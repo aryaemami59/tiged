@@ -85,26 +85,25 @@ function extractRepositoryInfo(src: string): Repo {
 /**
  * Extracts the contents of a tar file to a specified destination.
  *
- * @param file - The path to the tar file.
+ * @param tarballFileName - The path to the tar file.
  * @param dest - The destination directory where the contents will be extracted.
  * @param subDirectory - Optional subdirectory within the tar file to extract.
  * @returns A list of extracted files.
  *
  * @internal
  */
-function untar(
-  file: string,
+async function untar(
+  tarballFileName: string,
   dest: string,
   subDirectory?: Repo['subDirectory'],
-): string[] {
+): Promise<string[]> {
   const extractedFiles: string[] = [];
 
-  extract(
+  await extract(
     {
-      file,
+      file: tarballFileName,
       strip: subDirectory ? subDirectory.split('/').length : 1,
       C: dest,
-      sync: true,
       onReadEntry: entry => {
         extractedFiles.push(entry.path);
       },
@@ -833,7 +832,7 @@ export class Tiged extends EventEmitter {
 
     await fs.mkdir(dest, { recursive: true });
 
-    const extractedFiles = untar(file, dest, subDirectory);
+    const extractedFiles = await untar(file, dest, subDirectory);
 
     if (extractedFiles.length === 0) {
       const noFilesErrorMessage: string = subDirectory
