@@ -36,6 +36,40 @@ const CLIArguments = mri<Options & { help?: string }>(process.argv.slice(2), {
 const [src, dest = '.'] = CLIArguments._;
 
 /**
+ * Runs the cloning process from the specified source
+ * to the destination directory.
+ *
+ * @param src - The source repository to clone from.
+ * @param dest - The destination directory where the repository will be cloned to.
+ * @param tigedOptions - Additional options for the cloning process.
+ * @returns A {@linkcode Promise | promise} that resolves when the cloning process is complete.
+ */
+async function run(
+  src: string,
+  dest: string,
+  tigedOptions: Options,
+): Promise<void> {
+  const t = createTiged(src, tigedOptions);
+
+  t.on('info', event => {
+    console.error(cyan(`> ${event.message?.replace('options.', '--')}`));
+  });
+
+  t.on('warn', event => {
+    console.error(magenta(`! ${event.message?.replace('options.', '--')}`));
+  });
+
+  try {
+    await t.clone(dest);
+  } catch (error) {
+    if (error instanceof Error) {
+      console.error(red(`! ${error.message.replace('options.', '--')}`));
+      process.exit(1);
+    }
+  }
+}
+
+/**
  * The main function of the application.
  * It handles the logic for displaying help,
  * interactive mode, and running the application.
@@ -166,40 +200,6 @@ async function main(): Promise<void> {
     });
   } else {
     await run(src, dest, CLIArguments);
-  }
-}
-
-/**
- * Runs the cloning process from the specified source
- * to the destination directory.
- *
- * @param src - The source repository to clone from.
- * @param dest - The destination directory where the repository will be cloned to.
- * @param tigedOptions - Additional options for the cloning process.
- * @returns A {@linkcode Promise | promise} that resolves when the cloning process is complete.
- */
-async function run(
-  src: string,
-  dest: string,
-  tigedOptions: Options,
-): Promise<void> {
-  const t = createTiged(src, tigedOptions);
-
-  t.on('info', event => {
-    console.error(cyan(`> ${event.message?.replace('options.', '--')}`));
-  });
-
-  t.on('warn', event => {
-    console.error(magenta(`! ${event.message?.replace('options.', '--')}`));
-  });
-
-  try {
-    await t.clone(dest);
-  } catch (error) {
-    if (error instanceof Error) {
-      console.error(red(`! ${error.message.replace('options.', '--')}`));
-      process.exit(1);
-    }
   }
 }
 

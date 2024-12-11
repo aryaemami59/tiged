@@ -33,17 +33,223 @@ import {
 } from './utils.js';
 
 /**
- * Creates a new instance of the {@linkcode Tiged} class with
- * the specified source and options.
+ * Parses the source URL and returns a {@linkcode Repo} object
+ * containing the parsed information.
  *
- * @param src - The source path to clone from.
- * @param tigedOptions - The optional configuration options.
- * @returns A new instance of the {@linkcode Tiged} class.
+ * @param src - The source URL to parse.
+ * @returns A {@linkcode Repo} object containing the parsed information.
+ * @throws A {@linkcode TigedError} If the source URL cannot be parsed.
  *
- * @public
+ * @internal
  */
-export function createTiged(src: string, tigedOptions?: Options): Tiged {
-  return new Tiged(src, tigedOptions);
+function parse(src: string): Repo {
+  const match =
+    /^(?:(?:https:\/\/)?([^:/]+\.[^:/]+)\/|git@([^:/]+)[:/]|([^/]+):)?([^/\s]+)\/([^/\s#]+)(?:((?:\/[^/\s#]+)+))?(?:\/)?(?:#(.+))?/.exec(
+      src,
+    );
+
+  if (!match) {
+    throw new TigedError(`could not parse ${src}`, {
+      code: 'BAD_SRC',
+    });
+  }
+
+  const site = match[1] || match[2] || match[3] || 'github.com';
+  const topLevelDomainMatch = /\.([a-z]{2,})$/.exec(site);
+  const topLevelDomain = topLevelDomainMatch ? topLevelDomainMatch[0] : null;
+  const siteName = topLevelDomain
+    ? site.replace(new RegExp(`${topLevelDomain}$`), '')
+    : site;
+
+  const user = match[4] ?? '';
+  const name = match[5]?.replace(/\.git$/, '') ?? '';
+  const subDirectory = match[6] ?? '';
+  const ref = match[7] || 'HEAD';
+
+  const domain = `${siteName}${
+    topLevelDomain || supported[siteName] || supported[site] || ''
+  }`;
+
+  const url = `https://${domain}/${user}/${name}`;
+  const ssh = `git@${domain}:${user}/${name}`;
+
+  const mode =
+    siteName === 'huggingface'
+      ? 'git'
+      : supported[siteName] || supported[site]
+        ? 'tar'
+        : 'git';
+
+  return { site: siteName, user, name, ref, url, ssh, subDirectory, mode, src };
+}
+
+/**
+ * Extracts the contents of a tar file to a specified destination.
+ *
+ * @param file - The path to the tar file.
+ * @param dest - The destination directory where the contents will be extracted.
+ * @param subDirectory - Optional subdirectory within the tar file to extract. Defaults to null.
+ * @returns A list of extracted files.
+ *
+ * @internal
+ */
+function untar(
+  file: string,
+  dest: string,
+  subDirectory?: Repo['subDirectory'],
+): string[] {
+  const extractedFiles: string[] = [];
+
+  extract(
+    {
+      file,
+      strip: subDirectory ? subDirectory.split('/').length : 1,
+      C: dest,
+      sync: true,
+      onReadEntry: entry => {
+        extractedFiles.push(entry.path);
+      },
+    },
+
+    subDirectory ? [subDirectory] : [],
+  );
+
+  return extractedFiles;
+}
+
+/**
+ * Fetches the references (branches, tags, etc.) from a remote Git repository.
+ *
+ * @param repo - The repository object containing the URL of the remote repository.
+ * @returns An array of objects representing the fetched references, each containing the type, name, and hash.
+ * @throws A {@linkcode TigedError} If there is an error fetching the remote repository.
+ *
+ * @internal
+ */
+async function fetchRefs(repo: Repo): Promise<
+  | (
+      | {
+          type: string;
+          hash: string;
+          name?: never;
+        }
+      | {
+          type: string;
+          name: string;
+          hash: string;
+        }
+    )[]
+  | undefined
+> {
+  try {
+    const { stdout } = await exec(`git ls-remote ${repo.url}`);
+
+    return stdout
+      .split('\n')
+      .filter(Boolean)
+      .map(row => {
+        const [hash = '', ref = ''] = row.split('\t');
+
+        if (ref === 'HEAD') {
+          return {
+            type: 'HEAD',
+            hash,
+          };
+        }
+
+        const match = /refs\/(\w+)\/(.+)/.exec(ref);
+
+        if (!match)
+          throw new TigedError(`could not parse ${ref}`, {
+            code: 'BAD_REF',
+          });
+
+        const type =
+          match[1] === 'heads'
+            ? 'branch'
+            : match[1] === 'refs'
+              ? 'ref'
+              : (match[1] ?? '');
+
+        const name = match[2] ?? '';
+
+        return { type, name, hash };
+      });
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new TigedError(`could not fetch remote ${repo.url}`, {
+        code: 'COULD_NOT_FETCH',
+        url: repo.url,
+        original: error,
+      });
+    }
+
+    return;
+  }
+}
+
+/**
+ * Updates the cache with the given repository information.
+ *
+ * @param dir - The directory path where the cache is located.
+ * @param repo - The repository object containing the reference and other details.
+ * @param hash - The hash value of the repository.
+ * @param cached - The cached records.
+ * @returns A Promise that resolves when the cache is updated.
+ *
+ * @internal
+ */
+async function updateCache(
+  dir: string,
+  repo: Repo,
+  hash: string,
+  cached: Record<string, string>,
+): Promise<void> {
+  // update access logs
+  const accessLogs: Record<string, string> =
+    tryRequire(path.join(dir, accessLogsFileName)) || {};
+
+  accessLogs[repo.ref] = new Date().toISOString();
+
+  await fs.writeFile(
+    path.join(dir, accessLogsFileName),
+    JSON.stringify(accessLogs, null, 2),
+    { encoding: 'utf-8' },
+  );
+
+  if (cached[repo.ref] === hash) {
+    return;
+  }
+
+  const oldHash = cached[repo.ref];
+
+  if (oldHash) {
+    let used = false;
+
+    for (const key in cached) {
+      if (cached[key] === hash) {
+        used = true;
+        break;
+      }
+    }
+
+    if (!used) {
+      // we no longer need this tar file
+      try {
+        await fs.unlink(path.join(dir, `${oldHash}.tar.gz`));
+      } catch (error) {
+        // ignore
+      }
+    }
+  }
+
+  cached[repo.ref] = hash;
+
+  await fs.writeFile(
+    path.join(dir, 'map.json'),
+    JSON.stringify(cached, null, 2),
+    { encoding: 'utf-8' },
+  );
 }
 
 /**
@@ -726,221 +932,15 @@ export class Tiged extends EventEmitter {
 }
 
 /**
- * Parses the source URL and returns a {@linkcode Repo} object
- * containing the parsed information.
+ * Creates a new instance of the {@linkcode Tiged} class with
+ * the specified source and options.
  *
- * @param src - The source URL to parse.
- * @returns A {@linkcode Repo} object containing the parsed information.
- * @throws A {@linkcode TigedError} If the source URL cannot be parsed.
+ * @param src - The source path to clone from.
+ * @param tigedOptions - The optional configuration options.
+ * @returns A new instance of the {@linkcode Tiged} class.
  *
- * @internal
+ * @public
  */
-function parse(src: string): Repo {
-  const match =
-    /^(?:(?:https:\/\/)?([^:/]+\.[^:/]+)\/|git@([^:/]+)[:/]|([^/]+):)?([^/\s]+)\/([^/\s#]+)(?:((?:\/[^/\s#]+)+))?(?:\/)?(?:#(.+))?/.exec(
-      src,
-    );
-
-  if (!match) {
-    throw new TigedError(`could not parse ${src}`, {
-      code: 'BAD_SRC',
-    });
-  }
-
-  const site = match[1] || match[2] || match[3] || 'github.com';
-  const topLevelDomainMatch = /\.([a-z]{2,})$/.exec(site);
-  const topLevelDomain = topLevelDomainMatch ? topLevelDomainMatch[0] : null;
-  const siteName = topLevelDomain
-    ? site.replace(new RegExp(`${topLevelDomain}$`), '')
-    : site;
-
-  const user = match[4] ?? '';
-  const name = match[5]?.replace(/\.git$/, '') ?? '';
-  const subDirectory = match[6] ?? '';
-  const ref = match[7] || 'HEAD';
-
-  const domain = `${siteName}${
-    topLevelDomain || supported[siteName] || supported[site] || ''
-  }`;
-
-  const url = `https://${domain}/${user}/${name}`;
-  const ssh = `git@${domain}:${user}/${name}`;
-
-  const mode =
-    siteName === 'huggingface'
-      ? 'git'
-      : supported[siteName] || supported[site]
-        ? 'tar'
-        : 'git';
-
-  return { site: siteName, user, name, ref, url, ssh, subDirectory, mode, src };
-}
-
-/**
- * Extracts the contents of a tar file to a specified destination.
- *
- * @param file - The path to the tar file.
- * @param dest - The destination directory where the contents will be extracted.
- * @param subDirectory - Optional subdirectory within the tar file to extract. Defaults to null.
- * @returns A list of extracted files.
- *
- * @internal
- */
-function untar(
-  file: string,
-  dest: string,
-  subDirectory?: Repo['subDirectory'],
-): string[] {
-  const extractedFiles: string[] = [];
-
-  extract(
-    {
-      file,
-      strip: subDirectory ? subDirectory.split('/').length : 1,
-      C: dest,
-      sync: true,
-      onReadEntry: entry => {
-        extractedFiles.push(entry.path);
-      },
-    },
-
-    subDirectory ? [subDirectory] : [],
-  );
-
-  return extractedFiles;
-}
-
-/**
- * Fetches the references (branches, tags, etc.) from a remote Git repository.
- *
- * @param repo - The repository object containing the URL of the remote repository.
- * @returns An array of objects representing the fetched references, each containing the type, name, and hash.
- * @throws A {@linkcode TigedError} If there is an error fetching the remote repository.
- *
- * @internal
- */
-async function fetchRefs(repo: Repo): Promise<
-  | (
-      | {
-          type: string;
-          hash: string;
-          name?: never;
-        }
-      | {
-          type: string;
-          name: string;
-          hash: string;
-        }
-    )[]
-  | undefined
-> {
-  try {
-    const { stdout } = await exec(`git ls-remote ${repo.url}`);
-
-    return stdout
-      .split('\n')
-      .filter(Boolean)
-      .map(row => {
-        const [hash = '', ref = ''] = row.split('\t');
-
-        if (ref === 'HEAD') {
-          return {
-            type: 'HEAD',
-            hash,
-          };
-        }
-
-        const match = /refs\/(\w+)\/(.+)/.exec(ref);
-
-        if (!match)
-          throw new TigedError(`could not parse ${ref}`, {
-            code: 'BAD_REF',
-          });
-
-        const type =
-          match[1] === 'heads'
-            ? 'branch'
-            : match[1] === 'refs'
-              ? 'ref'
-              : (match[1] ?? '');
-
-        const name = match[2] ?? '';
-
-        return { type, name, hash };
-      });
-  } catch (error) {
-    if (error instanceof Error) {
-      throw new TigedError(`could not fetch remote ${repo.url}`, {
-        code: 'COULD_NOT_FETCH',
-        url: repo.url,
-        original: error,
-      });
-    }
-
-    return;
-  }
-}
-
-/**
- * Updates the cache with the given repository information.
- *
- * @param dir - The directory path where the cache is located.
- * @param repo - The repository object containing the reference and other details.
- * @param hash - The hash value of the repository.
- * @param cached - The cached records.
- * @returns A Promise that resolves when the cache is updated.
- *
- * @internal
- */
-async function updateCache(
-  dir: string,
-  repo: Repo,
-  hash: string,
-  cached: Record<string, string>,
-): Promise<void> {
-  // update access logs
-  const accessLogs: Record<string, string> =
-    tryRequire(path.join(dir, accessLogsFileName)) || {};
-
-  accessLogs[repo.ref] = new Date().toISOString();
-
-  await fs.writeFile(
-    path.join(dir, accessLogsFileName),
-    JSON.stringify(accessLogs, null, 2),
-    { encoding: 'utf-8' },
-  );
-
-  if (cached[repo.ref] === hash) {
-    return;
-  }
-
-  const oldHash = cached[repo.ref];
-
-  if (oldHash) {
-    let used = false;
-
-    for (const key in cached) {
-      if (cached[key] === hash) {
-        used = true;
-        break;
-      }
-    }
-
-    if (!used) {
-      // we no longer need this tar file
-      try {
-        await fs.unlink(path.join(dir, `${oldHash}.tar.gz`));
-      } catch (error) {
-        // ignore
-      }
-    }
-  }
-
-  cached[repo.ref] = hash;
-
-  await fs.writeFile(
-    path.join(dir, 'map.json'),
-    JSON.stringify(cached, null, 2),
-    { encoding: 'utf-8' },
-  );
+export function createTiged(src: string, tigedOptions?: Options): Tiged {
+  return new Tiged(src, tigedOptions);
 }

@@ -146,6 +146,25 @@ export type Repo = {
 };
 
 /**
+ * Represents the possible information codes.
+ *
+ * @public
+ * @since 3.0.0
+ */
+type InfoCode =
+  | 'SUCCESS'
+  | 'REMOVED'
+  | 'DEST_NOT_EMPTY'
+  | 'DEST_IS_EMPTY'
+  | 'USING_CACHE'
+  | 'FOUND_MATCH'
+  | 'FILE_EXISTS'
+  | 'PROXY'
+  | 'DOWNLOADING'
+  | 'NO_CACHE'
+  | 'EXTRACTING';
+
+/**
  * Represents information about a specific entity.
  *
  * @public
@@ -254,25 +273,6 @@ type TigedErrorCode =
   | 'NO_FILES'
   | 'ENOENT'
   | 'FILE_DOES_NOT_EXIST';
-
-/**
- * Represents the possible information codes.
- *
- * @public
- * @since 3.0.0
- */
-type InfoCode =
-  | 'SUCCESS'
-  | 'REMOVED'
-  | 'DEST_NOT_EMPTY'
-  | 'DEST_IS_EMPTY'
-  | 'USING_CACHE'
-  | 'FOUND_MATCH'
-  | 'FILE_EXISTS'
-  | 'PROXY'
-  | 'DOWNLOADING'
-  | 'NO_CACHE'
-  | 'EXTRACTING';
 
 /**
  * Represents the options for a Tiged error.
