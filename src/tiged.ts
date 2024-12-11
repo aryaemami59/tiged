@@ -23,8 +23,8 @@ import type {
 } from './types.js';
 import {
   TigedError,
+  downloadTarball,
   exec,
-  fetch,
   isDirectory,
   pathExists,
   stashFiles,
@@ -800,7 +800,7 @@ export class Tiged extends EventEmitter {
             message: `downloading ${url} to ${file}`,
           });
 
-          await fetch(url, file, this.proxy);
+          await downloadTarball(url, file, this.proxy);
         }
       }
     } catch (error) {

@@ -131,7 +131,7 @@ export async function exec(
  *
  * @internal
  */
-export async function fetch(
+export async function downloadTarball(
   url: string,
   dest: string,
   proxy?: string,
@@ -165,7 +165,10 @@ export async function fetch(
             return reject(new Error('No location header'));
           }
 
-          fetch(response.headers.location, dest, proxy).then(fulfill, reject);
+          downloadTarball(response.headers.location, dest, proxy).then(
+            fulfill,
+            reject,
+          );
         } else {
           response
             .pipe(createWriteStream(dest))
