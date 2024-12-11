@@ -46,13 +46,25 @@ export const defaultTigedOptions = {
 
 export const execFile = promisify(child_process.execFile);
 
-export const runTigedCLI = (
+export const runTigedCLI = async (
   CLIArguments: readonly string[] = [],
   execFileOptions?: ExecFileOptionsWithOtherEncoding,
-) =>
-  execFile(defaultCLICommand, [...defaultCLIArguments, ...CLIArguments], {
-    ...defaultExecFileOptions,
-    ...execFileOptions,
-  });
+): Promise<{
+  stderr: string;
+  stdout: string;
+}> => {
+  const { stderr, stdout } = await execFile(
+    defaultCLICommand,
+    [...defaultCLIArguments, ...CLIArguments],
+    {
+      ...defaultExecFileOptions,
+      ...execFileOptions,
+    },
+  );
+
+  console.log(stdout, stderr);
+
+  return { stderr, stdout };
+};
 
 export const fixturesDirectoryName = '.tmp';
