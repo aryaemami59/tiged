@@ -9,7 +9,7 @@ import * as path from 'node:path';
 import type { Options } from 'tiged';
 import { createTiged } from 'tiged';
 import glob from 'tiny-glob/sync.js';
-import { accessLogsFileName, base } from './constants.js';
+import { accessLogsFileName, cacheDirectoryName } from './constants.js';
 import { pathExists, tryRequire } from './utils.js';
 
 const CLIArguments = mri<Options & { help?: string }>(process.argv.slice(2), {
@@ -105,13 +105,15 @@ async function main(): Promise<void> {
 
     const accessLookup = /* @__PURE__ */ new Map<string, number>();
 
-    const accessJsonFiles = glob(`**/${accessLogsFileName}`, { cwd: base });
+    const accessJsonFiles = glob(`**/${accessLogsFileName}`, {
+      cwd: cacheDirectoryName,
+    });
 
     await Promise.all(
       accessJsonFiles.map(async file => {
         const [host, user, repo] = file.split(path.sep);
 
-        const json = await fs.readFile(`${base}/${file}`, {
+        const json = await fs.readFile(`${cacheDirectoryName}/${file}`, {
           encoding: 'utf-8',
         });
 
@@ -127,7 +129,9 @@ async function main(): Promise<void> {
     const getChoice = (file: string) => {
       const [host, user, repo] = file.split(path.sep);
 
-      const cacheLogs: Record<string, string> = tryRequire(`${base}/${file}`);
+      const cacheLogs: Record<string, string> = tryRequire(
+        `${cacheDirectoryName}/${file}`,
+      );
 
       return Object.entries(cacheLogs).map(([ref, hash]) => ({
         name: hash,
@@ -136,7 +140,7 @@ async function main(): Promise<void> {
       }));
     };
 
-    const choices = glob(`**/map.json`, { cwd: base })
+    const choices = glob(`**/map.json`, { cwd: cacheDirectoryName })
       .map(getChoice)
       .reduce(
         (accumulator, currentValue) => accumulator.concat(currentValue),

@@ -6,7 +6,7 @@ import { rimraf } from 'rimraf';
 import { extract } from 'tar';
 import {
   accessLogsFileName,
-  base,
+  cacheDirectoryName,
   supportedHosts,
   tigedConfigName,
   tigedDefaultOptions,
@@ -476,7 +476,7 @@ export class Tiged extends EventEmitter {
 
     const { repo } = this;
 
-    const dir = path.join(base, repo.site, repo.user, repo.name);
+    const dir = path.join(cacheDirectoryName, repo.site, repo.user, repo.name);
 
     if (this.mode === 'tar') {
       await this._cloneWithTar(dir, dest);
