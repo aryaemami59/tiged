@@ -41,7 +41,7 @@ import {
  *
  * @internal
  */
-function parse(src: string): Repo {
+function extractRepositoryInfo(src: string): Repo {
   const match =
     /^(?:(?:https:\/\/)?([^:/]+\.[^:/]+)\/|git@([^:/]+)[:/]|([^/]+):)?([^/\s]+)\/([^/\s#]+)(?:((?:\/[^/\s#]+)+))?(?:\/)?(?:#(.+))?/.exec(
       src,
@@ -342,7 +342,7 @@ export class Tiged extends EventEmitter {
     const resolvedTigedOptions = {
       ...tigedDefaultOptions,
       ...tigedOptions,
-      repo: parse(src),
+      repo: extractRepositoryInfo(src),
       proxy: this._getHttpsProxy(),
     };
 
