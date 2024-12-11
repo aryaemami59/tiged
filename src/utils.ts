@@ -18,7 +18,7 @@ export class TigedError extends Error {
   /**
    * The error code associated with the error.
    */
-  declare public code?: TigedErrorOptions['code'];
+  declare public code: TigedErrorOptions['code'];
 
   /**
    * The original error that caused this error.
@@ -35,13 +35,15 @@ export class TigedError extends Error {
    */
   declare public url?: TigedErrorOptions['url'];
 
+  public override readonly name = 'TigedError';
+
   /**
    * Creates a new instance of {@linkcode TigedError}.
    *
    * @param message - The error message.
    * @param tigedErrorOptions - Additional options for the error.
    */
-  constructor(message?: string, tigedErrorOptions?: TigedErrorOptions) {
+  public constructor(message?: string, tigedErrorOptions?: TigedErrorOptions) {
     super(message);
     Object.assign(this, tigedErrorOptions);
   }

@@ -17,3 +17,11 @@ export const tigedDefaultOptions = {
   subgroup: false,
   verbose: false,
 } as const satisfies Options;
+export const supported: Record<string, string> = {
+  github: '.com',
+  gitlab: '.com',
+  bitbucket: '.com',
+  'git.sr.ht': '.ht',
+  huggingface: '.co',
+  codeberg: '.org',
+} as const satisfies Record<string, string>;

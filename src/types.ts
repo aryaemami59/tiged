@@ -1,5 +1,3 @@
-import type { constants } from 'node:os';
-
 /**
  * Represents the valid modes for a file.
  * Possible values are:
@@ -73,7 +71,7 @@ export type Options = {
    *
    * @default undefined
    */
-  subDirectory?: string;
+  subDirectory?: string | undefined;
 };
 
 /**
@@ -114,7 +112,7 @@ export type Repo = {
    * Optional. A specific subdirectory within the repository to work with,
    * if applicable. Can be `undefined` if not used.
    */
-  subDirectory?: string;
+  subDirectory: string;
 
   /**
    * Specifies the mode for the operation.
@@ -148,7 +146,7 @@ export type Info = {
   /**
    * The code associated with the entity.
    */
-  readonly code?: string;
+  readonly code: InfoCode;
 
   /**
    * The message associated with the entity.
@@ -233,40 +231,14 @@ export type TigedErrorCode =
   | 'BAD_REF'
   | 'COULD_NOT_FETCH'
   | 'NO_FILES'
-  | keyof typeof constants.errno;
+  | 'ENOENT'
+  | 'FILE_DOES_NOT_EXIST';
 
-/**
- * Represents the options for a Tiged error.
- */
-export type TigedErrorOptions = ErrorOptions & {
-  /**
-   * The error code associated with the error.
-   */
-  code?: TigedErrorCode;
-
-  /**
-   * The original error that caused this error.
-   */
-  original?: Error;
-
-  /**
-   * The reference (e.g., branch, tag, commit) that was being targeted.
-   */
-  ref?: string;
-
-  /**
-   * The URL associated with the error.
-   */
-  url?: string;
-};
-
-// TODO: We might not need this one.
 /**
  * Represents the possible information codes.
  */
 type InfoCode =
   | 'SUCCESS'
-  | 'FILE_DOES_NOT_EXIST'
   | 'REMOVED'
   | 'DEST_NOT_EMPTY'
   | 'DEST_IS_EMPTY'
@@ -275,4 +247,30 @@ type InfoCode =
   | 'FILE_EXISTS'
   | 'PROXY'
   | 'DOWNLOADING'
+  | 'NO_CACHE'
   | 'EXTRACTING';
+
+/**
+ * Represents the options for a Tiged error.
+ */
+export type TigedErrorOptions = ErrorOptions & {
+  /**
+   * The error code associated with the error.
+   */
+  code: TigedErrorCode;
+
+  /**
+   * The original error that caused this error.
+   */
+  original?: Error | undefined;
+
+  /**
+   * The reference (e.g., branch, tag, commit) that was being targeted.
+   */
+  ref?: string | undefined;
+
+  /**
+   * The URL associated with the error.
+   */
+  url?: string | undefined;
+};

@@ -12,7 +12,7 @@ import glob from 'tiny-glob/sync.js';
 import { accessLogsFileName, base } from './constants.js';
 import { pathExists, tryRequire } from './utils.js';
 
-const args = mri<Options & { help?: string }>(process.argv.slice(2), {
+const CLIArguments = mri<Options & { help?: string }>(process.argv.slice(2), {
   alias: {
     f: 'force',
     D: ['disable-cache', 'disableCache'],
@@ -33,7 +33,7 @@ const args = mri<Options & { help?: string }>(process.argv.slice(2), {
   string: ['mode', 'subDirectory'] as const satisfies (keyof Options)[],
 });
 
-const [src, dest = '.'] = args._;
+const [src, dest = '.'] = CLIArguments._;
 
 /**
  * The main function of the application.
@@ -43,7 +43,7 @@ const [src, dest = '.'] = args._;
  * @returns A {@linkcode Promise | promise} that resolves when the main function completes.
  */
 async function main(): Promise<void> {
-  if (args.help) {
+  if (CLIArguments.help) {
     const help = (
       await fs.readFile(path.join(__dirname, '..', 'help.md'), {
         encoding: 'utf-8',
@@ -165,7 +165,7 @@ async function main(): Promise<void> {
       force: true,
     });
   } else {
-    await run(src, dest, args);
+    await run(src, dest, CLIArguments);
   }
 }
 

@@ -8,6 +8,7 @@ import { extract } from 'tar';
 import {
   accessLogsFileName,
   base,
+  supported,
   tigedConfigName,
   tigedDefaultOptions,
   validModes,
@@ -85,6 +86,7 @@ export class Tiged extends EventEmitter {
 
   /**
    * Specifies a subdirectory within the repository to focus on.
+   * Gitlab only.
    */
   declare public subDirectory?: string;
 
@@ -126,7 +128,7 @@ export class Tiged extends EventEmitter {
    * @param src - The source repository string.
    * @param tigedOptions - Optional parameters to customize the behavior.
    */
-  constructor(
+  public constructor(
     public src: string,
     tigedOptions: Options = {},
   ) {
@@ -144,14 +146,21 @@ export class Tiged extends EventEmitter {
 
     if (this.subgroup) {
       this.repo.subgroup = true;
-      this.repo.name = this.repo.subDirectory?.slice(1) ?? '';
+
+      this.repo.name = this.repo.subDirectory
+        ? (this.repo.subDirectory?.slice(1) ?? '')
+        : '';
+
       this.repo.url += this.repo.subDirectory;
+
       this.repo.ssh = `${this.repo.ssh + this.repo.subDirectory}.git`;
-      this.repo.subDirectory = undefined;
+
       if (this.subDirectory) {
         this.repo.subDirectory = this.subDirectory.startsWith('/')
           ? this.subDirectory
           : `/${this.subDirectory}`;
+      } else {
+        this.repo.subDirectory = '';
       }
     }
 
@@ -166,13 +175,11 @@ export class Tiged extends EventEmitter {
           this._hasStashed = true;
         }
 
-        const tigedOptions = Object.assign(
-          { force: true },
-          {
-            verbose: action.verbose,
-            disableCache: action.cache === true ? false : true,
-          },
-        );
+        const tigedOptions = {
+          disableCache: action.cache === true ? false : true,
+          force: true,
+          verbose: action.verbose ?? tigedDefaultOptions.verbose,
+        };
 
         const t = tiged(action.src, tigedOptions);
 
@@ -241,7 +248,7 @@ export class Tiged extends EventEmitter {
   /**
    * Clones the repository to the specified destination.
    *
-   * @param dest - The destination directory where the repository will be cloned.
+   * @param dest - The destination directory where the repository will be cloned (default: `'.'`).
    */
   public async clone(dest: string): Promise<void> {
     try {
@@ -256,7 +263,9 @@ export class Tiged extends EventEmitter {
     }
 
     await this._checkDirIsEmpty(dest);
+
     const { repo } = this;
+
     const dir = path.join(base, repo.site, repo.user, repo.name);
 
     if (this.mode === 'tar') {
@@ -273,12 +282,15 @@ export class Tiged extends EventEmitter {
       repo,
       dest,
     });
+
     const directives = await this._getDirectives(dest);
+
     if (directives) {
       for (const d of directives) {
         // TODO, can this be a loop with an index to pass for better error messages?
         await this.directiveActions[d.action](dir, dest, d);
       }
+
       if (this._hasStashed === true) {
         await unStashFiles(dir, dest);
       }
@@ -299,6 +311,7 @@ export class Tiged extends EventEmitter {
     action: RemoveAction,
   ): Promise<void> {
     let { files } = action;
+
     if (!Array.isArray(files)) {
       files = [files];
     }
@@ -307,20 +320,26 @@ export class Tiged extends EventEmitter {
 
     for (const file of files) {
       const filePath = path.resolve(dest, file);
+
       if (await pathExists(filePath)) {
         const isDir = await isDirectory(filePath);
+
         if (isDir) {
           await rimraf(filePath);
+
           removedFiles.push(`${file}/`);
         } else {
           await fs.unlink(filePath);
+
           removedFiles.push(file);
         }
       } else {
-        this._warn({
-          code: 'FILE_DOES_NOT_EXIST',
-          message: `action wants to remove ${bold(file)} but it does not exist`,
-        });
+        this._warn(
+          new TigedError(
+            `action wants to remove ${bold(file)} but it does not exist`,
+            { code: 'FILE_DOES_NOT_EXIST' },
+          ),
+        );
       }
     }
 
@@ -386,6 +405,10 @@ export class Tiged extends EventEmitter {
    */
   public _warn(tigedError: TigedError): void {
     this.emit('warn', tigedError);
+
+    if (this.verbose && tigedError.original) {
+      this.emit('info', tigedError.original);
+    }
   }
 
   /**
@@ -430,10 +453,6 @@ export class Tiged extends EventEmitter {
         'message' in error
       ) {
         this._warn(error);
-
-        if (error.original != null) {
-          this._verbose(error.original);
-        }
       }
 
       return;
@@ -523,7 +542,7 @@ export class Tiged extends EventEmitter {
 
     const subDirectory = repo.subDirectory
       ? `${repo.name}-${hash}${repo.subDirectory}`
-      : undefined;
+      : '';
 
     if (!hash) {
       // TODO 'did you mean...?'
@@ -534,6 +553,7 @@ export class Tiged extends EventEmitter {
     }
 
     const file = `${dir}/${hash}.tar.gz`;
+
     const url =
       repo.site === 'gitlab'
         ? `${repo.url}/-/archive/${hash}/${repo.name}-${hash}.tar.gz`
@@ -549,9 +569,12 @@ export class Tiged extends EventEmitter {
               code: 'NO_CACHE',
               message: `Not using cache. noCache set to true.`,
             });
+
             throw "don't use cache";
           }
+
           await fs.stat(file);
+
           this._verbose({
             code: 'FILE_EXISTS',
             message: `${file} already exists locally`,
@@ -597,15 +620,19 @@ export class Tiged extends EventEmitter {
     });
 
     await fs.mkdir(dest, { recursive: true });
+
     const extractedFiles = untar(file, dest, subDirectory);
+
     if (extractedFiles.length === 0) {
       const noFilesErrorMessage: string = subDirectory
         ? 'No files to extract. Make sure you typed in the subdirectory name correctly.'
         : 'No files to extract. The tar file seems to be empty';
+
       throw new TigedError(noFilesErrorMessage, {
         code: 'NO_FILES',
       });
     }
+
     if (this.disableCache) {
       await rimraf(file);
     }
@@ -699,15 +726,6 @@ export class Tiged extends EventEmitter {
   }
 }
 
-const supported: Record<string, string> = {
-  github: '.com',
-  gitlab: '.com',
-  bitbucket: '.com',
-  'git.sr.ht': '.ht',
-  huggingface: '.co',
-  codeberg: '.org',
-};
-
 /**
  * Parses the source URL and returns a {@linkcode Repo} object
  * containing the parsed information.
@@ -721,6 +739,7 @@ function parse(src: string): Repo {
     /^(?:(?:https:\/\/)?([^:/]+\.[^:/]+)\/|git@([^:/]+)[:/]|([^/]+):)?([^/\s]+)\/([^/\s#]+)(?:((?:\/[^/\s#]+)+))?(?:\/)?(?:#(.+))?/.exec(
       src,
     );
+
   if (!match) {
     throw new TigedError(`could not parse ${src}`, {
       code: 'BAD_SRC',
@@ -728,17 +747,19 @@ function parse(src: string): Repo {
   }
 
   const site = match[1] || match[2] || match[3] || 'github.com';
-  const tldMatch = /\.([a-z]{2,})$/.exec(site);
-  const tld = tldMatch ? tldMatch[0] : null;
-  const siteName = tld ? site.replace(new RegExp(`${tld}$`), '') : site;
+  const topLevelDomainMatch = /\.([a-z]{2,})$/.exec(site);
+  const topLevelDomain = topLevelDomainMatch ? topLevelDomainMatch[0] : null;
+  const siteName = topLevelDomain
+    ? site.replace(new RegExp(`${topLevelDomain}$`), '')
+    : site;
 
-  const user = match[4];
-  const name = match[5].replace(/\.git$/, '');
-  const subDirectory = match[6];
+  const user = match[4] ?? '';
+  const name = match[5]?.replace(/\.git$/, '') ?? '';
+  const subDirectory = match[6] ?? '';
   const ref = match[7] || 'HEAD';
 
   const domain = `${siteName}${
-    tld || supported[siteName] || supported[site] || ''
+    topLevelDomain || supported[siteName] || supported[site] || ''
   }`;
 
   const url = `https://${domain}/${user}/${name}`;
@@ -768,6 +789,7 @@ function untar(
   subDirectory?: Repo['subDirectory'],
 ): string[] {
   const extractedFiles: string[] = [];
+
   extract(
     {
       file,
@@ -778,8 +800,10 @@ function untar(
         extractedFiles.push(entry.path);
       },
     },
+
     subDirectory ? [subDirectory] : [],
   );
+
   return extractedFiles;
 }
 
@@ -812,7 +836,7 @@ async function fetchRefs(repo: Repo): Promise<
       .split('\n')
       .filter(Boolean)
       .map(row => {
-        const [hash, ref] = row.split('\t');
+        const [hash = '', ref = ''] = row.split('\t');
 
         if (ref === 'HEAD') {
           return {
@@ -822,21 +846,22 @@ async function fetchRefs(repo: Repo): Promise<
         }
 
         const match = /refs\/(\w+)\/(.+)/.exec(ref);
+
         if (!match)
           throw new TigedError(`could not parse ${ref}`, {
             code: 'BAD_REF',
           });
 
-        return {
-          type:
-            match[1] === 'heads'
-              ? 'branch'
-              : match[1] === 'refs'
-                ? 'ref'
-                : match[1],
-          name: match[2],
-          hash,
-        };
+        const type =
+          match[1] === 'heads'
+            ? 'branch'
+            : match[1] === 'refs'
+              ? 'ref'
+              : (match[1] ?? '');
+
+        const name = match[2] ?? '';
+
+        return { type, name, hash };
       });
   } catch (error) {
     if (error instanceof Error) {
