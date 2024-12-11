@@ -495,7 +495,7 @@ export class Tiged extends EventEmitter {
   public _selectRef(
     refs: { type: string; name?: string; hash: string }[],
     selector: string,
-  ): string | null | undefined {
+  ): string | undefined {
     for (const ref of refs) {
       if (ref.name === selector) {
         this._verbose({
@@ -508,7 +508,7 @@ export class Tiged extends EventEmitter {
     }
 
     if (selector.length < 8) {
-      return null;
+      return;
     }
 
     for (const ref of refs) {
