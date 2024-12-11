@@ -5,6 +5,7 @@ import * as fs from 'node:fs/promises';
 import * as https from 'node:https';
 import { createRequire } from 'node:module';
 import * as path from 'node:path';
+import { promisify } from 'node:util';
 import { rimraf } from 'rimraf';
 import { tigedConfigName, tmpDirName } from './constants.js';
 import type { TigedErrorOptions } from './types.js';
@@ -87,36 +88,11 @@ export function tryRequire(
  * Executes a command and returns the `stdout` and `stderr` as strings.
  *
  * @param command - The command to execute.
- * @param size - The maximum buffer size in kilobytes (default: 500KB).
  * @returns A {@linkcode Promise | promise} that resolves to an object containing the `stdout` and `stderr` strings.
  *
  * @internal
  */
-export async function exec(
-  command: string,
-  size = 500,
-): Promise<{ stdout: string; stderr: string }> {
-  return new Promise<{ stdout: string; stderr: string }>((fulfill, reject) => {
-    child_process.exec(
-      command,
-      { maxBuffer: 1024 * size },
-      (error, stdout, stderr) => {
-        if (error) {
-          reject(error);
-          return;
-        }
-
-        fulfill({ stdout, stderr });
-      },
-    );
-  }).catch(error => {
-    if (error.code === 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER') {
-      return exec(command, size * 2);
-    }
-
-    return Promise.reject(error);
-  });
-}
+export const exec = promisify(child_process.exec);
 
 /**
  * Fetches a resource from the specified URL
