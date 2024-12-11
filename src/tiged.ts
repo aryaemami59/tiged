@@ -7,7 +7,7 @@ import { extract } from 'tar';
 import {
   accessLogsFileName,
   base,
-  supported,
+  supportedHosts,
   tigedConfigName,
   tigedDefaultOptions,
   validModes,
@@ -66,7 +66,7 @@ function extractRepositoryInfo(src: string): Repo {
   const ref = match[7] ?? 'HEAD';
 
   const domain = `${siteName}${
-    topLevelDomain ?? supported[siteName] ?? supported[site] ?? ''
+    topLevelDomain ?? supportedHosts[siteName] ?? supportedHosts[site] ?? ''
   }`;
 
   const url = `https://${domain}/${user}/${name}`;
@@ -75,7 +75,7 @@ function extractRepositoryInfo(src: string): Repo {
   const mode =
     siteName === 'huggingface'
       ? 'git'
-      : supported[siteName] || supported[site]
+      : supportedHosts[siteName] || supportedHosts[site]
         ? 'tar'
         : 'git';
 

@@ -17,7 +17,7 @@ export const tigedDefaultOptions = {
   subgroup: false,
   verbose: false,
 } as const satisfies Options;
-export const supported: Record<string, string> = {
+export const supportedHosts: Record<string, string> = {
   github: '.com',
   gitlab: '.com',
   bitbucket: '.com',
