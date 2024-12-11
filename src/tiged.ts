@@ -732,6 +732,8 @@ export class Tiged extends EventEmitter {
  * @param src - The source URL to parse.
  * @returns A {@linkcode Repo} object containing the parsed information.
  * @throws A {@linkcode TigedError} If the source URL cannot be parsed.
+ *
+ * @internal
  */
 function parse(src: string): Repo {
   const match =
@@ -781,6 +783,8 @@ function parse(src: string): Repo {
  * @param dest - The destination directory where the contents will be extracted.
  * @param subDirectory - Optional subdirectory within the tar file to extract. Defaults to null.
  * @returns A list of extracted files.
+ *
+ * @internal
  */
 function untar(
   file: string,
@@ -812,6 +816,8 @@ function untar(
  * @param repo - The repository object containing the URL of the remote repository.
  * @returns An array of objects representing the fetched references, each containing the type, name, and hash.
  * @throws A {@linkcode TigedError} If there is an error fetching the remote repository.
+ *
+ * @internal
  */
 async function fetchRefs(repo: Repo): Promise<
   | (
@@ -883,6 +889,8 @@ async function fetchRefs(repo: Repo): Promise<
  * @param hash - The hash value of the repository.
  * @param cached - The cached records.
  * @returns A Promise that resolves when the cache is updated.
+ *
+ * @internal
  */
 async function updateCache(
   dir: string,

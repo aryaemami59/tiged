@@ -4,6 +4,9 @@
  *
  * - **`'tar'`**: Downloads the repository as a tarball.
  * - **`'git'`**: Clones the repository using Git.
+ *
+ * @public
+ * @since 3.0.0
  */
 export type ValidModes = 'tar' | 'git';
 
@@ -76,6 +79,9 @@ export type Options = {
 
 /**
  * Represents a repository.
+ *
+ * @public
+ * @since 3.0.0
  */
 export type Repo = {
   /**
@@ -141,6 +147,9 @@ export type Repo = {
 
 /**
  * Represents information about a specific entity.
+ *
+ * @public
+ * @since 3.0.0
  */
 export type Info = {
   /**
@@ -166,6 +175,9 @@ export type Info = {
 
 /**
  * Represents an action.
+ *
+ * @public
+ * @since 3.0.0
  */
 type Action = {
   /**
@@ -190,6 +202,9 @@ type Action = {
 
 /**
  * Represents a Tiged action for cloning.
+ *
+ * @public
+ * @since 3.0.0
  */
 export type TigedAction = Action & {
   /**
@@ -205,6 +220,9 @@ export type TigedAction = Action & {
 
 /**
  * Represents a remove action.
+ *
+ * @public
+ * @since 3.0.0
  */
 export type RemoveAction = Action & {
   /**
@@ -220,6 +238,9 @@ export type RemoveAction = Action & {
 
 /**
  * Represents the possible error codes for the Tiged utility.
+ *
+ * @internal
+ * @since 3.0.0
  */
 type TigedErrorCode =
   | 'DEST_NOT_EMPTY'
@@ -236,6 +257,9 @@ type TigedErrorCode =
 
 /**
  * Represents the possible information codes.
+ *
+ * @public
+ * @since 3.0.0
  */
 type InfoCode =
   | 'SUCCESS'
@@ -252,6 +276,9 @@ type InfoCode =
 
 /**
  * Represents the options for a Tiged error.
+ *
+ * @internal
+ * @since 3.0.0
  */
 export type TigedErrorOptions = ErrorOptions & {
   /**

@@ -13,6 +13,9 @@ import type { TigedErrorOptions } from './types.js';
  * Represents an error that occurs during the tiged process.
  *
  * @extends Error
+ *
+ * @internal
+ * @since 3.0.0
  */
 export class TigedError extends Error {
   /**
@@ -57,6 +60,8 @@ export class TigedError extends Error {
  * @param options - Optional options for requiring the module.
  * @param opts.clearCache - If `true`, clears the module cache before requiring the module.
  * @returns The required module or `null` if it cannot be required.
+ *
+ * @internal
  */
 export function tryRequire(
   filePath: string,
@@ -84,6 +89,8 @@ export function tryRequire(
  * @param command - The command to execute.
  * @param size - The maximum buffer size in kilobytes (default: 500KB).
  * @returns A {@linkcode Promise | promise} that resolves to an object containing the `stdout` and `stderr` strings.
+ *
+ * @internal
  */
 export async function exec(
   command: string,
@@ -176,6 +183,8 @@ export async function fetch(
  * @param dir - The source directory containing the files to be stashed.
  * @param dest - The destination directory where the stashed files will be stored.
  * @returns A {@linkcode Promise | promise} that resolves when the stashing process is complete.
+ *
+ * @internal
  */
 export async function stashFiles(dir: string, dest: string): Promise<void> {
   const tmpDir = path.join(dir, tmpDirName);
@@ -229,6 +238,8 @@ export async function stashFiles(dir: string, dest: string): Promise<void> {
  * @param dir - The directory where the temporary directory is located.
  * @param dest - The destination directory where the files will be un-stashed.
  * @returns A {@linkcode Promise | promise} that resolves when the un-stashing process is complete.
+ *
+ * @internal
  */
 export async function unStashFiles(dir: string, dest: string): Promise<void> {
   const tmpDir = path.join(dir, tmpDirName);
