@@ -5,7 +5,7 @@ import type { Options, ValidModes } from './types.js';
 const getHomeOrTmp = () => homedir() || tmpdir();
 const homeOrTmpDirectoryPath = /* @__PURE__ */ getHomeOrTmp();
 export const tmpDirName = 'tmp';
-export const tigedConfigName = 'degit.json';
+export const tigedConfigFileName = 'degit.json';
 export const cacheDirectoryPath = /* @__PURE__ */ path.join(
   homeOrTmpDirectoryPath,
   '.degit',
