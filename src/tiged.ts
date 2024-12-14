@@ -22,13 +22,13 @@ import {
   ensureGitExists,
   exec,
   extractRepositoryInfo,
+  extractTarball,
   fetchRefs,
   isDirectory,
   pathExists,
   stashFiles,
   tryRequire,
   unStashFiles,
-  untar,
 } from './utils.js';
 
 /**
@@ -617,7 +617,7 @@ export class Tiged extends EventEmitter {
       }${tarballFilePath} to ${destinationDirectoryPath}`,
     });
 
-    const extractedFiles = await untar(
+    const extractedFiles = await extractTarball(
       tarballFilePath,
       destinationDirectoryPath,
       subDirectory,
