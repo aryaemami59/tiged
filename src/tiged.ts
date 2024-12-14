@@ -302,8 +302,8 @@ export class Tiged extends EventEmitter {
    * Constructs a new {@linkcode Tiged} instance
    * with the specified source and options.
    *
-   * @param src - The source repository string.
-   * @param tigedOptions - Optional parameters to customize the behavior.
+   * @param src - A string representing the repository source. This must be a URL, path, or other descriptor that can be parsed to extract repository information.
+   * @param tigedOptions - Optional configuration for Tiged, overriding default options.
    */
   public constructor(
     public src: string,
