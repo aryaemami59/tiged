@@ -3,11 +3,11 @@ import * as path from 'node:path';
 import type { Options, ValidModes } from './types.js';
 
 const getHomeOrTmp = () => homedir() || tmpdir();
-const homeOrTmp = /* @__PURE__ */ getHomeOrTmp();
+const homeOrTmpDirectoryPath = /* @__PURE__ */ getHomeOrTmp();
 export const tmpDirName = 'tmp';
 export const tigedConfigName = 'degit.json';
 export const cacheDirectoryPath = /* @__PURE__ */ path.join(
-  homeOrTmp,
+  homeOrTmpDirectoryPath,
   '.degit',
 );
 export const validModes = /* @__PURE__ */ new Set([
