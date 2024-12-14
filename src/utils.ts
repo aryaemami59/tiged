@@ -7,7 +7,11 @@ import { createRequire } from 'node:module';
 import * as path from 'node:path';
 import { promisify } from 'node:util';
 import { extract } from 'tar';
-import { stashDirectoryName } from './constants.js';
+import {
+  accessLogsFileName,
+  stashDirectoryName,
+  supportedHosts,
+} from './constants.js';
 import type { Repo, TigedErrorOptions } from './types.js';
 
 /**
@@ -349,3 +353,193 @@ export const ensureGitExists = async (): Promise<void> => {
     );
   }
 };
+
+/**
+ * Parses the source URL and returns a {@linkcode Repo} object
+ * containing the parsed information.
+ *
+ * @param src - The source URL to parse.
+ * @returns A {@linkcode Repo} object containing the parsed information.
+ * @throws A {@linkcode TigedError} If the source URL cannot be parsed.
+ *
+ * @internal
+ */
+export function extractRepositoryInfo(src: string): Repo {
+  const match =
+    /^(?:(?:https:\/\/)?([^:/]+\.[^:/]+)\/|git@([^:/]+)[:/]|([^/]+):)?([^/\s]+)\/([^/\s#]+)(?:((?:\/[^/\s#]+)+))?(?:\/)?(?:#(.+))?/.exec(
+      src,
+    );
+
+  if (!match) {
+    throw new TigedError(`could not parse ${src}`, {
+      code: 'BAD_SRC',
+    });
+  }
+
+  const site = match[1] ?? match[2] ?? match[3] ?? 'github.com';
+  const topLevelDomainMatch = /\.([a-z]{2,})$/.exec(site);
+  const topLevelDomain = topLevelDomainMatch ? topLevelDomainMatch[0] : null;
+  const siteName = topLevelDomain
+    ? site.replace(new RegExp(`${topLevelDomain}$`), '')
+    : site;
+
+  const user = match[4] ?? '';
+  const name = match[5]?.replace(/\.git$/, '') ?? '';
+  const subDirectory = match[6] ?? '';
+  const ref = match[7] ?? 'HEAD';
+
+  const domain = `${siteName}${
+    topLevelDomain ?? supportedHosts[siteName] ?? supportedHosts[site] ?? ''
+  }`;
+
+  const url = `https://${domain}/${user}/${name}`;
+  const ssh = `git@${domain}:${user}/${name}`;
+
+  const mode =
+    siteName === 'huggingface'
+      ? 'git'
+      : supportedHosts[siteName] || supportedHosts[site]
+        ? 'tar'
+        : 'git';
+
+  return { site: siteName, user, name, ref, url, ssh, subDirectory, mode, src };
+}
+
+/**
+ * Fetches the references (branches, tags, etc.) from a remote Git repository.
+ *
+ * @param repo - The repository object containing the URL of the remote repository.
+ * @returns An array of objects representing the fetched references, each containing the type, name, and hash.
+ * @throws A {@linkcode TigedError} If there is an error fetching the remote repository.
+ *
+ * @internal
+ */
+export async function fetchRefs(repo: Repo): Promise<
+  (
+    | {
+        type: string;
+        hash: string;
+        name?: undefined;
+      }
+    | {
+        type: string;
+        name: string;
+        hash: string;
+      }
+  )[]
+> {
+  try {
+    const { stdout } = await exec(`git ls-remote ${repo.url}`);
+
+    return stdout
+      .trim()
+      .split('\n')
+      .filter(Boolean)
+      .map(row => {
+        const [hash = '', ref = ''] = row.split('\t');
+
+        if (ref === 'HEAD') {
+          return {
+            type: 'HEAD',
+            hash,
+          };
+        }
+
+        const match = /refs\/(\w+)\/(.+)/.exec(ref);
+
+        if (!match)
+          throw new TigedError(`could not parse ${ref}`, {
+            code: 'BAD_REF',
+            ref,
+            url: repo.url,
+          });
+
+        const type =
+          match[1] === 'heads'
+            ? 'branch'
+            : match[1] === 'refs'
+              ? 'ref'
+              : (match[1] ?? '');
+
+        const name = match[2] ?? '';
+
+        return { type, name, hash };
+      });
+  } catch (error) {
+    throw new TigedError(`could not fetch remote ${repo.url}`, {
+      code: 'COULD_NOT_FETCH',
+      url: repo.url,
+      original: error instanceof Error ? error : undefined,
+      ref: repo.ref,
+    });
+  }
+}
+
+/**
+ * Updates the cache with the given repository information.
+ *
+ * @param repositoryCacheDirectoryPath - The directory path where the cache is located.
+ * @param repo - The repository object containing the reference and other details.
+ * @param hash - The hash value of the repository.
+ * @param cached - The cached records.
+ * @returns A {@linkcode Promise | promise} that resolves when the cache is updated.
+ *
+ * @internal
+ */
+export async function updateCache(
+  repositoryCacheDirectoryPath: string,
+  repo: Repo,
+  hash: string,
+  cached: Record<string, string>,
+): Promise<void> {
+  const accessLogsFilePath = path.join(
+    repositoryCacheDirectoryPath,
+    accessLogsFileName,
+  );
+
+  // update access logs
+  const accessLogs: Record<string, string> =
+    tryRequire(accessLogsFilePath) || {};
+
+  accessLogs[repo.ref] = new Date().toISOString();
+
+  await fs.writeFile(accessLogsFilePath, JSON.stringify(accessLogs, null, 2), {
+    encoding: 'utf-8',
+  });
+
+  if (cached[repo.ref] === hash) {
+    return;
+  }
+
+  const oldHash = cached[repo.ref];
+
+  if (oldHash) {
+    let used = false;
+
+    for (const key in cached) {
+      if (cached[key] === hash) {
+        used = true;
+        break;
+      }
+    }
+
+    if (!used) {
+      // we no longer need this tar file
+      try {
+        await fs.unlink(
+          path.join(repositoryCacheDirectoryPath, `${oldHash}.tar.gz`),
+        );
+      } catch (error) {
+        // ignore
+      }
+    }
+  }
+
+  cached[repo.ref] = hash;
+
+  await fs.writeFile(
+    path.join(repositoryCacheDirectoryPath, 'map.json'),
+    JSON.stringify(cached, null, 2),
+    { encoding: 'utf-8' },
+  );
+}
