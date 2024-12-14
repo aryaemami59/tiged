@@ -94,19 +94,18 @@ function extractRepositoryInfo(src: string): Repo {
  * @internal
  */
 async function fetchRefs(repo: Repo): Promise<
-  | (
-      | {
-          type: string;
-          hash: string;
-          name?: never;
-        }
-      | {
-          type: string;
-          name: string;
-          hash: string;
-        }
-    )[]
-  | undefined
+  (
+    | {
+        type: string;
+        hash: string;
+        name?: undefined;
+      }
+    | {
+        type: string;
+        name: string;
+        hash: string;
+      }
+  )[]
 > {
   try {
     const { stdout } = await exec(`git ls-remote ${repo.url}`);
@@ -146,16 +145,12 @@ async function fetchRefs(repo: Repo): Promise<
         return { type, name, hash };
       });
   } catch (error) {
-    if (error instanceof Error) {
-      throw new TigedError(`could not fetch remote ${repo.url}`, {
-        code: 'COULD_NOT_FETCH',
-        url: repo.url,
-        original: error,
-        ref: repo.ref,
-      });
-    }
-
-    return;
+    throw new TigedError(`could not fetch remote ${repo.url}`, {
+      code: 'COULD_NOT_FETCH',
+      url: repo.url,
+      original: error instanceof Error ? error : undefined,
+      ref: repo.ref,
+    });
   }
 }
 
