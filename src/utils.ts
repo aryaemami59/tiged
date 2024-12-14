@@ -336,3 +336,34 @@ export const isDirectory = async (filePath: string): Promise<boolean> => {
     return false;
   }
 };
+
+/**
+ * Ensures that the Git executable is available
+ * on the system by checking its version.
+ *
+ * @throws A {@linkcode TigedError} If the Git executable is not found or cannot be executed.
+ *
+ * @example
+ * <caption>#### Throws an error if Git is not installed</caption>
+ *
+ * ```ts
+ * await ensureGitExists();
+ * // Throws an error if Git is not installed or not in the PATH.
+ * ```
+ *
+ * @since 3.0.0
+ * @internal
+ */
+export const ensureGitExists = async (): Promise<void> => {
+  try {
+    await exec('git --version');
+  } catch (error) {
+    throw new TigedError(
+      'could not find git. Make the directory of your git executable is found in your PATH environment variable.',
+      {
+        code: 'MISSING_GIT',
+        original: error instanceof Error ? error : undefined,
+      },
+    );
+  }
+};
