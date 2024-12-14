@@ -4,7 +4,7 @@ import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import {
   accessLogsFileName,
-  cacheDirectoryName,
+  cacheDirectoryPath,
   supportedHosts,
   tigedConfigName,
   tigedDefaultOptions,
@@ -21,6 +21,7 @@ import type {
 import {
   TigedError,
   downloadTarball,
+  ensureGitExists,
   exec,
   isDirectory,
   pathExists,
@@ -109,6 +110,7 @@ async function fetchRefs(repo: Repo): Promise<
     const { stdout } = await exec(`git ls-remote ${repo.url}`);
 
     return stdout
+      .trim()
       .split('\n')
       .filter(Boolean)
       .map(row => {
@@ -342,10 +344,8 @@ export class Tiged extends EventEmitter {
 
     this.directiveActions = {
       clone: async (dir, dest, action) => {
-        const absoluteDestination = path.resolve(dest);
-
         if (this._hasStashed === false) {
-          await stashFiles(dir, absoluteDestination);
+          await stashFiles(dir, dest);
 
           this._hasStashed = true;
         }
@@ -369,7 +369,7 @@ export class Tiged extends EventEmitter {
         });
 
         try {
-          await tiged.clone(absoluteDestination);
+          await tiged.clone(dest);
         } catch (error) {
           if (error instanceof Error) {
             console.error(red(`! ${error.message}`));
@@ -409,7 +409,7 @@ export class Tiged extends EventEmitter {
    * @returns An array of {@linkcode TigedAction} directives, or `false` if no directives are found.
    */
   private async _getDirectives(dest: string): Promise<false | TigedAction[]> {
-    const directivesPath = path.resolve(dest, tigedConfigName);
+    const directivesPath = path.join(dest, tigedConfigName);
 
     const directives: TigedAction[] | false =
       tryRequire(directivesPath, { clearCache: true }) || false;
@@ -424,20 +424,10 @@ export class Tiged extends EventEmitter {
   /**
    * Clones the repository to the specified destination.
    *
-   * @param dest - The destination directory where the repository will be cloned (default: `'.'`).
+   * @param dest - The destination directory where the repository will be cloned (default: **{@linkcode process.cwd()}**).
    */
-  public async clone(dest: string): Promise<void> {
-    try {
-      await exec('git --version');
-    } catch (error) {
-      throw new TigedError(
-        'could not find git. Make the directory of your git executable is found in your PATH environment variable.',
-        {
-          code: 'MISSING_GIT',
-          original: error instanceof Error ? error : undefined,
-        },
-      );
-    }
+  public async clone(dest: string = process.cwd()): Promise<void> {
+    await ensureGitExists();
 
     const absoluteDestination = path.resolve(dest);
 
@@ -445,7 +435,7 @@ export class Tiged extends EventEmitter {
 
     const { repo } = this;
 
-    const dir = path.join(cacheDirectoryName, repo.site, repo.user, repo.name);
+    const dir = path.join(cacheDirectoryPath, repo.site, repo.user, repo.name);
 
     if (this.mode === 'tar') {
       await this._cloneWithTar(dir, absoluteDestination);
@@ -455,9 +445,7 @@ export class Tiged extends EventEmitter {
 
     this._info({
       code: 'SUCCESS',
-      message: `cloned ${bold(`${repo.user}/${repo.name}`)}#${bold(repo.ref)}${
-        dest !== '.' ? ` to ${dest}` : ''
-      }`,
+      message: `cloned ${bold(`${repo.user}/${repo.name}`)}#${bold(repo.ref)} to ${absoluteDestination}`,
       repo,
       dest: absoluteDestination,
     });
@@ -497,29 +485,27 @@ export class Tiged extends EventEmitter {
       ? action.files
       : [action.files];
 
-    const absoluteDestination = path.resolve(dest);
-
     const removedFiles: string[] = [];
 
-    for (const file of filesToBeRemoved) {
-      const filePath = path.resolve(absoluteDestination, file);
+    for (const fileToBeRemoved of filesToBeRemoved) {
+      const fileToBeRemovedPath = path.join(dest, fileToBeRemoved);
 
-      if (await pathExists(filePath)) {
-        const isDir = await isDirectory(filePath);
+      if (await pathExists(fileToBeRemovedPath)) {
+        const isDir = await isDirectory(fileToBeRemovedPath);
 
         if (isDir) {
-          await fs.rm(filePath, { recursive: true, force: true });
+          await fs.rm(fileToBeRemovedPath, { recursive: true, force: true });
 
-          removedFiles.push(`${file}/`);
+          removedFiles.push(`${fileToBeRemoved}/`);
         } else {
-          await fs.unlink(filePath);
+          await fs.unlink(fileToBeRemovedPath);
 
-          removedFiles.push(file);
+          removedFiles.push(fileToBeRemoved);
         }
       } else {
         this._warn(
           new TigedError(
-            `action wants to remove ${bold(file)} but it does not exist`,
+            `action wants to remove ${bold(fileToBeRemoved)} but it does not exist`,
             { code: 'FILE_DOES_NOT_EXIST' },
           ),
         );
@@ -529,7 +515,7 @@ export class Tiged extends EventEmitter {
     if (removedFiles.length > 0) {
       this._info({
         code: 'REMOVED',
-        message: `removed: ${bold(removedFiles.map(d => bold(d)).join(', '))}`,
+        message: `removed: ${bold(removedFiles.map(removedFile => bold(removedFile)).join(', '))}`,
       });
     }
   }
@@ -882,8 +868,11 @@ export class Tiged extends EventEmitter {
       });
 
       await Promise.all(
-        filesToExtract.map(async file =>
-          fs.rename(path.join(tempSubDirectory, file), path.join(dest, file)),
+        filesToExtract.map(async fileToExtract =>
+          fs.rename(
+            path.join(tempSubDirectory, fileToExtract),
+            path.join(dest, fileToExtract),
+          ),
         ),
       );
 
@@ -918,7 +907,7 @@ export class Tiged extends EventEmitter {
         );
       }
 
-      await fs.rm(path.resolve(dest, '.git'), { recursive: true, force: true });
+      await fs.rm(path.join(dest, '.git'), { recursive: true, force: true });
     }
   }
 }

@@ -6,7 +6,7 @@ const getHomeOrTmp = () => homedir() || tmpdir();
 const homeOrTmp = /* @__PURE__ */ getHomeOrTmp();
 export const tmpDirName = 'tmp';
 export const tigedConfigName = 'degit.json';
-export const cacheDirectoryName = /* @__PURE__ */ path.join(
+export const cacheDirectoryPath = /* @__PURE__ */ path.join(
   homeOrTmp,
   '.degit',
 );
