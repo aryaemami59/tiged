@@ -160,7 +160,7 @@ async function fetchRefs(repo: Repo): Promise<
 /**
  * Updates the cache with the given repository information.
  *
- * @param dir - The directory path where the cache is located.
+ * @param repositoryCacheDirectoryPath - The directory path where the cache is located.
  * @param repo - The repository object containing the reference and other details.
  * @param hash - The hash value of the repository.
  * @param cached - The cached records.
@@ -169,22 +169,25 @@ async function fetchRefs(repo: Repo): Promise<
  * @internal
  */
 async function updateCache(
-  dir: string,
+  repositoryCacheDirectoryPath: string,
   repo: Repo,
   hash: string,
   cached: Record<string, string>,
 ): Promise<void> {
+  const accessLogsFilePath = path.join(
+    repositoryCacheDirectoryPath,
+    accessLogsFileName,
+  );
+
   // update access logs
   const accessLogs: Record<string, string> =
-    tryRequire(path.join(dir, accessLogsFileName)) || {};
+    tryRequire(accessLogsFilePath) || {};
 
   accessLogs[repo.ref] = new Date().toISOString();
 
-  await fs.writeFile(
-    path.join(dir, accessLogsFileName),
-    JSON.stringify(accessLogs, null, 2),
-    { encoding: 'utf-8' },
-  );
+  await fs.writeFile(accessLogsFilePath, JSON.stringify(accessLogs, null, 2), {
+    encoding: 'utf-8',
+  });
 
   if (cached[repo.ref] === hash) {
     return;
@@ -205,7 +208,9 @@ async function updateCache(
     if (!used) {
       // we no longer need this tar file
       try {
-        await fs.unlink(path.join(dir, `${oldHash}.tar.gz`));
+        await fs.unlink(
+          path.join(repositoryCacheDirectoryPath, `${oldHash}.tar.gz`),
+        );
       } catch (error) {
         // ignore
       }
@@ -215,7 +220,7 @@ async function updateCache(
   cached[repo.ref] = hash;
 
   await fs.writeFile(
-    path.join(dir, 'map.json'),
+    path.join(repositoryCacheDirectoryPath, 'map.json'),
     JSON.stringify(cached, null, 2),
     { encoding: 'utf-8' },
   );
@@ -460,6 +465,15 @@ export class Tiged extends EventEmitter {
       repo.name,
     );
 
+    if (this.disableCache) {
+      this._verbose({
+        code: 'NO_CACHE',
+        message: `Not using cache. disableCache is set to true.`,
+        dest: destinationDirectoryPath,
+        repo,
+      });
+    }
+
     if (this.mode === 'tar') {
       await this._cloneWithTar(
         repositoryCacheDirectoryPath,
@@ -662,12 +676,12 @@ export class Tiged extends EventEmitter {
    * @param cached - The cached commit hashes.
    * @returns The commit hash if found in the cache; otherwise, `undefined`.
    */
-  private _getHashFromCache(
+  private async _getHashFromCache(
     repo: Repo,
     cached: Record<string, string>,
-  ): string | undefined {
+  ): Promise<string | undefined> {
     if (!(repo.ref in cached)) {
-      return;
+      return await this._getHash(repo, cached);
     }
 
     const hash = cached[repo.ref];
@@ -718,23 +732,28 @@ export class Tiged extends EventEmitter {
 
   /**
    * Clones the repository specified by {@linkcode repo}
-   * into the {@linkcode dest} directory using a tarball.
+   * into the {@linkcode destinationDirectoryPath} directory using a tarball.
    *
-   * @param dir - The directory where the repository is cloned.
-   * @param dest - The destination directory where the repository will be extracted.
+   * @param repositoryCacheDirectoryPath - The directory where the repository is cloned.
+   * @param destinationDirectoryPath - The destination directory where the repository will be extracted.
    * @throws A {@linkcode TigedError} If the commit hash for the repository reference cannot be found.
    * @throws A {@linkcode TigedError} If the tarball cannot be downloaded.
    * @returns A {@linkcode Promise | promise} that resolves when the cloning and extraction process is complete.
    */
-  private async _cloneWithTar(dir: string, dest: string): Promise<void> {
+  private async _cloneWithTar(
+    repositoryCacheDirectoryPath: string,
+    destinationDirectoryPath: string,
+  ): Promise<void> {
     const { repo } = this;
 
+    await fs.mkdir(destinationDirectoryPath, { recursive: true });
+
     const cached: Record<string, string> =
-      tryRequire(path.join(dir, 'map.json')) || {};
+      tryRequire(path.join(repositoryCacheDirectoryPath, 'map.json')) || {};
 
     const hash = this.disableCache
       ? await this._getHash(repo, cached)
-      : this._getHashFromCache(repo, cached);
+      : await this._getHashFromCache(repo, cached);
 
     const subDirectory = repo.subDirectory
       ? `${repo.name}-${hash}${repo.subDirectory}`
@@ -751,7 +770,10 @@ export class Tiged extends EventEmitter {
 
     const tarballFileName = `${hash}.tar.gz`;
 
-    const tarballFilePath = path.join(dir, tarballFileName);
+    const tarballFilePath = path.join(
+      destinationDirectoryPath,
+      tarballFileName,
+    );
 
     const url =
       repo.site === 'gitlab'
@@ -760,73 +782,44 @@ export class Tiged extends EventEmitter {
           ? `${repo.url}/get/${tarballFileName}`
           : `${repo.url}/archive/${tarballFileName}`;
 
-    try {
-      if (this.disableCache) {
-        try {
-          if (this.disableCache) {
-            this._verbose({
-              code: 'NO_CACHE',
-              message: `Not using cache. disableCache set to true.`,
-            });
-
-            throw "don't use cache";
-          }
-
-          await fs.stat(tarballFilePath);
-
-          this._verbose({
-            code: 'FILE_EXISTS',
-            message: `${tarballFilePath} already exists locally`,
-          });
-        } catch (error) {
-          // Not getting file from cache. Either because there is no cached tar or because option no cache is set to true.
-          await fs.mkdir(dir, { recursive: true });
-
-          if (this.proxy) {
-            this._verbose({
-              code: 'PROXY',
-              message: `using proxy ${this.proxy}`,
-            });
-          }
-
-          this._verbose({
-            code: 'DOWNLOADING',
-            message: `downloading ${url} to ${tarballFilePath}`,
-          });
-
-          await downloadTarball(url, tarballFilePath, this.proxy);
-        }
-      }
-    } catch (error) {
-      if (error instanceof Error) {
-        throw new TigedError(`could not download ${url}`, {
-          code: 'COULD_NOT_DOWNLOAD',
-          url,
-          original: error,
-          ref: repo.ref,
-        });
-      }
+    if (this.proxy) {
+      this._verbose({
+        code: 'PROXY',
+        message: `using proxy ${this.proxy}`,
+      });
     }
 
-    if (!this.disableCache) {
-      await updateCache(dir, repo, hash, cached);
+    this._verbose({
+      code: 'DOWNLOADING',
+      message: `downloading ${url} to ${tarballFilePath}`,
+    });
+
+    try {
+      await downloadTarball(url, tarballFilePath, this.proxy);
+    } catch (error) {
+      throw new TigedError(`could not download ${url}`, {
+        code: 'COULD_NOT_DOWNLOAD',
+        url,
+        original: error instanceof Error ? error : undefined,
+        ref: repo.ref,
+      });
     }
 
     this._verbose({
       code: 'EXTRACTING',
       message: `extracting ${
         subDirectory ? `${repo.subDirectory} from ` : ''
-      }${tarballFilePath} to ${dest}`,
+      }${tarballFilePath} to ${destinationDirectoryPath}`,
     });
 
-    await fs.mkdir(dest, { recursive: true });
-
-    const extractedFiles = await untar(tarballFilePath, dest, subDirectory);
+    const extractedFiles = await untar(
+      tarballFilePath,
+      destinationDirectoryPath,
+      subDirectory,
+    );
 
     if (extractedFiles.length === 0) {
-      const noFilesErrorMessage: string = subDirectory
-        ? 'No files to extract. Make sure you typed in the subdirectory name correctly.'
-        : 'No files to extract. The tar file seems to be empty';
+      const noFilesErrorMessage = `No files to extract. ${subDirectory ? 'Make sure you typed in the subdirectory name correctly' : 'The tar file seems to be empty'}.`;
 
       throw new TigedError(noFilesErrorMessage, {
         code: 'NO_FILES',
@@ -835,18 +828,19 @@ export class Tiged extends EventEmitter {
       });
     }
 
-    if (this.disableCache) {
-      await fs.rm(tarballFilePath);
-    }
+    await fs.rm(tarballFilePath, { force: true, recursive: true });
   }
 
   /**
    * Clones the repository using Git.
    *
-   * @param _dir - The source directory.
-   * @param dest - The destination directory.
+   * @param _repositoryCacheDirectoryPath - The source directory.
+   * @param destinationDirectoryPath - The destination directory.
    */
-  private async _cloneWithGit(_dir: string, dest: string): Promise<void> {
+  private async _cloneWithGit(
+    _repositoryCacheDirectoryPath: string,
+    destinationDirectoryPath: string,
+  ): Promise<void> {
     const { repo } = this;
     const gitPath = repo.url;
     // let gitPath = /https:\/\//.test(repo.src)
@@ -858,10 +852,10 @@ export class Tiged extends EventEmitter {
     if (repo.subDirectory) {
       this._verbose({
         code: 'EXTRACTING',
-        message: `extracting the ${repo.subDirectory} subdirectory from ${gitPath} repo to ${dest} directory`,
+        message: `extracting the ${repo.subDirectory} subdirectory from ${gitPath} repo to ${destinationDirectoryPath} directory`,
       });
 
-      const tempDir = path.join(dest, '.tiged');
+      const tempDir = path.join(destinationDirectoryPath, '.tiged');
 
       await fs.mkdir(tempDir, { recursive: true });
 
@@ -898,7 +892,7 @@ export class Tiged extends EventEmitter {
         filesToExtract.map(async fileToExtract =>
           fs.rename(
             path.join(tempSubDirectory, fileToExtract),
-            path.join(dest, fileToExtract),
+            path.join(destinationDirectoryPath, fileToExtract),
           ),
         ),
       );
@@ -906,22 +900,26 @@ export class Tiged extends EventEmitter {
       await fs.rm(tempDir, { recursive: true, force: true });
     } else {
       if (isWin) {
-        await fs.mkdir(dest, { recursive: true });
+        await fs.mkdir(destinationDirectoryPath, { recursive: true });
 
         await exec(
-          `cd ${dest} && git init && git remote add origin ${gitPath} && git fetch --depth 1 origin ${repo.ref} && git checkout FETCH_HEAD`,
+          `cd ${destinationDirectoryPath} && git init && git remote add origin ${gitPath} && git fetch --depth 1 origin ${repo.ref} && git checkout FETCH_HEAD`,
         );
       } else if (repo.ref && repo.ref !== 'HEAD' && !isWin) {
-        await fs.mkdir(dest, { recursive: true });
+        await fs.mkdir(destinationDirectoryPath, { recursive: true });
 
         await exec(
-          `cd ${dest}; git init; git remote add origin ${gitPath}; git fetch --depth 1 origin ${repo.ref}; git checkout FETCH_HEAD`,
+          `cd ${destinationDirectoryPath}; git init; git remote add origin ${gitPath}; git fetch --depth 1 origin ${repo.ref}; git checkout FETCH_HEAD`,
         );
       } else {
-        await exec(`git clone --depth 1 ${gitPath} ${dest}`);
+        await exec(
+          `git clone --depth 1 ${gitPath} ${destinationDirectoryPath}`,
+        );
       }
 
-      const extractedFiles = await fs.readdir(dest, { encoding: 'utf-8' });
+      const extractedFiles = await fs.readdir(destinationDirectoryPath, {
+        encoding: 'utf-8',
+      });
 
       if (extractedFiles.length === 0) {
         throw new TigedError(
@@ -934,7 +932,10 @@ export class Tiged extends EventEmitter {
         );
       }
 
-      await fs.rm(path.join(dest, '.git'), { recursive: true, force: true });
+      await fs.rm(path.join(destinationDirectoryPath, '.git'), {
+        force: true,
+        recursive: true,
+      });
     }
   }
 }
