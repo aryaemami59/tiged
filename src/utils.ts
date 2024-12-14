@@ -110,7 +110,7 @@ export const exec = promisify(child_process.exec);
  *
  * @internal
  */
-export async function untar(
+export async function extractTarball(
   tarballFilePath: string,
   destinationDirectoryPath: string,
   subDirectory?: Repo['subDirectory'],
