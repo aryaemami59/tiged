@@ -9,7 +9,7 @@ import picocolors from 'picocolors';
 import type { Options } from 'tiged';
 import { createTiged } from 'tiged';
 import { glob } from 'tinyglobby';
-import { accessLogsFileName, cacheDirectoryName } from './constants.js';
+import { accessLogsFileName, cacheDirectoryPath } from './constants.js';
 import { pathExists, tryRequire } from './utils.js';
 
 const { bold, cyan, magenta, red, underline } = picocolors;
@@ -35,7 +35,7 @@ const CLIArguments = mri<Options & { help?: string }>(process.argv.slice(2), {
   string: ['mode', 'subDirectory'] as const satisfies (keyof Options)[],
 });
 
-const [src, dest = '.'] = CLIArguments._;
+const [src, dest] = CLIArguments._;
 
 /**
  * Runs the cloning process from the specified source
@@ -48,7 +48,7 @@ const [src, dest = '.'] = CLIArguments._;
  */
 async function run(
   src: string,
-  dest: string,
+  dest: string | undefined,
   tigedOptions: Options,
 ): Promise<void> {
   const tiged = createTiged(src, tigedOptions);
@@ -108,14 +108,14 @@ async function main(): Promise<void> {
     const accessLookup = /* @__PURE__ */ new Map<string, number>();
 
     const accessJsonFiles = await glob(`**/${accessLogsFileName}`, {
-      cwd: cacheDirectoryName,
+      cwd: cacheDirectoryPath,
     });
 
     await Promise.all(
       accessJsonFiles.map(async file => {
         const [host, user, repo] = file.split(path.sep);
 
-        const json = await fs.readFile(`${cacheDirectoryName}/${file}`, {
+        const json = await fs.readFile(path.join(cacheDirectoryPath, file), {
           encoding: 'utf-8',
         });
 
@@ -132,7 +132,7 @@ async function main(): Promise<void> {
       const [host, user, repo] = file.split(path.sep);
 
       const cacheLogs: Record<string, string> = tryRequire(
-        `${cacheDirectoryName}/${file}`,
+        path.join(cacheDirectoryPath, file),
       );
 
       return Object.entries(cacheLogs).map(([ref, hash]) => ({
@@ -144,7 +144,7 @@ async function main(): Promise<void> {
 
     const choices = (
       await Promise.all(
-        (await glob(`**/map.json`, { cwd: cacheDirectoryName })).map(getChoice),
+        (await glob(`**/map.json`, { cwd: cacheDirectoryPath })).map(getChoice),
       )
     )
       .reduce(
