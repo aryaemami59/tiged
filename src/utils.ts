@@ -7,7 +7,7 @@ import { createRequire } from 'node:module';
 import * as path from 'node:path';
 import { promisify } from 'node:util';
 import { extract } from 'tar';
-import { tigedConfigFileName, tmpDirName } from './constants.js';
+import { stashDirectoryName, tigedConfigFileName } from './constants.js';
 import type { Repo, TigedErrorOptions } from './types.js';
 
 /**
@@ -201,7 +201,7 @@ export async function downloadTarball(
  * @internal
  */
 export async function stashFiles(dir: string, dest: string): Promise<void> {
-  const tmpDir = path.join(dir, tmpDirName);
+  const tmpDir = path.join(dir, stashDirectoryName);
 
   try {
     await fs.rm(tmpDir, { recursive: true, force: true });
@@ -257,7 +257,7 @@ export async function stashFiles(dir: string, dest: string): Promise<void> {
  * @internal
  */
 export async function unStashFiles(dir: string, dest: string): Promise<void> {
-  const tmpDir = path.join(dir, tmpDirName);
+  const tmpDir = path.join(dir, stashDirectoryName);
 
   const files = await fs.readdir(tmpDir, {
     encoding: 'utf-8',
