@@ -116,7 +116,7 @@ export type Repo = {
 
   /**
    * Optional. A specific subdirectory within the repository to work with,
-   * if applicable. Can be `undefined` if not used.
+   * if applicable.
    */
   subDirectory: string;
 

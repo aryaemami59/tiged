@@ -99,25 +99,25 @@ export const exec = promisify(child_process.exec);
 /**
  * Extracts the contents of a tar file to a specified destination.
  *
- * @param tarballFileName - The path to the tar file.
- * @param dest - The destination directory where the contents will be extracted.
+ * @param tarballFilePath - The path to the tar file.
+ * @param destinationDirectoryPath - The destination directory where the contents will be extracted.
  * @param subDirectory - Optional subdirectory within the tar file to extract.
  * @returns A list of extracted files.
  *
  * @internal
  */
 export async function untar(
-  tarballFileName: string,
-  dest: string,
+  tarballFilePath: string,
+  destinationDirectoryPath: string,
   subDirectory?: Repo['subDirectory'],
 ): Promise<string[]> {
   const extractedFiles: string[] = [];
 
   await extract(
     {
-      file: tarballFileName,
+      file: tarballFilePath,
       strip: subDirectory ? subDirectory.split('/').length : 1,
-      C: dest,
+      C: destinationDirectoryPath,
       onReadEntry: entry => {
         extractedFiles.push(entry.path);
       },
