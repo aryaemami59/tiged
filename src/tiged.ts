@@ -6,7 +6,7 @@ import {
   accessLogsFileName,
   cacheDirectoryPath,
   supportedHosts,
-  tigedConfigName,
+  tigedConfigFileName,
   tigedDefaultOptions,
   validModes,
 } from './constants.js';
@@ -409,7 +409,7 @@ export class Tiged extends EventEmitter {
    * @returns An array of {@linkcode TigedAction} directives, or `false` if no directives are found.
    */
   private async _getDirectives(dest: string): Promise<false | TigedAction[]> {
-    const directivesPath = path.join(dest, tigedConfigName);
+    const directivesPath = path.join(dest, tigedConfigFileName);
 
     const directives: TigedAction[] | false =
       tryRequire(directivesPath, { clearCache: true }) || false;

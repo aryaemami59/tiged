@@ -7,7 +7,7 @@ import { createRequire } from 'node:module';
 import * as path from 'node:path';
 import { promisify } from 'node:util';
 import { extract } from 'tar';
-import { tigedConfigName, tmpDirName } from './constants.js';
+import { tigedConfigFileName, tmpDirName } from './constants.js';
 import type { Repo, TigedErrorOptions } from './types.js';
 
 /**
@@ -274,7 +274,7 @@ export async function unStashFiles(dir: string, dest: string): Promise<void> {
     if (isDir) {
       await fs.cp(tmpFile, targetPath, { recursive: true });
     } else {
-      if (filename !== tigedConfigName) {
+      if (filename !== tigedConfigFileName) {
         await fs.cp(tmpFile, targetPath);
       }
 
