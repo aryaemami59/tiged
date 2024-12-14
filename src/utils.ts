@@ -22,7 +22,7 @@ import type { Repo, TigedErrorOptions } from './types.js';
  * @internal
  * @since 3.0.0
  */
-export class TigedError extends Error {
+export class TigedError extends Error implements Error, TigedErrorOptions {
   /**
    * The error code associated with the error.
    */
@@ -51,7 +51,7 @@ export class TigedError extends Error {
    * @param message - The error message.
    * @param tigedErrorOptions - Additional options for the error.
    */
-  public constructor(message?: string, tigedErrorOptions?: TigedErrorOptions) {
+  public constructor(message: string, tigedErrorOptions: TigedErrorOptions) {
     super(message);
     Object.assign(this, tigedErrorOptions);
   }
