@@ -7,7 +7,7 @@ import { createRequire } from 'node:module';
 import * as path from 'node:path';
 import { promisify } from 'node:util';
 import { extract } from 'tar';
-import { stashDirectoryName, tigedConfigFileName } from './constants.js';
+import { stashDirectoryName } from './constants.js';
 import type { Repo, TigedErrorOptions } from './types.js';
 
 /**
@@ -194,95 +194,77 @@ export async function downloadTarball(
 /**
  * Stashes files from a directory to a temporary directory.
  *
- * @param dir - The source directory containing the files to be stashed.
- * @param dest - The destination directory where the stashed files will be stored.
+ * @param repositoryCacheDirectoryPath - The source directory containing the files to be stashed.
+ * @param stashSourceDirectoryPath - The destination directory where the stashed files will be stored.
  * @returns A {@linkcode Promise | promise} that resolves when the stashing process is complete.
  *
  * @internal
  */
-export async function stashFiles(dir: string, dest: string): Promise<void> {
-  const tmpDir = path.join(dir, stashDirectoryName);
+export async function stashFiles(
+  repositoryCacheDirectoryPath: string,
+  stashSourceDirectoryPath: string,
+): Promise<void> {
+  const destinationDirectoryPath = path.join(
+    repositoryCacheDirectoryPath,
+    stashDirectoryName,
+  );
 
-  try {
-    await fs.rm(tmpDir, { recursive: true, force: true });
-  } catch (error) {
-    if (
-      !(
-        error instanceof Error &&
-        'errno' in error &&
-        'syscall' in error &&
-        'code' in error
-      )
-    ) {
-      return;
-    }
+  await fs.rm(destinationDirectoryPath, { force: true, recursive: true });
 
-    if (
-      error.errno !== -2 &&
-      error.syscall !== 'rmdir' &&
-      error.code !== 'ENOENT'
-    ) {
-      throw error;
-    }
-  }
+  await fs.mkdir(destinationDirectoryPath, { recursive: true });
 
-  await fs.mkdir(tmpDir);
+  const filesToStash = await fs.readdir(stashSourceDirectoryPath, {
+    encoding: 'utf-8',
+  });
 
-  const files = await fs.readdir(dest, { encoding: 'utf-8', recursive: true });
+  for (const fileToStash of filesToStash) {
+    const fileToStashPath = path.join(stashSourceDirectoryPath, fileToStash);
 
-  for (const file of files) {
-    const filePath = path.join(dest, file);
+    const destinationFilePath = path.join(
+      destinationDirectoryPath,
+      fileToStash,
+    );
 
-    const targetPath = path.join(tmpDir, file);
+    await fs.cp(fileToStashPath, destinationFilePath, { recursive: true });
 
-    const isDir = await isDirectory(filePath);
-
-    if (isDir) {
-      await fs.cp(filePath, targetPath, { recursive: true });
-    } else {
-      await fs.cp(filePath, targetPath);
-
-      await fs.unlink(filePath);
-    }
+    await fs.rm(fileToStashPath, { force: true, recursive: true });
   }
 }
 
 /**
- * Unstashes files from a temporary directory to a destination directory.
+ * Un-stashes files from a temporary directory to a destination directory.
  *
- * @param dir - The directory where the temporary directory is located.
- * @param dest - The destination directory where the files will be un-stashed.
+ * @param repositoryCacheDirectoryPath - The directory where the temporary directory is located.
+ * @param destinationDirectoryPath - The destination directory where the files will be un-stashed.
  * @returns A {@linkcode Promise | promise} that resolves when the un-stashing process is complete.
  *
  * @internal
  */
-export async function unStashFiles(dir: string, dest: string): Promise<void> {
-  const tmpDir = path.join(dir, stashDirectoryName);
+export async function unStashFiles(
+  repositoryCacheDirectoryPath: string,
+  destinationDirectoryPath: string,
+): Promise<void> {
+  const stashDirectoryPath = path.join(
+    repositoryCacheDirectoryPath,
+    stashDirectoryName,
+  );
 
-  const files = await fs.readdir(tmpDir, {
+  const stashedFileNames = await fs.readdir(stashDirectoryPath, {
     encoding: 'utf-8',
-    recursive: true,
   });
 
-  for (const filename of files) {
-    const tmpFile = path.join(tmpDir, filename);
+  for (const stashedFileName of stashedFileNames) {
+    const stashedFilePath = path.join(stashDirectoryPath, stashedFileName);
 
-    const targetPath = path.join(dest, filename);
+    const destinationFilePath = path.join(
+      destinationDirectoryPath,
+      stashedFileName,
+    );
 
-    const isDir = await isDirectory(tmpFile);
-
-    if (isDir) {
-      await fs.cp(tmpFile, targetPath, { recursive: true });
-    } else {
-      if (filename !== tigedConfigFileName) {
-        await fs.cp(tmpFile, targetPath);
-      }
-
-      await fs.unlink(tmpFile);
-    }
+    await fs.cp(stashedFilePath, destinationFilePath, { recursive: true });
   }
 
-  await fs.rm(tmpDir, { recursive: true, force: true });
+  await fs.rm(stashDirectoryPath, { force: true, recursive: true });
 }
 
 /**

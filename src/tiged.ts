@@ -284,8 +284,17 @@ export class Tiged extends EventEmitter {
    * cloning and removing files or directories.
    */
   declare public directiveActions: {
-    clone: (dir: string, dest: string, action: TigedAction) => Promise<void>;
-    remove: (dir: string, dest: string, action: RemoveAction) => Promise<void>;
+    clone: (
+      repositoryCacheDirectoryPath: string,
+      destinationDirectoryPath: string,
+      action: TigedAction,
+    ) => Promise<void>;
+
+    remove: (
+      repositoryCacheDirectoryPath: string,
+      destinationDirectoryPath: string,
+      action: RemoveAction,
+    ) => Promise<void>;
   };
 
   declare public on: (
@@ -345,9 +354,16 @@ export class Tiged extends EventEmitter {
     }
 
     this.directiveActions = {
-      clone: async (dir, dest, action) => {
+      clone: async (
+        repositoryCacheDirectoryPath,
+        destinationDirectoryPath,
+        action,
+      ) => {
         if (this._hasStashed === false) {
-          await stashFiles(dir, dest);
+          await stashFiles(
+            repositoryCacheDirectoryPath,
+            destinationDirectoryPath,
+          );
 
           this._hasStashed = true;
         }
@@ -371,7 +387,7 @@ export class Tiged extends EventEmitter {
         });
 
         try {
-          await tiged.clone(dest);
+          await tiged.clone(destinationDirectoryPath);
         } catch (error) {
           if (error instanceof Error) {
             console.error(red(`! ${error.message}`));
@@ -426,46 +442,62 @@ export class Tiged extends EventEmitter {
   /**
    * Clones the repository to the specified destination.
    *
-   * @param dest - The destination directory where the repository will be cloned (default: **{@linkcode process.cwd()}**).
+   * @param destinationDirectoryName - The destination directory where the repository will be cloned (default: **{@linkcode process.cwd()}**).
    */
-  public async clone(dest: string = process.cwd()): Promise<void> {
+  public async clone(
+    destinationDirectoryName: string = process.cwd(),
+  ): Promise<void> {
     await ensureGitExists();
 
-    const absoluteDestination = path.resolve(dest);
+    const destinationDirectoryPath = path.resolve(destinationDirectoryName);
 
-    await this._checkDirIsEmpty(absoluteDestination);
+    await this._checkDirIsEmpty(destinationDirectoryPath);
 
     const { repo } = this;
 
-    const dir = path.join(cacheDirectoryPath, repo.site, repo.user, repo.name);
+    const repositoryCacheDirectoryPath = path.join(
+      cacheDirectoryPath,
+      repo.site,
+      repo.user,
+      repo.name,
+    );
 
     if (this.mode === 'tar') {
-      await this._cloneWithTar(dir, absoluteDestination);
+      await this._cloneWithTar(
+        repositoryCacheDirectoryPath,
+        destinationDirectoryPath,
+      );
     } else {
-      await this._cloneWithGit(dir, absoluteDestination);
+      await this._cloneWithGit(
+        repositoryCacheDirectoryPath,
+        destinationDirectoryPath,
+      );
     }
 
     this._info({
       code: 'SUCCESS',
-      message: `cloned ${bold(`${repo.user}/${repo.name}`)}#${bold(repo.ref)} to ${absoluteDestination}`,
+      message: `cloned ${bold(`${repo.user}/${repo.name}`)}#${bold(repo.ref)} to ${destinationDirectoryPath}`,
       repo,
-      dest: absoluteDestination,
+      dest: destinationDirectoryPath,
     });
 
-    const directives = await this._getDirectives(absoluteDestination);
+    const directives = await this._getDirectives(destinationDirectoryPath);
 
     if (directives) {
       for (const directive of directives) {
         // TODO, can this be a loop with an index to pass for better error messages?
         await this.directiveActions[directive.action](
-          dir,
-          absoluteDestination,
+          repositoryCacheDirectoryPath,
+          destinationDirectoryPath,
           directive,
         );
       }
 
       if (this._hasStashed === true) {
-        await unStashFiles(dir, absoluteDestination);
+        await unStashFiles(
+          repositoryCacheDirectoryPath,
+          destinationDirectoryPath,
+        );
       }
     }
   }
@@ -474,13 +506,13 @@ export class Tiged extends EventEmitter {
    * Removes files or directories from a specified destination
    * based on the provided action.
    *
-   * @param _dir - The directory path.
-   * @param dest - The destination path.
+   * @param _repositoryCacheDirectoryPath - The directory path.
+   * @param destinationDirectoryPath - The destination path.
    * @param action - The action object containing the files to be removed.
    */
   public async remove(
-    _dir: string,
-    dest: string,
+    _repositoryCacheDirectoryPath: string,
+    destinationDirectoryPath: string,
     action: RemoveAction,
   ): Promise<void> {
     const filesToBeRemoved = Array.isArray(action.files)
@@ -490,20 +522,15 @@ export class Tiged extends EventEmitter {
     const removedFiles: string[] = [];
 
     for (const fileToBeRemoved of filesToBeRemoved) {
-      const fileToBeRemovedPath = path.join(dest, fileToBeRemoved);
+      const fileToBeRemovedPath = path.join(
+        destinationDirectoryPath,
+        fileToBeRemoved,
+      );
 
       if (await pathExists(fileToBeRemovedPath)) {
-        const isDir = await isDirectory(fileToBeRemovedPath);
+        await fs.rm(fileToBeRemovedPath, { recursive: true, force: true });
 
-        if (isDir) {
-          await fs.rm(fileToBeRemovedPath, { recursive: true, force: true });
-
-          removedFiles.push(`${fileToBeRemoved}/`);
-        } else {
-          await fs.unlink(fileToBeRemovedPath);
-
-          removedFiles.push(fileToBeRemoved);
-        }
+        removedFiles.push(fileToBeRemoved);
       } else {
         this._warn(
           new TigedError(
