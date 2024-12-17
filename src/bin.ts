@@ -120,7 +120,7 @@ async function main(): Promise<void> {
 
     await Promise.all(
       accessJsonFiles.map(file => {
-        const [host, user, repo] = file.split(path.sep);
+        const [host = 'github', user = '', repo = ''] = file.split(path.sep);
 
         const logs: Partial<Record<string, string>> =
           tryRequire(path.join(cacheDirectoryPath, file)) || {};
@@ -136,7 +136,7 @@ async function main(): Promise<void> {
     );
 
     const getChoice = (file: string) => {
-      const [host, user, repo] = file.split(path.sep);
+      const [host = 'github', user = '', repo = ''] = file.split(path.sep);
 
       const cacheLogs: Partial<Record<string, string>> =
         tryRequire(path.join(cacheDirectoryPath, file)) || {};

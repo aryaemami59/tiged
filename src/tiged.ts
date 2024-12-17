@@ -142,7 +142,7 @@ export class Tiged extends EventEmitter {
       this.repo.subgroup = true;
 
       this.repo.name = this.repo.subDirectory
-        ? (this.repo.subDirectory?.slice(1) ?? '')
+        ? this.repo.subDirectory.slice(1) || ''
         : '';
 
       this.repo.url += this.repo.subDirectory;
@@ -164,7 +164,7 @@ export class Tiged extends EventEmitter {
         destinationDirectoryPath,
         action,
       ) => {
-        if (this.hasStashed === false) {
+        if (!this.hasStashed) {
           await stashFiles(
             repositoryCacheDirectoryPath,
             destinationDirectoryPath,
@@ -323,7 +323,7 @@ export class Tiged extends EventEmitter {
         );
       }
 
-      if (this.hasStashed === true) {
+      if (this.hasStashed) {
         await unStashFiles(
           repositoryCacheDirectoryPath,
           destinationDirectoryPath,
@@ -351,25 +351,30 @@ export class Tiged extends EventEmitter {
 
     const removedFiles: string[] = [];
 
-    for (const fileToBeRemoved of filesToBeRemoved) {
-      const fileToBeRemovedPath = path.join(
-        destinationDirectoryPath,
-        fileToBeRemoved,
-      );
-
-      if (await pathExists(fileToBeRemovedPath)) {
-        await fs.rm(fileToBeRemovedPath, { force: true, recursive: true });
-
-        removedFiles.push(fileToBeRemoved);
-      } else {
-        this.warn(
-          new TigedError(
-            `action wants to remove ${bold(fileToBeRemoved)} but it does not exist`,
-            { code: 'FILE_DOES_NOT_EXIST' },
-          ),
+    await Promise.all(
+      filesToBeRemoved.map(async fileToBeRemoved => {
+        const fileToBeRemovedPath = path.join(
+          destinationDirectoryPath,
+          fileToBeRemoved,
         );
-      }
-    }
+
+        if (await pathExists(fileToBeRemovedPath)) {
+          await fs.rm(fileToBeRemovedPath, {
+            force: true,
+            recursive: true,
+          });
+
+          removedFiles.push(fileToBeRemoved);
+        } else {
+          this.warn(
+            new TigedError(
+              `action wants to remove ${bold(fileToBeRemoved)} but it does not exist`,
+              { code: 'FILE_DOES_NOT_EXIST' },
+            ),
+          );
+        }
+      }),
+    );
 
     if (removedFiles.length > 0) {
       this.info({
@@ -406,6 +411,8 @@ export class Tiged extends EventEmitter {
             `destination directory is not empty, aborting. Use options.force to override`,
             {
               code: 'DEST_NOT_EMPTY',
+              ref: this.repo.ref,
+              url: this.repo.url,
             },
           );
         }
@@ -470,10 +477,6 @@ export class Tiged extends EventEmitter {
     try {
       const refs = await fetchRefs(repo);
 
-      if (refs == null) {
-        return;
-      }
-
       if (repo.ref === 'HEAD') {
         const hash = refs.find(ref => ref.type === 'HEAD')?.hash ?? '';
 
@@ -520,7 +523,7 @@ export class Tiged extends EventEmitter {
 
     this.info({
       code: 'USING_CACHE',
-      message: `using cached commit hash ${hash}`,
+      message: `using cached commit hash ${hash ?? 'unknown'}`,
     });
 
     return hash;
@@ -609,10 +612,6 @@ export class Tiged extends EventEmitter {
       ? await this.getHash(repo, cached)
       : await this.getHashFromCache(repo, cached);
 
-    const subDirectory = repo.subDirectory
-      ? `${repo.name}-${hash}${repo.subDirectory}`
-      : '';
-
     if (!hash) {
       // TODO 'did you mean...?'
       throw new TigedError(`could not find commit hash for ${repo.ref}`, {
@@ -621,6 +620,10 @@ export class Tiged extends EventEmitter {
         url: repo.url,
       });
     }
+
+    const subDirectory = repo.subDirectory
+      ? `${repo.name}-${hash}${repo.subDirectory}`
+      : '';
 
     const tarballFileName = `${hash}.tar.gz`;
 
@@ -722,7 +725,7 @@ export class Tiged extends EventEmitter {
       await exec(
         `cd ${cloneRepoDestination} && git init && git remote add origin ${url} && git fetch --depth 1 origin ${ref} && git checkout FETCH_HEAD`,
       );
-    } else if (ref && ref !== 'HEAD' && !isWindows) {
+    } else if (ref && ref !== 'HEAD') {
       await exec(
         `cd ${cloneRepoDestination}; git init; git remote add origin ${url}; git fetch --depth 1 origin ${ref}; git checkout FETCH_HEAD`,
       );
