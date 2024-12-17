@@ -204,6 +204,7 @@ async function main(): Promise<void> {
 
       if (!force) {
         console.error(magenta(`! Directory not empty — aborting`));
+
         return;
       }
     }
