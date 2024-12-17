@@ -5,6 +5,7 @@ import fuzzysearch from 'fuzzysearch';
 import mri from 'mri';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import picocolors from 'picocolors';
 import type { Options } from 'tiged';
 import { createTiged } from 'tiged';
@@ -87,9 +88,14 @@ async function run(
 async function main(): Promise<void> {
   if (CLIArguments.help) {
     const help = (
-      await fs.readFile(path.join(__dirname, '..', 'help.md'), {
-        encoding: 'utf-8',
-      })
+      await fs.readFile(
+        path.join(
+          path.dirname(fileURLToPath(import.meta.url)),
+          '..',
+          'help.md',
+        ),
+        { encoding: 'utf-8' },
+      )
     )
       .replace(
         /^(\s*)#+ (.+)/gm,
@@ -148,8 +154,11 @@ async function main(): Promise<void> {
       }));
     };
 
-    const choices = (await glob(`**/map.json`, { cwd: cacheDirectoryPath }))
-      .map(getChoice)
+    const choices = (
+      await Promise.all(
+        (await glob(`**/map.json`, { cwd: cacheDirectoryPath })).map(getChoice),
+      )
+    )
       .reduce(
         (accumulator, currentValue) => accumulator.concat(currentValue),
         [],
