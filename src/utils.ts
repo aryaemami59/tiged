@@ -10,6 +10,7 @@ import { extract } from 'tar';
 import type { SupportedHostNames } from './constants.js';
 import {
   accessLogsFileName,
+  cacheDirectoryPath,
   stashDirectoryName,
   supportedHostNames,
   supportedHosts,
@@ -563,3 +564,52 @@ export async function updateCache(
     { encoding: 'utf-8' },
   );
 }
+
+/**
+ * Retrieves the old hash of a given repository reference.
+ *
+ * @param repo - The repository object containing the URL and reference.
+ * @returns A {@linkcode Promise | promise} that resolves to the old hash string of the repository reference.
+ *
+ * @remarks
+ * This function initializes a temporary Git repository,
+ * fetches the specified reference, retrieves the commit hash,
+ * and then cleans up the temporary directory.
+ *
+ * @example
+ *
+ * ```ts
+ * const repo = { url: 'https://github.com/user/repo.git', ref: 'main' };
+ * const oldHash = await getOldHash(repo);
+ * console.log(oldHash); // Outputs the commit hash of the 'main' branch
+ * ```
+ *
+ * @internal
+ * @since 3.0.0
+ */
+export const getOldHash = async (repo: Repo): Promise<string> => {
+  await fs.mkdir(cacheDirectoryPath, { recursive: true });
+
+  const temporaryDirectory = await fs.mkdtemp(
+    `${path.join(cacheDirectoryPath)}/`,
+    { encoding: 'utf-8' },
+  );
+
+  const ref = repo.ref.includes('#')
+    ? repo.ref.split('#').reverse().join(' ')
+    : repo.ref;
+
+  await exec('git init', { cwd: temporaryDirectory });
+
+  await exec(`git fetch --depth 1 ${repo.url} ${ref}`, {
+    cwd: temporaryDirectory,
+  });
+
+  const { stdout } = await exec('git rev-list FETCH_HEAD', {
+    cwd: temporaryDirectory,
+  });
+
+  await fs.rm(temporaryDirectory, { force: true, recursive: true });
+
+  return stdout.trim().split('\n')[0] ?? '';
+};
