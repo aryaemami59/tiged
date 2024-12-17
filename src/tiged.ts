@@ -290,10 +290,22 @@ export class Tiged extends EventEmitter {
 
     switch (this.mode) {
       case 'tar':
-        await this._cloneWithTar(
-          repositoryCacheDirectoryPath,
-          destinationDirectoryPath,
-        );
+        if (this.repo.site === 'huggingface') {
+          this._verbose({
+            code: 'HUGGING_FACE',
+            message: `Cannot clone Hugging Face using ${this.mode} mode. falling back to git mode`,
+          });
+
+          await this._cloneWithGit(
+            repositoryCacheDirectoryPath,
+            destinationDirectoryPath,
+          );
+        } else {
+          await this._cloneWithTar(
+            repositoryCacheDirectoryPath,
+            destinationDirectoryPath,
+          );
+        }
 
         break;
 

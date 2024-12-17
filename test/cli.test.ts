@@ -190,9 +190,9 @@ describe('Codeberg', () => {
   });
 });
 
-// TODO: This does not work if `tar` mode is explicitly set.
+// TODO: This falls back to `git` mode if `tar` mode is explicitly set.
 describe('Hugging Face', () => {
-  describe.each(validModes.slice(1))('with %s mode', mode => {
+  describe.each(validModes)('with %s mode', mode => {
     it.for([
       'huggingface:severo/degit-test-repo',
       'git@huggingface.co:severo/degit-test-repo',
@@ -392,18 +392,18 @@ describe('old hash', () => {
   });
 });
 
-describe('git mode', () => {
-  describe.each(validModes)('with %s mode', mode => {
-    it('is able to clone correctly using git mode', async ({ task }) => {
+describe('is able to clone correctly', () => {
+  describe.each(validModes)('using %s mode', mode => {
+    it.for([
+      'https://github.com/tiged/tiged-test.git',
+      'github:tiged/tiged-test.git',
+      'git@github.com:tiged/tiged-test.git',
+      'tiged/tiged-test',
+    ] as const)('%s', async (src, { expect, task }) => {
       const outputDirectory = getOutputDirectoryPath(`${task.name}${task.id}`);
 
       await expect(
-        runTigedCLI([
-          '--mode',
-          mode,
-          'https://github.com/tiged/tiged-test.git',
-          outputDirectory,
-        ]),
+        runTigedCLI(['--mode', mode, src, outputDirectory]),
       ).resolves.not.toThrow();
 
       await expect(outputDirectory).toMatchFiles({
