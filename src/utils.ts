@@ -219,22 +219,11 @@ export async function stashFiles(
 
   await fs.mkdir(destinationDirectoryPath, { recursive: true });
 
-  const filesToStash = await fs.readdir(stashSourceDirectoryPath, {
-    encoding: 'utf-8',
+  await fs.cp(stashSourceDirectoryPath, destinationDirectoryPath, {
+    recursive: true,
   });
 
-  for (const fileToStash of filesToStash) {
-    const fileToStashPath = path.join(stashSourceDirectoryPath, fileToStash);
-
-    const destinationFilePath = path.join(
-      destinationDirectoryPath,
-      fileToStash,
-    );
-
-    await fs.cp(fileToStashPath, destinationFilePath, { recursive: true });
-
-    await fs.rm(fileToStashPath, { force: true, recursive: true });
-  }
+  await fs.rm(stashSourceDirectoryPath, { force: true, recursive: true });
 }
 
 /**
@@ -255,20 +244,9 @@ export async function unStashFiles(
     stashDirectoryName,
   );
 
-  const stashedFileNames = await fs.readdir(stashDirectoryPath, {
-    encoding: 'utf-8',
+  await fs.cp(stashDirectoryPath, destinationDirectoryPath, {
+    recursive: true,
   });
-
-  for (const stashedFileName of stashedFileNames) {
-    const stashedFilePath = path.join(stashDirectoryPath, stashedFileName);
-
-    const destinationFilePath = path.join(
-      destinationDirectoryPath,
-      stashedFileName,
-    );
-
-    await fs.cp(stashedFilePath, destinationFilePath, { recursive: true });
-  }
 
   await fs.rm(stashDirectoryPath, { force: true, recursive: true });
 }

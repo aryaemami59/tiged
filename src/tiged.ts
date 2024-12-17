@@ -274,10 +274,13 @@ export class Tiged extends EventEmitter {
 
     const repositoryCacheDirectoryPath = path.join(
       cacheDirectoryPath,
+      this.mode,
       repo.site,
       repo.user,
       repo.name,
     );
+
+    await fs.mkdir(repositoryCacheDirectoryPath, { recursive: true });
 
     if (this.disableCache) {
       this._verbose({
@@ -375,7 +378,7 @@ export class Tiged extends EventEmitter {
       );
 
       if (await pathExists(fileToBeRemovedPath)) {
-        await fs.rm(fileToBeRemovedPath, { recursive: true, force: true });
+        await fs.rm(fileToBeRemovedPath, { force: true, recursive: true });
 
         removedFiles.push(fileToBeRemoved);
       } else {
@@ -509,15 +512,7 @@ export class Tiged extends EventEmitter {
       }
 
       if (!hash) {
-        const ref = repo.ref.includes('#')
-          ? repo.ref.split('#').reverse().join(' ')
-          : repo.ref;
-
-        const { stdout } = await exec(
-          `git fetch ${repo.url} ${ref} && git rev-list FETCH_HEAD`,
-        );
-
-        return stdout.trim().split('\n')[0] ?? '';
+        return await this.getOldHash(repo);
       }
 
       return hash;
@@ -594,6 +589,28 @@ export class Tiged extends EventEmitter {
     }
 
     return;
+  }
+
+  private async getOldHash(repo: Repo): Promise<string> {
+    await fs.mkdir(cacheDirectoryPath, { recursive: true });
+
+    const tempDir = await fs.mkdtemp(`${path.join(cacheDirectoryPath)}/`, {
+      encoding: 'utf-8',
+    });
+
+    const ref = repo.ref.includes('#')
+      ? repo.ref.split('#').reverse().join(' ')
+      : repo.ref;
+
+    await exec('git init', { cwd: tempDir });
+
+    await exec(`git fetch --depth 1 ${repo.url} ${ref}`, { cwd: tempDir });
+
+    const { stdout } = await exec('git rev-list FETCH_HEAD', { cwd: tempDir });
+
+    await fs.rm(tempDir, { force: true, recursive: true });
+
+    return stdout.trim().split('\n')[0] ?? '';
   }
 
   /**
@@ -709,7 +726,7 @@ export class Tiged extends EventEmitter {
   ): Promise<void> {
     const { repo } = this;
 
-    const gitPath = repo.url;
+    const { subDirectory, url } = repo;
 
     const ref = repo.ref.includes('#')
       ? repo.ref.split('#').reverse().join(' ')
@@ -720,11 +737,11 @@ export class Tiged extends EventEmitter {
     this._verbose({
       code: 'EXTRACTING',
       message: `extracting ${
-        repo.subDirectory ? `the ${repo.subDirectory} sub-directory from ` : ''
-      }${gitPath} to ${destinationDirectoryPath}.`,
+        subDirectory ? `the ${subDirectory} sub-directory from ` : ''
+      }${url} to ${destinationDirectoryPath}.`,
     });
 
-    const cloneRepoDestination = repo.subDirectory
+    const cloneRepoDestination = subDirectory
       ? path.join(destinationDirectoryPath, '.tiged')
       : destinationDirectoryPath;
 
@@ -732,14 +749,14 @@ export class Tiged extends EventEmitter {
 
     if (isWindows) {
       await exec(
-        `cd ${cloneRepoDestination} && git init && git remote add origin ${gitPath} && git fetch --depth 1 origin ${ref} && git checkout FETCH_HEAD`,
+        `cd ${cloneRepoDestination} && git init && git remote add origin ${url} && git fetch --depth 1 origin ${ref} && git checkout FETCH_HEAD`,
       );
     } else if (ref && ref !== 'HEAD' && !isWindows) {
       await exec(
-        `cd ${cloneRepoDestination}; git init; git remote add origin ${gitPath}; git fetch --depth 1 origin ${ref}; git checkout FETCH_HEAD`,
+        `cd ${cloneRepoDestination}; git init; git remote add origin ${url}; git fetch --depth 1 origin ${ref}; git checkout FETCH_HEAD`,
       );
     } else {
-      await exec(`git clone --depth 1 ${gitPath} ${cloneRepoDestination}`);
+      await exec(`git clone --depth 1 ${url} ${cloneRepoDestination}`);
     }
 
     await fs.rm(path.join(cloneRepoDestination, '.git'), {
@@ -747,11 +764,8 @@ export class Tiged extends EventEmitter {
       recursive: true,
     });
 
-    if (repo.subDirectory) {
-      const tempSubDirectory = path.join(
-        cloneRepoDestination,
-        repo.subDirectory,
-      );
+    if (subDirectory) {
+      const tempSubDirectory = path.join(cloneRepoDestination, subDirectory);
 
       if (!(await isDirectory(tempSubDirectory))) {
         throw new TigedError(
@@ -759,7 +773,7 @@ export class Tiged extends EventEmitter {
           {
             code: 'NO_FILES',
             ref: repo.ref,
-            url: repo.url,
+            url,
           },
         );
       }
@@ -790,7 +804,7 @@ export class Tiged extends EventEmitter {
       throw new TigedError(noFilesErrorMessage, {
         code: 'NO_FILES',
         ref: repo.ref,
-        url: repo.url,
+        url,
       });
     }
   }
