@@ -65,6 +65,8 @@ describe('GitLab', () => {
           subdir1: null,
           'subdir1/subdir2': null,
           'subdir1/subdir2/file.txt': "I'm a file.",
+          'subdir1/.gitkeep': '',
+          'subdir1/subdir2/.gitkeep': '',
         });
       });
 
@@ -87,6 +89,8 @@ describe('GitLab', () => {
           await expect(outputDirectory).toMatchFiles({
             subdir2: null,
             'subdir2/file.txt': "I'm a file.",
+            '.gitkeep': '',
+            'subdir2/.gitkeep': '',
           });
         });
       });
@@ -109,6 +113,7 @@ describe('GitLab', () => {
 
           await expect(outputDirectory).toMatchFiles({
             'file.txt': "I'm a file.",
+            '.gitkeep': '',
           });
         });
       });
@@ -220,7 +225,6 @@ describe('sub-directories', () => {
   });
 });
 
-// TODO: Come up with better error messages for git mode.
 describe('non-existent sub-directory', () => {
   describe.each(validModes)('with %s mode', mode => {
     it('throws error', async ({ task }) => {
@@ -231,7 +235,7 @@ describe('non-existent sub-directory', () => {
           mode,
         }),
       ).rejects.toThrow(
-        /No files to extract\. Make sure you typed in the subdirectory name correctly\./,
+        /No files to extract\. Make sure you typed in the sub-directory name correctly\./,
       );
     });
   });
