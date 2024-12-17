@@ -8,7 +8,7 @@ import * as path from 'node:path';
 import picocolors from 'picocolors';
 import type { Options } from 'tiged';
 import { createTiged } from 'tiged';
-import glob from 'tiny-glob/sync.js';
+import glob from 'tiny-glob';
 import { accessLogsFileName, cacheDirectoryPath } from './constants.js';
 import { pathExists, tryRequire } from './utils.js';
 
@@ -114,7 +114,7 @@ async function main(): Promise<void> {
 
     await fs.mkdir(cacheDirectoryPath, { recursive: true });
 
-    const accessJsonFiles = glob(`**/${accessLogsFileName}`, {
+    const accessJsonFiles = await glob(`**/${accessLogsFileName}`, {
       cwd: cacheDirectoryPath,
     });
 
@@ -148,7 +148,7 @@ async function main(): Promise<void> {
       }));
     };
 
-    const choices = glob(`**/map.json`, { cwd: cacheDirectoryPath })
+    const choices = (await glob(`**/map.json`, { cwd: cacheDirectoryPath }))
       .map(getChoice)
       .reduce(
         (accumulator, currentValue) => accumulator.concat(currentValue),
@@ -201,6 +201,7 @@ async function main(): Promise<void> {
 
       if (!force) {
         console.error(magenta(`! Directory not empty — aborting`));
+
         return;
       }
     }
