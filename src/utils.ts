@@ -76,7 +76,7 @@ export function tryRequire(
      */
     clearCache?: true | undefined;
   },
-): any {
+): unknown {
   const require = createRequire(import.meta.url);
 
   try {
@@ -86,7 +86,7 @@ export function tryRequire(
 
     return require(filePath);
   } catch (error) {
-    return null;
+    return;
   }
 }
 
@@ -174,7 +174,7 @@ export async function downloadTarball(
         const { statusCode } = response;
 
         if (statusCode >= 400) {
-          reject({ statusCode, message: response.statusMessage });
+          reject(new Error(response.statusMessage, { cause: statusCode }));
         } else if (statusCode >= 300) {
           if (response.headers.location == null) {
             return reject(new Error('No location header'));
@@ -498,7 +498,7 @@ export async function updateCache(
   );
 
   // update access logs
-  const accessLogs: Record<string, string> =
+  const accessLogs: Partial<Record<string, string>> =
     tryRequire(accessLogsFilePath) || {};
 
   accessLogs[repo.ref] = new Date().toISOString();

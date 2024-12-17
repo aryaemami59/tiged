@@ -177,9 +177,13 @@ export class Tiged extends EventEmitter {
         }
 
         const tigedOptions = {
-          disableCache: action.cache === false ? true : this.disableCache,
+          disableCache:
+            action.cache === false
+              ? true
+              : (this.disableCache ?? tigedDefaultOptions.disableCache),
           force: true,
-          verbose: action.verbose ?? tigedDefaultOptions.verbose,
+          verbose:
+            action.verbose ?? this.verbose ?? tigedDefaultOptions.verbose,
         };
 
         const tiged = createTiged(action.src, tigedOptions);
@@ -237,8 +241,10 @@ export class Tiged extends EventEmitter {
   private async _getDirectives(dest: string): Promise<false | TigedAction[]> {
     const directivesPath = path.join(dest, tigedConfigFileName);
 
-    const directives: TigedAction[] | false =
-      tryRequire(directivesPath, { clearCache: true }) || false;
+    const directives =
+      (tryRequire(directivesPath, { clearCache: true }) as
+        | TigedAction[]
+        | undefined) ?? false;
 
     if (directives) {
       await fs.unlink(directivesPath);
@@ -382,7 +388,7 @@ export class Tiged extends EventEmitter {
             message: `destination directory is not empty. Using options.force, continuing`,
           });
 
-          await fs.rm(dir, { recursive: true, force: true });
+          await fs.rm(dir, { force: true, recursive: true });
         } else {
           throw new TigedError(
             `destination directory is not empty, aborting. Use options.force to override`,
@@ -447,7 +453,7 @@ export class Tiged extends EventEmitter {
    */
   private async _getHash(
     repo: Repo,
-    cached: Record<string, string>,
+    cached: Partial<Record<string, string>>,
   ): Promise<string | undefined> {
     try {
       const refs = await fetchRefs(repo);
@@ -457,20 +463,21 @@ export class Tiged extends EventEmitter {
       }
 
       if (repo.ref === 'HEAD') {
-        return refs?.find(ref => ref.type === 'HEAD')?.hash ?? '';
+        return refs.find(ref => ref.type === 'HEAD')?.hash ?? '';
       }
 
       return this._selectRef(refs, repo.ref);
     } catch (error) {
-      if (
-        error instanceof TigedError &&
-        'code' in error &&
-        'message' in error
-      ) {
-        this._warn(error);
+      if (error instanceof Error) {
+        throw new TigedError(error.message, {
+          code: 'COULD_NOT_FETCH',
+          ref: repo.ref,
+          url: repo.url,
+          original: error,
+        });
       }
 
-      return;
+      throw error;
     }
   }
 
@@ -483,7 +490,7 @@ export class Tiged extends EventEmitter {
    */
   private async _getHashFromCache(
     repo: Repo,
-    cached: Record<string, string>,
+    cached: Partial<Record<string, string>>,
   ): Promise<string | undefined> {
     if (!(repo.ref in cached)) {
       return await this._getHash(repo, cached);
@@ -508,7 +515,7 @@ export class Tiged extends EventEmitter {
    * @returns The commit hash that matches the selector, or `undefined` if no match is found.
    */
   private _selectRef(
-    refs: { type: string; name?: string; hash: string }[],
+    refs: { type: string; name?: string | undefined; hash: string }[],
     selector: string,
   ): string | undefined {
     for (const ref of refs) {
@@ -553,7 +560,7 @@ export class Tiged extends EventEmitter {
 
     await fs.mkdir(destinationDirectoryPath, { recursive: true });
 
-    const cached: Record<string, string> =
+    const cached: Partial<Record<string, string>> =
       tryRequire(path.join(repositoryCacheDirectoryPath, 'map.json')) || {};
 
     const hash = this.disableCache
