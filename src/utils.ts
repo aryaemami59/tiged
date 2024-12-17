@@ -143,7 +143,7 @@ export async function extractTarball(
  * request through a proxy server.
  *
  * @param url - The URL of the resource to fetch.
- * @param dest - The destination path to save the fetched resource.
+ * @param tarballFilePath - The destination path to save the fetched resource.
  * @param proxy - Optional. The URL of the proxy server to use for the request.
  * @returns A {@linkcode Promise | promise} that resolves when the resource is successfully fetched and saved, or rejects with an error.
  *
@@ -151,7 +151,7 @@ export async function extractTarball(
  */
 export async function downloadTarball(
   url: string,
-  dest: string,
+  tarballFilePath: string,
   proxy?: string,
 ): Promise<void> {
   return new Promise<void>((fulfill, reject) => {
@@ -171,7 +171,9 @@ export async function downloadTarball(
     https
       .get(requestOptions, response => {
         if (response.statusCode == null) {
-          return reject(new Error('No status code'));
+          reject(new Error('No status code'));
+
+          return;
         }
 
         const { statusCode } = response;
@@ -180,17 +182,22 @@ export async function downloadTarball(
           reject(new Error(response.statusMessage, { cause: statusCode }));
         } else if (statusCode >= 300) {
           if (response.headers.location == null) {
-            return reject(new Error('No location header'));
+            reject(new Error('No location header'));
+
+            return;
           }
 
-          downloadTarball(response.headers.location, dest, proxy).then(
-            fulfill,
-            reject,
-          );
+          downloadTarball(
+            response.headers.location,
+            tarballFilePath,
+            proxy,
+          ).then(fulfill, reject);
         } else {
           response
-            .pipe(createWriteStream(dest))
-            .on('finish', () => fulfill())
+            .pipe(createWriteStream(tarballFilePath))
+            .on('finish', () => {
+              fulfill();
+            })
             .on('error', reject);
         }
       })
