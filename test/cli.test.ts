@@ -6,7 +6,7 @@ import {
   validModes,
 } from './test-utils.js';
 
-describe('github', () => {
+describe('GitHub', () => {
   describe.each(validModes)('with %s mode', mode => {
     it.for([
       'tiged/tiged-test-repo-compose',
@@ -30,7 +30,7 @@ describe('github', () => {
   });
 });
 
-describe('gitlab', () => {
+describe('GitLab', () => {
   describe.each(validModes)('with %s mode', mode => {
     it.for([
       'gitlab:nake89/tiged-test-repo',
@@ -74,7 +74,7 @@ describe('gitlab', () => {
         });
       });
 
-      describe('with subdir', () => {
+      describe('with sub-directory', () => {
         it('https://gitlab.com/group-test-repo/subgroup-test-repo/test-repo', async ({
           task,
         }) => {
@@ -101,7 +101,7 @@ describe('gitlab', () => {
         });
       });
 
-      describe('with nested subdir', () => {
+      describe('with nested sub-directory', () => {
         it('https://gitlab.com/group-test-repo/subgroup-test-repo/test-repo', async ({
           task,
         }) => {
@@ -130,7 +130,7 @@ describe('gitlab', () => {
   });
 });
 
-describe('bitbucket', { timeout: 10_000 }, () => {
+describe('BitBucket', { timeout: 10_000 }, () => {
   describe.each(validModes)('with %s mode', mode => {
     it.for([
       'bitbucket:nake89/tiged-test-repo',
@@ -150,7 +150,7 @@ describe('bitbucket', { timeout: 10_000 }, () => {
   });
 });
 
-describe('Sourcehut', () => {
+describe('SourceHut', () => {
   describe.each(validModes)('with %s mode', mode => {
     it.for([
       'git.sr.ht/~satotake/degit-test-repo',
@@ -213,7 +213,7 @@ describe('Hugging Face', () => {
   });
 });
 
-describe('Subdirectories', () => {
+describe('sub-directories', () => {
   describe.each(validModes)('with %s mode', mode => {
     it.for([
       'tiged/tiged-test-repo/subdir',
@@ -228,14 +228,14 @@ describe('Subdirectories', () => {
       ).resolves.not.toThrow();
 
       await expect(outputDirectory).toMatchFiles({
-        'file.txt': `hello from a subdirectory!`,
+        'file.txt': 'hello from a subdirectory!',
       });
     });
   });
 });
 
 // TODO: Come up with better error messages for git mode.
-describe('Non-existent subdirectory', () => {
+describe('non-existent sub-directory', () => {
   describe.each(validModes)('with %s mode', mode => {
     it('throws error', async ({ task }) => {
       const outputDirectory = getOutputDirectoryPath(`${task.name}${task.id}`);
@@ -280,7 +280,7 @@ describe('non-empty directories', () => {
 
     it('succeeds with --force', async () => {
       await expect(
-        runTigedCLI(['-fv', '--mode', mode, src, outputDirectory]),
+        runTigedCLI(['-f', '--mode', mode, src, outputDirectory]),
       ).resolves.not.toThrow();
     });
   });
@@ -346,44 +346,47 @@ describe('actions', () => {
   });
 });
 
-describe('git mode old hash', () => {
-  // TODO: Make sure this can also work in tar mode.
-  describe.each(validModes.slice(1))('with %s mode', mode => {
-    it('is able to clone correctly with old hash', async ({ task }) => {
+describe('old hash', () => {
+  describe.each(validModes)('with %s mode', mode => {
+    it.for([
+      'https://github.com/tiged/tiged-test#525e8fef2c6b5e261511adc55f410d83ca5d8256',
+      'https://github.com/tiged/tiged-test#HEAD#525e8fef2c6b5e261511adc55f410d83ca5d8256',
+      'tiged/tiged-test#525e8fef2c6b5e261511adc55f410d83ca5d8256',
+      'github:tiged/tiged-test#525e8fef2c6b5e261511adc55f410d83ca5d8256',
+      'git@github.com:tiged/tiged-test#525e8fef2c6b5e261511adc55f410d83ca5d8256',
+    ] as const)('%s', async (src, { expect, task }) => {
       const outputDirectory = getOutputDirectoryPath(`${task.name}${task.id}`);
 
       await expect(
-        runTigedCLI([
-          '--mode',
-          mode,
-          'https://github.com/tiged/tiged-test#525e8fef2c6b5e261511adc55f410d83ca5d8256',
-          outputDirectory,
-        ]),
+        runTigedCLI(['--mode', mode, src, outputDirectory]),
       ).resolves.not.toThrow();
 
       await expect(outputDirectory).toMatchFiles({
         subdir: null,
-        'README.md': `# tiged-test\nFor testing`,
+        'README.md': '# tiged-test\nFor testing',
         'subdir/file': 'Hello, champ!',
       });
     });
 
-    it('is able to clone subdir correctly using git mode with old hash', async ({
-      task,
-    }) => {
-      const outputDirectory = getOutputDirectoryPath(`${task.name}${task.id}`);
+    describe('is able to clone sub-directory', () => {
+      it.for([
+        'https://github.com/tiged/tiged-test.git/subdir#b09755bc4cca3d3b398fbe5e411daeae79869581',
+        'https://github.com/tiged/tiged-test.git/subdir#HEAD#b09755bc4cca3d3b398fbe5e411daeae79869581',
+        'tiged/tiged-test/subdir#b09755bc4cca3d3b398fbe5e411daeae79869581',
+        'github:tiged/tiged-test/subdir#b09755bc4cca3d3b398fbe5e411daeae79869581',
+        'git@github.com:tiged/tiged-test/subdir#b09755bc4cca3d3b398fbe5e411daeae79869581',
+      ] as const)('%s', async (src, { expect, task }) => {
+        const outputDirectory = getOutputDirectoryPath(
+          `${task.name}${task.id}`,
+        );
 
-      await expect(
-        runTigedCLI([
-          '--mode',
-          mode,
-          'https://github.com/tiged/tiged-test.git/subdir#b09755bc4cca3d3b398fbe5e411daeae79869581',
-          outputDirectory,
-        ]),
-      ).resolves.not.toThrow();
+        await expect(
+          runTigedCLI(['--mode', mode, src, outputDirectory]),
+        ).resolves.not.toThrow();
 
-      await expect(outputDirectory).toMatchFiles({
-        file: 'Hello, champ!',
+        await expect(outputDirectory).toMatchFiles({
+          file: 'Hello, champ!',
+        });
       });
     });
   });
@@ -405,7 +408,7 @@ describe('git mode', () => {
 
       await expect(outputDirectory).toMatchFiles({
         subdir: null,
-        'README.md': `tiged is awesome`,
+        'README.md': 'tiged is awesome',
         'subdir/file': 'Hello, buddy!',
       });
     });
