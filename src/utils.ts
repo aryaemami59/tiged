@@ -367,6 +367,7 @@ export function extractRepositoryInfo(src: string): Repo {
   if (!match) {
     throw new TigedError(`could not parse ${src}`, {
       code: 'BAD_SRC',
+      url: src,
     });
   }
 
