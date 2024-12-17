@@ -8,7 +8,7 @@ import * as path from 'node:path';
 import picocolors from 'picocolors';
 import type { Options } from 'tiged';
 import { createTiged } from 'tiged';
-import glob from 'tiny-glob';
+import { glob } from 'tinyglobby';
 import { accessLogsFileName, cacheDirectoryPath } from './constants.js';
 import { pathExists, tryRequire } from './utils.js';
 

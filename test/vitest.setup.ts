@@ -1,6 +1,6 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
-import glob from 'tiny-glob';
+import { glob } from 'tinyglobby';
 import { isDirectory } from '../src/utils.js';
 
 expect.extend({
@@ -26,8 +26,14 @@ expect.extend({
     }
 
     const receivedFileNames = (
-      await glob('**', { cwd: receivedDirectoryPath, dot: true })
-    ).sort();
+      await glob(['**'], {
+        cwd: receivedDirectoryPath,
+        dot: true,
+        onlyFiles: false,
+      })
+    )
+      .map(receivedFileName => path.join(receivedFileName.replace(/\/$/, '')))
+      .sort();
 
     const expectedFiles = Object.fromEntries(
       Object.entries(expected)
