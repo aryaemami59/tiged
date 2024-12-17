@@ -1,7 +1,7 @@
-import { bold, cyan, magenta, red } from 'ansis';
 import { EventEmitter } from 'node:events';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
+import picocolors from 'picocolors';
 import {
   cacheDirectoryPath,
   tigedConfigFileName,
@@ -30,6 +30,8 @@ import {
   tryRequire,
   unStashFiles,
 } from './utils.js';
+
+const { bold, cyan, magenta, red } = picocolors;
 
 /**
  * The {@linkcode Tiged} class is an {@linkcode EventEmitter}
