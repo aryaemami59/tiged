@@ -113,7 +113,7 @@ export class Tiged extends EventEmitter {
   /**
    * Flags whether stash operations have been performed to avoid duplication.
    */
-  private _hasStashed = false;
+  private hasStashed = false;
 
   /**
    * Constructs a new {@linkcode Tiged} instance
@@ -132,7 +132,7 @@ export class Tiged extends EventEmitter {
       ...tigedDefaultOptions,
       ...tigedOptions,
       repo: extractRepositoryInfo(src),
-      proxy: this._getHttpsProxy(),
+      proxy: this.getHttpsProxy(),
     };
 
     Object.assign(this, resolvedTigedOptions);
@@ -163,13 +163,13 @@ export class Tiged extends EventEmitter {
         destinationDirectoryPath,
         action,
       ) => {
-        if (this._hasStashed === false) {
+        if (this.hasStashed === false) {
           await stashFiles(
             repositoryCacheDirectoryPath,
             destinationDirectoryPath,
           );
 
-          this._hasStashed = true;
+          this.hasStashed = true;
         }
 
         const tigedOptions = {
@@ -218,7 +218,7 @@ export class Tiged extends EventEmitter {
    *
    * @returns The HTTPS proxy value, or `undefined` if not found.
    */
-  private _getHttpsProxy(): string | undefined {
+  private getHttpsProxy(): string | undefined {
     const result = process.env.https_proxy;
 
     if (!result) {
@@ -234,7 +234,7 @@ export class Tiged extends EventEmitter {
    * @param destinationDirectoryPath - The destination path.
    * @returns An array of {@linkcode TigedAction} directives, or `false` if no directives are found.
    */
-  private async _getDirectives(
+  private async getDirectives(
     destinationDirectoryPath: string,
   ): Promise<false | TigedAction[]> {
     const directivesPath = path.join(
@@ -266,7 +266,7 @@ export class Tiged extends EventEmitter {
 
     const destinationDirectoryPath = path.resolve(destinationDirectoryName);
 
-    await this._checkDirIsEmpty(destinationDirectoryPath);
+    await this.checkDirIsEmpty(destinationDirectoryPath);
 
     const { repo } = this;
 
@@ -281,7 +281,7 @@ export class Tiged extends EventEmitter {
     await fs.mkdir(repositoryCacheDirectoryPath, { recursive: true });
 
     if (this.disableCache) {
-      this._verbose({
+      this.logVerbose({
         code: 'NO_CACHE',
         message: `Not using cache. disableCache is set to true.`,
         dest: destinationDirectoryPath,
@@ -292,17 +292,17 @@ export class Tiged extends EventEmitter {
     switch (this.mode) {
       case 'tar':
         if (this.repo.site === 'huggingface') {
-          this._verbose({
+          this.logVerbose({
             code: 'HUGGING_FACE',
             message: `Cannot clone Hugging Face using ${this.mode} mode. falling back to git mode`,
           });
 
-          await this._cloneWithGit(
+          await this.cloneWithGit(
             repositoryCacheDirectoryPath,
             destinationDirectoryPath,
           );
         } else {
-          await this._cloneWithTar(
+          await this.cloneWithTar(
             repositoryCacheDirectoryPath,
             destinationDirectoryPath,
           );
@@ -311,7 +311,7 @@ export class Tiged extends EventEmitter {
         break;
 
       case 'git':
-        await this._cloneWithGit(
+        await this.cloneWithGit(
           repositoryCacheDirectoryPath,
           destinationDirectoryPath,
         );
@@ -322,14 +322,14 @@ export class Tiged extends EventEmitter {
         throw new Error(`Valid modes are ${Array.from(validModes).join(', ')}`);
     }
 
-    this._info({
+    this.info({
       code: 'SUCCESS',
       message: `cloned ${bold(`${repo.user}/${repo.name}`)}#${bold(repo.ref)} to ${destinationDirectoryPath}`,
       repo,
       dest: destinationDirectoryPath,
     });
 
-    const directives = await this._getDirectives(destinationDirectoryPath);
+    const directives = await this.getDirectives(destinationDirectoryPath);
 
     if (directives) {
       for (const directive of directives) {
@@ -341,7 +341,7 @@ export class Tiged extends EventEmitter {
         );
       }
 
-      if (this._hasStashed === true) {
+      if (this.hasStashed === true) {
         await unStashFiles(
           repositoryCacheDirectoryPath,
           destinationDirectoryPath,
@@ -380,7 +380,7 @@ export class Tiged extends EventEmitter {
 
         removedFiles.push(fileToBeRemoved);
       } else {
-        this._warn(
+        this.warn(
           new TigedError(
             `action wants to remove ${bold(fileToBeRemoved)} but it does not exist`,
             { code: 'FILE_DOES_NOT_EXIST' },
@@ -390,7 +390,7 @@ export class Tiged extends EventEmitter {
     }
 
     if (removedFiles.length > 0) {
-      this._info({
+      this.info({
         code: 'REMOVED',
         message: `removed: ${bold(removedFiles.map(removedFile => bold(removedFile)).join(', '))}`,
       });
@@ -402,7 +402,7 @@ export class Tiged extends EventEmitter {
    *
    * @param directoryPath - The directory path to check.
    */
-  private async _checkDirIsEmpty(directoryPath: string): Promise<void> {
+  private async checkDirIsEmpty(directoryPath: string): Promise<void> {
     try {
       const files = await fs.readdir(directoryPath, {
         encoding: 'utf-8',
@@ -410,7 +410,7 @@ export class Tiged extends EventEmitter {
 
       if (files.length > 0) {
         if (this.force) {
-          this._info({
+          this.info({
             code: 'DEST_NOT_EMPTY',
             message: `destination directory is not empty. Using options.force, continuing`,
           });
@@ -428,7 +428,7 @@ export class Tiged extends EventEmitter {
           );
         }
       } else {
-        this._verbose({
+        this.logVerbose({
           code: 'DEST_IS_EMPTY',
           message: `destination directory is empty`,
         });
@@ -445,7 +445,7 @@ export class Tiged extends EventEmitter {
    *
    * @param info - The information to be emitted.
    */
-  private _info(info: Info): void {
+  private info(info: Info): void {
     this.emit('info', info);
   }
 
@@ -454,7 +454,7 @@ export class Tiged extends EventEmitter {
    *
    * @param tigedError - The information to be emitted.
    */
-  private _warn(tigedError: TigedError): void {
+  private warn(tigedError: TigedError): void {
     this.emit('warn', tigedError);
 
     if (this.verbose && tigedError.original) {
@@ -468,9 +468,9 @@ export class Tiged extends EventEmitter {
    *
    * @param info - The information to be logged.
    */
-  private _verbose(info: Info): void {
+  private logVerbose(info: Info): void {
     if (this.verbose) {
-      this._info(info);
+      this.info(info);
     }
   }
 
@@ -481,7 +481,7 @@ export class Tiged extends EventEmitter {
    * @param cached - The cached records.
    * @returns The hash value.
    */
-  private async _getHash(
+  private async getHash(
     repo: Repo,
     cached: Partial<Record<string, string>>,
   ): Promise<string | undefined> {
@@ -498,7 +498,7 @@ export class Tiged extends EventEmitter {
         return hash;
       }
 
-      const hash = this._selectRef(refs, repo.ref);
+      const hash = this.selectRef(refs, repo.ref);
 
       if (!hash) {
         return await this.getOldHash(repo);
@@ -526,17 +526,17 @@ export class Tiged extends EventEmitter {
    * @param cached - The cached commit hashes.
    * @returns The commit hash if found in the cache; otherwise, `undefined`.
    */
-  private async _getHashFromCache(
+  private async getHashFromCache(
     repo: Repo,
     cached: Partial<Record<string, string>>,
   ): Promise<string | undefined> {
     if (!(repo.ref in cached)) {
-      return await this._getHash(repo, cached);
+      return await this.getHash(repo, cached);
     }
 
     const hash = cached[repo.ref];
 
-    this._info({
+    this.info({
       code: 'USING_CACHE',
       message: `using cached commit hash ${hash}`,
     });
@@ -552,13 +552,13 @@ export class Tiged extends EventEmitter {
    * @param selector - The selector used to match the desired reference.
    * @returns The commit hash that matches the selector, or `undefined` if no match is found.
    */
-  private _selectRef(
+  private selectRef(
     refs: { type: string; name?: string | undefined; hash: string }[],
     selector: string,
   ): string | undefined {
     for (const ref of refs) {
       if (ref.name === selector) {
-        this._verbose({
+        this.logVerbose({
           code: 'FOUND_MATCH',
           message: `found matching commit hash: ${ref.hash}`,
         });
@@ -612,7 +612,7 @@ export class Tiged extends EventEmitter {
    * @throws A {@linkcode TigedError} If the tarball cannot be downloaded.
    * @returns A {@linkcode Promise | promise} that resolves when the cloning and extraction process is complete.
    */
-  private async _cloneWithTar(
+  private async cloneWithTar(
     repositoryCacheDirectoryPath: string,
     destinationDirectoryPath: string,
   ): Promise<void> {
@@ -624,8 +624,8 @@ export class Tiged extends EventEmitter {
       tryRequire(path.join(repositoryCacheDirectoryPath, 'map.json')) || {};
 
     const hash = this.disableCache
-      ? await this._getHash(repo, cached)
-      : await this._getHashFromCache(repo, cached);
+      ? await this.getHash(repo, cached)
+      : await this.getHashFromCache(repo, cached);
 
     const subDirectory = repo.subDirectory
       ? `${repo.name}-${hash}${repo.subDirectory}`
@@ -655,13 +655,13 @@ export class Tiged extends EventEmitter {
           : `${repo.url}/archive/${tarballFileName}`;
 
     if (this.proxy) {
-      this._verbose({
+      this.logVerbose({
         code: 'PROXY',
         message: `using proxy ${this.proxy}`,
       });
     }
 
-    this._verbose({
+    this.logVerbose({
       code: 'DOWNLOADING',
       message: `downloading ${url} to ${tarballFilePath}`,
     });
@@ -677,7 +677,7 @@ export class Tiged extends EventEmitter {
       });
     }
 
-    this._verbose({
+    this.logVerbose({
       code: 'EXTRACTING',
       message: `extracting ${
         subDirectory ? `the ${repo.subDirectory} sub-directory from ` : ''
@@ -709,7 +709,7 @@ export class Tiged extends EventEmitter {
    * @param _repositoryCacheDirectoryPath - The source directory.
    * @param destinationDirectoryPath - The destination directory.
    */
-  private async _cloneWithGit(
+  private async cloneWithGit(
     _repositoryCacheDirectoryPath: string,
     destinationDirectoryPath: string,
   ): Promise<void> {
@@ -723,7 +723,7 @@ export class Tiged extends EventEmitter {
 
     const isWindows = process.platform === 'win32';
 
-    this._verbose({
+    this.logVerbose({
       code: 'EXTRACTING',
       message: `extracting ${
         subDirectory ? `the ${subDirectory} sub-directory from ` : ''
