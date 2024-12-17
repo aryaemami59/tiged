@@ -114,18 +114,18 @@ async function main(): Promise<void> {
     });
 
     await Promise.all(
-      accessJsonFiles.map(async file => {
+      accessJsonFiles.map(file => {
         const [host, user, repo] = file.split(path.sep);
 
-        const json = await fs.readFile(path.join(cacheDirectoryPath, file), {
-          encoding: 'utf-8',
-        });
-
-        const logs: Record<string, string> = JSON.parse(json);
+        const logs: Partial<Record<string, string>> =
+          tryRequire(path.join(cacheDirectoryPath, file)) || {};
 
         Object.entries(logs).forEach(([ref, timestamp]) => {
           const id = `${host}:${user}/${repo}#${ref}`;
-          accessLookup.set(id, new Date(timestamp).getTime());
+          accessLookup.set(
+            id,
+            timestamp ? new Date(timestamp).getTime() : new Date().getTime(),
+          );
         });
       }),
     );
@@ -133,9 +133,8 @@ async function main(): Promise<void> {
     const getChoice = (file: string) => {
       const [host, user, repo] = file.split(path.sep);
 
-      const cacheLogs: Record<string, string> = tryRequire(
-        path.join(cacheDirectoryPath, file),
-      );
+      const cacheLogs: Partial<Record<string, string>> =
+        tryRequire(path.join(cacheDirectoryPath, file)) || {};
 
       return Object.entries(cacheLogs).map(([ref, hash]) => ({
         name: hash,
