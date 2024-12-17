@@ -107,12 +107,15 @@ export const exec = promisify(child_process.exec);
 /**
  * Extracts the contents of a tar file to a specified destination.
  *
+ * #### Note: This function was previously known as **`untar`**.
+ *
  * @param tarballFilePath - The path to the tar file.
  * @param destinationDirectoryPath - The destination directory where the contents will be extracted.
  * @param subDirectory - Optional subdirectory within the tar file to extract.
  * @returns A list of extracted files.
  *
  * @internal
+ * @since 3.0.0
  */
 export async function extractTarball(
   tarballFilePath: string,
@@ -363,11 +366,14 @@ const isHostNameSupported = (
  * Parses the source URL and returns a {@linkcode Repo} object
  * containing the parsed information.
  *
+ * #### Note: This function was previously known as **`parse`**.
+ *
  * @param src - The source URL to parse.
  * @returns A {@linkcode Repo} object containing the parsed information.
  * @throws A {@linkcode TigedError} If the source URL cannot be parsed.
  *
  * @internal
+ * @since 3.0.0
  */
 export function extractRepositoryInfo(src: string): Repo {
   const match =
