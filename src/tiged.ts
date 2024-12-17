@@ -24,6 +24,7 @@ import {
   extractRepositoryInfo,
   extractTarball,
   fetchRefs,
+  getOldHash,
   isDirectory,
   pathExists,
   stashFiles,
@@ -486,7 +487,7 @@ export class Tiged extends EventEmitter {
       const hash = this.selectRef(refs, repo.ref);
 
       if (!hash) {
-        return await this.getOldHash(repo);
+        return await getOldHash(repo);
       }
 
       return hash;
@@ -563,28 +564,6 @@ export class Tiged extends EventEmitter {
     }
 
     return;
-  }
-
-  private async getOldHash(repo: Repo): Promise<string> {
-    await fs.mkdir(cacheDirectoryPath, { recursive: true });
-
-    const tempDir = await fs.mkdtemp(`${path.join(cacheDirectoryPath)}/`, {
-      encoding: 'utf-8',
-    });
-
-    const ref = repo.ref.includes('#')
-      ? repo.ref.split('#').reverse().join(' ')
-      : repo.ref;
-
-    await exec('git init', { cwd: tempDir });
-
-    await exec(`git fetch --depth 1 ${repo.url} ${ref}`, { cwd: tempDir });
-
-    const { stdout } = await exec('git rev-list FETCH_HEAD', { cwd: tempDir });
-
-    await fs.rm(tempDir, { force: true, recursive: true });
-
-    return stdout.trim().split('\n')[0] ?? '';
   }
 
   /**
