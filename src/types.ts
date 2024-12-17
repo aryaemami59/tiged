@@ -166,7 +166,8 @@ export type InfoCode =
   | 'PROXY'
   | 'DOWNLOADING'
   | 'NO_CACHE'
-  | 'EXTRACTING';
+  | 'EXTRACTING'
+  | 'HUGGING_FACE';
 
 /**
  * Represents information about a specific entity.
