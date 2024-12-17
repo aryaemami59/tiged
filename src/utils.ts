@@ -7,9 +7,11 @@ import { createRequire } from 'node:module';
 import * as path from 'node:path';
 import { promisify } from 'node:util';
 import { extract } from 'tar';
+import type { SupportedHostNames } from './constants.js';
 import {
   accessLogsFileName,
   stashDirectoryName,
+  supportedHostNames,
   supportedHosts,
 } from './constants.js';
 import type { Repo, TigedErrorOptions } from './types.js';
@@ -355,6 +357,20 @@ export const ensureGitExists = async (): Promise<void> => {
 };
 
 /**
+ * Checks if the given host name is supported.
+ *
+ * @param hostName - The host name to check.
+ * @returns A boolean indicating whether the host name is supported.
+ *
+ * @internal
+ * @since 3.0.0
+ */
+const isHostNameSupported = (
+  hostName: string,
+): hostName is SupportedHostNames =>
+  supportedHostNames.includes(hostName as never);
+
+/**
  * Parses the source URL and returns a {@linkcode Repo} object
  * containing the parsed information.
  *
@@ -376,7 +392,7 @@ export function extractRepositoryInfo(src: string): Repo {
     });
   }
 
-  const site = match[1] ?? match[2] ?? match[3] ?? 'github.com';
+  const site = match[1] ?? match[2] ?? match[3] ?? 'github';
   const topLevelDomainMatch = /\.([a-z]{2,})$/.exec(site);
   const topLevelDomain = topLevelDomainMatch ? topLevelDomainMatch[0] : null;
   const siteName = topLevelDomain
@@ -388,8 +404,21 @@ export function extractRepositoryInfo(src: string): Repo {
   const subDirectory = match[6] ?? '';
   const ref = match[7] ?? 'HEAD';
 
+  if (!isHostNameSupported(siteName)) {
+    throw new TigedError(
+      `tiged supports the following: ${Object.values(supportedHosts)
+        .map(({ name }) => name)
+        .join(', ')}.`,
+      {
+        code: 'UNSUPPORTED_HOST',
+        ref,
+        url: src,
+      },
+    );
+  }
+
   const domain = `${siteName}${
-    topLevelDomain ?? supportedHosts[siteName] ?? supportedHosts[site] ?? ''
+    topLevelDomain ?? supportedHosts[siteName].topLevelDomain
   }`;
 
   const url = `https://${domain}/${user}/${name}`;
@@ -398,7 +427,7 @@ export function extractRepositoryInfo(src: string): Repo {
   const mode =
     siteName === 'huggingface'
       ? 'git'
-      : supportedHosts[siteName] || supportedHosts[site]
+      : supportedHosts[siteName].topLevelDomain
         ? 'tar'
         : 'git';
 

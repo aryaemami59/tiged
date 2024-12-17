@@ -68,7 +68,7 @@ export type Options = {
   subgroup?: boolean;
 
   /**
-   * Specifies the sub-directory for the operation (Gitlab only).
+   * Specifies the sub-directory for the operation (GitLab only).
    *
    * **CLI-Equivalent**: **`-d`**, **`--sub-directory`**, **`--subDirectory`**
    *
@@ -85,38 +85,42 @@ export type Options = {
  */
 export type Repo = {
   /**
-   * The hosting service or site for the repository.
+   * The hosting service or site for the repository (e.g., github, gitlab).
+   *
+   * @default 'github'
    */
   site: string;
 
   /**
-   * The username or organization under which the repository is located.
+   * The username or organization under which the repository is located (e.g., tiged, nake89).
    */
   user: string;
 
   /**
-   * The name of the repository.
+   * The name of the repository (e.g., tiged-test-repo, degit-test-repo).
    */
   name: string;
 
   /**
-   * The reference to a specific branch, commit, or tag in the repository.
+   * The reference to a specific branch, commit, or tag in the repository (e.g., HEAD, b09755bc4cca3d3b398fbe5e411daeae79869581).
+   *
+   * @default 'HEAD'
    */
   ref: string;
 
   /**
-   * The URL to access the repository via HTTP or HTTPS.
+   * The URL to access the repository via HTTP or HTTPS (e.g., https://github.com/tiged/tiged-test, https://github.com/tiged/tiged-test-repo).
    */
   url: string;
 
   /**
-   * The SSH URL to access the repository for Git operations.
+   * The SSH URL to access the repository for Git operations (e.g., git@github.com:tiged/tiged-test, git@github.com:tiged/tiged-test-repo).
    */
   ssh: string;
 
   /**
    * Optional. A specific subdirectory within the repository to work with,
-   * if applicable.
+   * if applicable (e.g., /subdir, /test-repo).
    */
   subDirectory: string;
 
@@ -132,7 +136,7 @@ export type Repo = {
   mode: ValidModes;
 
   /**
-   * The source URL or path for cloning the repository.
+   * The source URL or path for cloning the repository (e.g., https://github.com/tiged/tiged-test.git, https://github.com/tiged/tiged-test.git/subdir#b09755bc4cca3d3b398fbe5e411daeae79869581).
    */
   src: string;
 
