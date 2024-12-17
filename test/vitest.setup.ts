@@ -10,7 +10,13 @@ expect.extend({
   ) {
     const { isNot, equals } = this;
 
-    if (!(await isDirectory(received))) {
+    const receivedDirectoryPath = path.join(
+      import.meta.dirname,
+      '..',
+      received,
+    );
+
+    if (!(await isDirectory(receivedDirectoryPath))) {
       return {
         pass: false,
         actual: received,
@@ -20,11 +26,15 @@ expect.extend({
     }
 
     const receivedFileNames = (
-      await glob('**', { cwd: path.join(received) })
+      await glob('**', { cwd: receivedDirectoryPath, dot: true })
     ).sort();
+
     const expectedFiles = Object.fromEntries(
       Object.entries(expected)
-        .map(([fileName, value]) => [path.join(fileName), value] as const)
+        .map(
+          ([fileName, fileContent]) =>
+            [path.join(fileName), fileContent] as const,
+        )
         .sort(),
     );
 
@@ -42,20 +52,25 @@ expect.extend({
 
     const receivedFiles = Object.fromEntries(
       await Promise.all(
-        receivedFileNames.map(async file => {
-          const filePath = path.resolve(received, file);
-          if (await isDirectory(filePath)) {
-            return [file, null] as const;
+        receivedFileNames.map(async receivedFileName => {
+          const receivedFilePath = path.join(
+            receivedDirectoryPath,
+            receivedFileName,
+          );
+
+          if (await isDirectory(receivedFilePath)) {
+            return [receivedFileName, null] as const;
           }
+
           return [
-            file.trim(),
+            receivedFileName,
             (
-              await fs.readFile(filePath, {
+              await fs.readFile(receivedFilePath, {
                 encoding: 'utf-8',
               })
             )
               .trim()
-              .replace('\r\n', '\n'),
+              .replace('\r', ''),
           ] as const;
         }),
       ),

@@ -663,8 +663,8 @@ export class Tiged extends EventEmitter {
     this._verbose({
       code: 'EXTRACTING',
       message: `extracting ${
-        subDirectory ? `${repo.subDirectory} from ` : ''
-      }${tarballFilePath} to ${destinationDirectoryPath}`,
+        subDirectory ? `the ${repo.subDirectory} sub-directory from ` : ''
+      }${tarballFilePath} to ${destinationDirectoryPath}.`,
     });
 
     const extractedFiles = await extractTarball(
@@ -674,7 +674,7 @@ export class Tiged extends EventEmitter {
     );
 
     if (extractedFiles.length === 0) {
-      const noFilesErrorMessage = `No files to extract. ${subDirectory ? 'Make sure you typed in the subdirectory name correctly' : 'The tar file seems to be empty'}.`;
+      const noFilesErrorMessage = `No files to extract. ${subDirectory ? 'Make sure you typed in the sub-directory name correctly' : 'The tar file seems to be empty'}.`;
 
       throw new TigedError(noFilesErrorMessage, {
         code: 'NO_FILES',
@@ -697,45 +697,54 @@ export class Tiged extends EventEmitter {
     destinationDirectoryPath: string,
   ): Promise<void> {
     const { repo } = this;
+
     const gitPath = repo.url;
-    // let gitPath = /https:\/\//.test(repo.src)
-    // 	? repo.url
-    // 	: repo.ssh;
-    // gitPath = repo.site === 'huggingface' ? repo.url : gitPath;
 
     const ref = repo.ref.includes('#')
       ? repo.ref.split('#').reverse().join(' ')
       : repo.ref;
 
-    const isWin = process.platform === 'win32';
+    const isWindows = process.platform === 'win32';
+
+    this._verbose({
+      code: 'EXTRACTING',
+      message: `extracting ${
+        repo.subDirectory ? `the ${repo.subDirectory} sub-directory from ` : ''
+      }${gitPath} to ${destinationDirectoryPath}.`,
+    });
+
+    const cloneRepoDestination = repo.subDirectory
+      ? path.join(destinationDirectoryPath, '.tiged')
+      : destinationDirectoryPath;
+
+    await fs.mkdir(cloneRepoDestination, { recursive: true });
+
+    if (isWindows) {
+      await exec(
+        `cd ${cloneRepoDestination} && git init && git remote add origin ${gitPath} && git fetch --depth 1 origin ${ref} && git checkout FETCH_HEAD`,
+      );
+    } else if (ref && ref !== 'HEAD' && !isWindows) {
+      await exec(
+        `cd ${cloneRepoDestination}; git init; git remote add origin ${gitPath}; git fetch --depth 1 origin ${ref}; git checkout FETCH_HEAD`,
+      );
+    } else {
+      await exec(`git clone --depth 1 ${gitPath} ${cloneRepoDestination}`);
+    }
+
+    await fs.rm(path.join(cloneRepoDestination, '.git'), {
+      force: true,
+      recursive: true,
+    });
 
     if (repo.subDirectory) {
-      this._verbose({
-        code: 'EXTRACTING',
-        message: `extracting the ${repo.subDirectory} subdirectory from ${gitPath} repo to ${destinationDirectoryPath} directory`,
-      });
-
-      const tempDir = path.join(destinationDirectoryPath, '.tiged');
-
-      await fs.mkdir(tempDir, { recursive: true });
-
-      if (isWin) {
-        await exec(
-          `cd ${tempDir} && git init && git remote add origin ${gitPath} && git fetch --depth 1 origin ${ref} && git checkout FETCH_HEAD`,
-        );
-      } else if (ref && ref !== 'HEAD' && !isWin) {
-        await exec(
-          `cd ${tempDir}; git init; git remote add origin ${gitPath}; git fetch --depth 1 origin ${ref}; git checkout FETCH_HEAD`,
-        );
-      } else {
-        await exec(`git clone --depth 1 ${gitPath} ${tempDir}`);
-      }
-
-      const tempSubDirectory = path.join(tempDir, repo.subDirectory);
+      const tempSubDirectory = path.join(
+        cloneRepoDestination,
+        repo.subDirectory,
+      );
 
       if (!(await isDirectory(tempSubDirectory))) {
         throw new TigedError(
-          'No files to extract. Make sure you typed in the subdirectory name correctly.',
+          'No files to extract. Make sure you typed in the sub-directory name correctly.',
           {
             code: 'NO_FILES',
             ref: repo.ref,
@@ -757,44 +766,20 @@ export class Tiged extends EventEmitter {
         ),
       );
 
-      await fs.rm(tempDir, { force: true, recursive: true });
-    } else {
-      if (isWin) {
-        await fs.mkdir(destinationDirectoryPath, { recursive: true });
+      await fs.rm(cloneRepoDestination, { force: true, recursive: true });
+    }
 
-        await exec(
-          `cd ${destinationDirectoryPath} && git init && git remote add origin ${gitPath} && git fetch --depth 1 origin ${ref} && git checkout FETCH_HEAD`,
-        );
-      } else if (ref && ref !== 'HEAD' && !isWin) {
-        await fs.mkdir(destinationDirectoryPath, { recursive: true });
+    const extractedFiles = await fs.readdir(destinationDirectoryPath, {
+      encoding: 'utf-8',
+    });
 
-        await exec(
-          `cd ${destinationDirectoryPath}; git init; git remote add origin ${gitPath}; git fetch --depth 1 origin ${ref}; git checkout FETCH_HEAD`,
-        );
-      } else {
-        await exec(
-          `git clone --depth 1 ${gitPath} ${destinationDirectoryPath}`,
-        );
-      }
+    if (extractedFiles.length === 0) {
+      const noFilesErrorMessage = `No files to extract. ${repo.subDirectory ? 'Make sure you typed in the sub-directory name correctly' : 'The tar file seems to be empty'}.`;
 
-      const extractedFiles = await fs.readdir(destinationDirectoryPath, {
-        encoding: 'utf-8',
-      });
-
-      if (extractedFiles.length === 0) {
-        throw new TigedError(
-          'No files to extract. The git repo seems to be empty',
-          {
-            code: 'NO_FILES',
-            ref: repo.ref,
-            url: repo.url,
-          },
-        );
-      }
-
-      await fs.rm(path.join(destinationDirectoryPath, '.git'), {
-        force: true,
-        recursive: true,
+      throw new TigedError(noFilesErrorMessage, {
+        code: 'NO_FILES',
+        ref: repo.ref,
+        url: repo.url,
       });
     }
   }
