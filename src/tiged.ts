@@ -34,7 +34,7 @@ import {
 const { cyan, magenta, red, bold } = picocolors;
 
 /**
- * The {@linkcode Tiged} class is an event emitter
+ * The {@linkcode Tiged} class is an {@linkcode EventEmitter}
  * that represents the Tiged tool.
  * It is designed for cloning repositories with specific options,
  * handling caching, proxy settings, and more.
@@ -68,12 +68,12 @@ export class Tiged extends EventEmitter {
 
   /**
    * Indicates if the repository is a subgroup,
-   * affecting repository parsing (Gitlab only).
+   * affecting repository parsing (GitLab only).
    */
   declare public subgroup?: boolean;
 
   /**
-   * Specifies a subdirectory within the repository to focus on (Gitlab only).
+   * Specifies a subdirectory within the repository to focus on (GitLab only).
    */
   declare public subDirectory?: string;
 
@@ -159,10 +159,6 @@ export class Tiged extends EventEmitter {
       }
     }
 
-    if (!validModes.has(this.mode)) {
-      throw new Error(`Valid modes are ${Array.from(validModes).join(', ')}`);
-    }
-
     this.directiveActions = {
       clone: async (
         repositoryCacheDirectoryPath,
@@ -237,11 +233,16 @@ export class Tiged extends EventEmitter {
   /**
    * Retrieves the directives from the specified destination.
    *
-   * @param dest - The destination path.
+   * @param destinationDirectoryPath - The destination path.
    * @returns An array of {@linkcode TigedAction} directives, or `false` if no directives are found.
    */
-  private async _getDirectives(dest: string): Promise<false | TigedAction[]> {
-    const directivesPath = path.join(dest, tigedConfigFileName);
+  private async _getDirectives(
+    destinationDirectoryPath: string,
+  ): Promise<false | TigedAction[]> {
+    const directivesPath = path.join(
+      destinationDirectoryPath,
+      tigedConfigFileName,
+    );
 
     const directives =
       (tryRequire(directivesPath, { clearCache: true }) as
@@ -287,16 +288,25 @@ export class Tiged extends EventEmitter {
       });
     }
 
-    if (this.mode === 'tar') {
-      await this._cloneWithTar(
-        repositoryCacheDirectoryPath,
-        destinationDirectoryPath,
-      );
-    } else {
-      await this._cloneWithGit(
-        repositoryCacheDirectoryPath,
-        destinationDirectoryPath,
-      );
+    switch (this.mode) {
+      case 'tar':
+        await this._cloneWithTar(
+          repositoryCacheDirectoryPath,
+          destinationDirectoryPath,
+        );
+
+        break;
+
+      case 'git':
+        await this._cloneWithGit(
+          repositoryCacheDirectoryPath,
+          destinationDirectoryPath,
+        );
+
+        break;
+
+      default:
+        throw new Error(`Valid modes are ${Array.from(validModes).join(', ')}`);
     }
 
     this._info({
@@ -377,11 +387,13 @@ export class Tiged extends EventEmitter {
   /**
    * Checks if a directory is empty.
    *
-   * @param dir - The directory path to check.
+   * @param directoryPath - The directory path to check.
    */
-  private async _checkDirIsEmpty(dir: string): Promise<void> {
+  private async _checkDirIsEmpty(directoryPath: string): Promise<void> {
     try {
-      const files = await fs.readdir(dir, { encoding: 'utf-8' });
+      const files = await fs.readdir(directoryPath, {
+        encoding: 'utf-8',
+      });
 
       if (files.length > 0) {
         if (this.force) {
@@ -390,7 +402,10 @@ export class Tiged extends EventEmitter {
             message: `destination directory is not empty. Using options.force, continuing`,
           });
 
-          await fs.rm(dir, { force: true, recursive: true });
+          await fs.rm(directoryPath, {
+            force: true,
+            recursive: true,
+          });
         } else {
           throw new TigedError(
             `destination directory is not empty, aborting. Use options.force to override`,
@@ -413,7 +428,7 @@ export class Tiged extends EventEmitter {
   }
 
   /**
-   * Emits an `'info'` event with the provided information.
+   * Emits an {@linkcode Info | info} event with the provided information.
    *
    * @param info - The information to be emitted.
    */
@@ -465,12 +480,15 @@ export class Tiged extends EventEmitter {
       }
 
       if (repo.ref === 'HEAD') {
-        return refs.find(ref => ref.type === 'HEAD')?.hash ?? '';
+        const hash = refs.find(ref => ref.type === 'HEAD')?.hash ?? '';
+
+        return hash;
       }
 
-      const selectedRef = this._selectRef(refs, repo.ref);
-      if (selectedRef) {
-        return selectedRef;
+      const hash = this._selectRef(refs, repo.ref);
+
+      if (hash) {
+        return hash;
       }
 
       const isCommitHash = /^[0-9a-f]{40}$/.test(repo.ref);
@@ -478,7 +496,19 @@ export class Tiged extends EventEmitter {
         return repo.ref;
       }
 
-      return;
+      if (!hash) {
+        const ref = repo.ref.includes('#')
+          ? repo.ref.split('#').reverse().join(' ')
+          : repo.ref;
+
+        const { stdout } = await exec(
+          `git fetch ${repo.url} ${ref} && git rev-list FETCH_HEAD`,
+        );
+
+        return stdout.trim().split('\n')[0] ?? '';
+      }
+
+      return hash;
     } catch (error) {
       if (error instanceof Error) {
         throw new TigedError(error.message, {
@@ -671,6 +701,11 @@ export class Tiged extends EventEmitter {
     // 	? repo.url
     // 	: repo.ssh;
     // gitPath = repo.site === 'huggingface' ? repo.url : gitPath;
+
+    const ref = repo.ref.includes('#')
+      ? repo.ref.split('#').reverse().join(' ')
+      : repo.ref;
+
     const isWin = process.platform === 'win32';
 
     if (repo.subDirectory) {
@@ -685,11 +720,11 @@ export class Tiged extends EventEmitter {
 
       if (isWin) {
         await exec(
-          `cd ${tempDir} && git init && git remote add origin ${gitPath} && git fetch --depth 1 origin ${repo.ref} && git checkout FETCH_HEAD`,
+          `cd ${tempDir} && git init && git remote add origin ${gitPath} && git fetch --depth 1 origin ${ref} && git checkout FETCH_HEAD`,
         );
-      } else if (repo.ref && repo.ref !== 'HEAD' && !isWin) {
+      } else if (ref && ref !== 'HEAD' && !isWin) {
         await exec(
-          `cd ${tempDir}; git init; git remote add origin ${gitPath}; git fetch --depth 1 origin ${repo.ref}; git checkout FETCH_HEAD`,
+          `cd ${tempDir}; git init; git remote add origin ${gitPath}; git fetch --depth 1 origin ${ref}; git checkout FETCH_HEAD`,
         );
       } else {
         await exec(`git clone --depth 1 ${gitPath} ${tempDir}`);
@@ -721,19 +756,19 @@ export class Tiged extends EventEmitter {
         ),
       );
 
-      await fs.rm(tempDir, { recursive: true, force: true });
+      await fs.rm(tempDir, { force: true, recursive: true });
     } else {
       if (isWin) {
         await fs.mkdir(destinationDirectoryPath, { recursive: true });
 
         await exec(
-          `cd ${destinationDirectoryPath} && git init && git remote add origin ${gitPath} && git fetch --depth 1 origin ${repo.ref} && git checkout FETCH_HEAD`,
+          `cd ${destinationDirectoryPath} && git init && git remote add origin ${gitPath} && git fetch --depth 1 origin ${ref} && git checkout FETCH_HEAD`,
         );
-      } else if (repo.ref && repo.ref !== 'HEAD' && !isWin) {
+      } else if (ref && ref !== 'HEAD' && !isWin) {
         await fs.mkdir(destinationDirectoryPath, { recursive: true });
 
         await exec(
-          `cd ${destinationDirectoryPath}; git init; git remote add origin ${gitPath}; git fetch --depth 1 origin ${repo.ref}; git checkout FETCH_HEAD`,
+          `cd ${destinationDirectoryPath}; git init; git remote add origin ${gitPath}; git fetch --depth 1 origin ${ref}; git checkout FETCH_HEAD`,
         );
       } else {
         await exec(

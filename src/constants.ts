@@ -95,11 +95,22 @@ export const tigedDefaultOptions = {
  * @internal
  * @since 3.0.0
  */
-export const supportedHosts: Record<string, string> = {
-  github: '.com',
-  gitlab: '.com',
-  bitbucket: '.com',
-  'git.sr.ht': '.ht',
-  huggingface: '.co',
-  codeberg: '.org',
-} as const satisfies Record<string, string>;
+export const supportedHosts = {
+  github: { topLevelDomain: '.com', name: 'GitHub' },
+  gitlab: { topLevelDomain: '.com', name: 'GitLab' },
+  bitbucket: { topLevelDomain: '.com', name: 'BitBucket' },
+  'git.sr': { topLevelDomain: '.ht', name: 'SourceHut' },
+  huggingface: { topLevelDomain: '.co', name: 'Hugging Face' },
+  codeberg: { topLevelDomain: '.org', name: 'Codeberg' },
+} as const;
+
+export const supportedHostNames = [
+  'github',
+  'gitlab',
+  'bitbucket',
+  'git.sr',
+  'huggingface',
+  'codeberg',
+] as const satisfies readonly (keyof typeof supportedHosts)[];
+
+export type SupportedHostNames = (typeof supportedHostNames)[number];
