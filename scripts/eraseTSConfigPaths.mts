@@ -22,4 +22,4 @@ const eraseTSConfigPaths = async (): Promise<void> => {
   });
 };
 
-eraseTSConfigPaths();
+void eraseTSConfigPaths();
