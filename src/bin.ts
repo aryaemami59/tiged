@@ -107,6 +107,8 @@ async function main(): Promise<void> {
 
     const accessLookup = /* @__PURE__ */ new Map<string, number>();
 
+    await fs.mkdir(cacheDirectoryPath, { recursive: true });
+
     const accessJsonFiles = glob(`**/${accessLogsFileName}`, {
       cwd: cacheDirectoryPath,
     });
