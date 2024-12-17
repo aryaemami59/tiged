@@ -55,6 +55,7 @@ export class TigedError extends Error implements Error, TigedErrorOptions {
    */
   public constructor(message: string, tigedErrorOptions: TigedErrorOptions) {
     super(message);
+
     Object.assign(this, tigedErrorOptions);
   }
 }
@@ -271,6 +272,7 @@ export async function unStashFiles(
 export const pathExists = async (filePath: string): Promise<boolean> => {
   try {
     await fs.access(filePath);
+
     return true;
   } catch (error) {
     return false;
@@ -297,6 +299,7 @@ export const pathExists = async (filePath: string): Promise<boolean> => {
 export const isDirectory = async (filePath: string): Promise<boolean> => {
   try {
     const stats = await fs.lstat(filePath);
+
     return stats.isDirectory();
   } catch (error) {
     return false;
@@ -527,12 +530,14 @@ export async function updateCache(
     for (const key in cached) {
       if (cached[key] === hash) {
         used = true;
+
         break;
       }
     }
 
     if (!used) {
       // we no longer need this tar file
+
       try {
         await fs.unlink(
           path.join(repositoryCacheDirectoryPath, `${oldHash}.tar.gz`),

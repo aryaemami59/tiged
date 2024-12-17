@@ -134,7 +134,6 @@ export class Tiged extends EventEmitter {
       ...tigedDefaultOptions,
       ...tigedOptions,
       repo: extractRepositoryInfo(src),
-      proxy: this.getHttpsProxy(),
     };
 
     Object.assign(this, resolvedTigedOptions);
@@ -209,25 +208,6 @@ export class Tiged extends EventEmitter {
 
       remove: this.remove.bind(this),
     };
-  }
-
-  // Return the HTTPS proxy address. Try to get the value by environment
-  // variable `https_proxy` or `HTTPS_PROXY`.
-  //
-  // TODO allow setting via --proxy. We also need to test this.
-  /**
-   * Retrieves the HTTPS proxy from the environment variables.
-   *
-   * @returns The HTTPS proxy value, or `undefined` if not found.
-   */
-  private getHttpsProxy(): string | undefined {
-    const result = process.env.https_proxy;
-
-    if (!result) {
-      return process.env.HTTPS_PROXY;
-    }
-
-    return result;
   }
 
   /**

@@ -75,6 +75,15 @@ export type Options = {
    * @default undefined
    */
   subDirectory?: string | undefined;
+
+  /**
+   * Specifies the proxy to use for the operation.
+   *
+   * **CLI-Equivalent**: **`-p`**, **`--proxy`**
+   *
+   * @default process.env.https_proxy || process.env.HTTPS_PROXY
+   */
+  proxy?: string | undefined;
 };
 
 /**

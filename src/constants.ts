@@ -86,6 +86,7 @@ export const tigedDefaultOptions = {
   subDirectory: undefined,
   subgroup: false,
   verbose: false,
+  proxy: process.env.https_proxy || process.env.HTTPS_PROXY,
 } as const satisfies Options;
 
 /**
