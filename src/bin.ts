@@ -20,6 +20,7 @@ const CLIArguments = mri<Options & { help?: string }>(process.argv.slice(2), {
     m: 'mode',
     s: 'subgroup',
     d: ['sub-directory', 'subDirectory'],
+    p: ['proxy'],
     h: 'help',
   },
 
@@ -30,7 +31,11 @@ const CLIArguments = mri<Options & { help?: string }>(process.argv.slice(2), {
     'subgroup',
   ] as const satisfies (keyof Options)[],
 
-  string: ['mode', 'subDirectory'] as const satisfies (keyof Options)[],
+  string: [
+    'mode',
+    'subDirectory',
+    'proxy',
+  ] as const satisfies (keyof Options)[],
 });
 
 const [src, dest] = CLIArguments._;
