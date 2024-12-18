@@ -11,7 +11,6 @@ import type { SupportedHostNames } from './constants.js';
 import {
   accessLogsFileName,
   cacheDirectoryPath,
-  stashDirectoryName,
   supportedHostNames,
   supportedHosts,
 } from './constants.js';
@@ -222,16 +221,7 @@ export async function stashFiles(
   repositoryCacheDirectoryPath: string,
   stashSourceDirectoryPath: string,
 ): Promise<void> {
-  const destinationDirectoryPath = path.join(
-    repositoryCacheDirectoryPath,
-    stashDirectoryName,
-  );
-
-  await fs.rm(destinationDirectoryPath, { force: true, recursive: true });
-
-  await fs.mkdir(destinationDirectoryPath, { recursive: true });
-
-  await fs.cp(stashSourceDirectoryPath, destinationDirectoryPath, {
+  await fs.cp(stashSourceDirectoryPath, repositoryCacheDirectoryPath, {
     recursive: true,
   });
 
@@ -242,25 +232,20 @@ export async function stashFiles(
  * Un-stashes files from a temporary directory to a destination directory.
  *
  * @param repositoryCacheDirectoryPath - The directory where the temporary directory is located.
- * @param destinationDirectoryPath - The destination directory where the files will be un-stashed.
+ * @param unStashDestinationDirectoryPath - The destination directory where the files will be un-stashed.
  * @returns A {@linkcode Promise | promise} that resolves when the un-stashing process is complete.
  *
  * @internal
  */
 export async function unStashFiles(
   repositoryCacheDirectoryPath: string,
-  destinationDirectoryPath: string,
+  unStashDestinationDirectoryPath: string,
 ): Promise<void> {
-  const stashDirectoryPath = path.join(
-    repositoryCacheDirectoryPath,
-    stashDirectoryName,
-  );
-
-  await fs.cp(stashDirectoryPath, destinationDirectoryPath, {
+  await fs.cp(repositoryCacheDirectoryPath, unStashDestinationDirectoryPath, {
     recursive: true,
   });
 
-  await fs.rm(stashDirectoryPath, { force: true, recursive: true });
+  await fs.rm(repositoryCacheDirectoryPath, { force: true, recursive: true });
 }
 
 /**
