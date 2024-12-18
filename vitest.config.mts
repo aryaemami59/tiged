@@ -20,10 +20,10 @@ const vitestConfig = defineConfig({
       truncateThreshold: 1000,
     },
 
-    testTimeout: 10_000,
+    testTimeout: process.env.CI ? 20_000 : 10_000,
 
     sequence: {
-      concurrent: true,
+      concurrent: process.env.CI ? false : true,
     },
 
     reporters: process.env.GITHUB_ACTIONS
