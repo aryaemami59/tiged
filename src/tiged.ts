@@ -261,7 +261,6 @@ export class Tiged extends EventEmitter {
 
     const repositoryCacheDirectoryPath = path.join(
       cacheDirectoryPath,
-      this.mode,
       repo.site,
       repo.user,
       repo.name,
