@@ -90,6 +90,8 @@ export class Tiged extends EventEmitter {
    */
   declare public mode: ValidModes;
 
+  declare public tempDirectoryPath: string;
+
   /**
    * Defines actions for directives such as
    * cloning and removing files or directories.
@@ -161,15 +163,12 @@ export class Tiged extends EventEmitter {
 
     this.directiveActions = {
       clone: async (
-        repositoryCacheDirectoryPath,
+        _repositoryCacheDirectoryPath,
         destinationDirectoryPath,
         action,
       ) => {
         if (!this.hasStashed) {
-          await stashFiles(
-            repositoryCacheDirectoryPath,
-            destinationDirectoryPath,
-          );
+          await stashFiles(this.tempDirectoryPath, destinationDirectoryPath);
 
           this.hasStashed = true;
         }
@@ -219,7 +218,7 @@ export class Tiged extends EventEmitter {
    */
   private async getDirectives(
     destinationDirectoryPath: string,
-  ): Promise<false | TigedAction[]> {
+  ): Promise<false | (TigedAction | RemoveAction)[]> {
     const directivesPath = path.join(
       destinationDirectoryPath,
       tigedConfigFileName,
@@ -227,10 +226,17 @@ export class Tiged extends EventEmitter {
 
     const directives =
       (tryRequire(directivesPath, { clearCache: true }) as
-        | TigedAction[]
+        | (TigedAction | RemoveAction)[]
         | undefined) ?? false;
 
     if (directives) {
+      const tempDirectoryPath = await fs.mkdtemp(
+        `${path.join(cacheDirectoryPath)}/`,
+        { encoding: 'utf-8' },
+      );
+
+      this.tempDirectoryPath = tempDirectoryPath;
+
       await fs.unlink(directivesPath);
     }
 
@@ -314,23 +320,24 @@ export class Tiged extends EventEmitter {
 
     const directives = await this.getDirectives(destinationDirectoryPath);
 
-    if (directives) {
-      for (const directive of directives) {
-        // TODO, can this be a loop with an index to pass for better error messages?
-        await this.directiveActions[directive.action](
-          repositoryCacheDirectoryPath,
-          destinationDirectoryPath,
-          directive,
-        );
-      }
-
-      if (this.hasStashed) {
-        await unStashFiles(
-          repositoryCacheDirectoryPath,
-          destinationDirectoryPath,
-        );
-      }
+    if (!directives) {
+      return;
     }
+
+    for (const directive of directives) {
+      // TODO, can this be a loop with an index to pass for better error messages?
+      await this.directiveActions[directive.action](
+        repositoryCacheDirectoryPath,
+        destinationDirectoryPath,
+        directive as never,
+      );
+    }
+
+    if (this.hasStashed) {
+      await unStashFiles(this.tempDirectoryPath, destinationDirectoryPath);
+    }
+
+    await fs.rm(this.tempDirectoryPath, { force: true, recursive: true });
   }
 
   /**

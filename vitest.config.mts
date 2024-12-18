@@ -15,7 +15,16 @@ const vitestConfig = defineConfig({
     name: packageJson.name,
     root: import.meta.dirname,
     dir: 'test',
-    fileParallelism: false,
+
+    chaiConfig: {
+      truncateThreshold: 1000,
+    },
+
+    testTimeout: 10_000,
+
+    sequence: {
+      concurrent: true,
+    },
 
     reporters: process.env.GITHUB_ACTIONS
       ? [['github-actions'], ['verbose']]
