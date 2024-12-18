@@ -222,6 +222,27 @@ describe('sub-directories', () => {
         'file.txt': 'hello from a subdirectory!',
       });
     });
+
+    describe('using options.subDirectory', () => {
+      it.for([
+        'tiged/tiged-test-repo',
+        'github:tiged/tiged-test-repo',
+        'git@github.com:tiged/tiged-test-repo',
+        'https://github.com/tiged/tiged-test-repo.git',
+      ])('%s', async (src, { expect, task }) => {
+        const outputDirectory = getOutputDirectoryPath(
+          `${task.name}${task.id}`,
+        );
+
+        await expect(
+          runTigedAPI(src, outputDirectory, { mode, subDirectory: 'subdir' }),
+        ).resolves.not.toThrow();
+
+        await expect(outputDirectory).toMatchFiles({
+          'file.txt': 'hello from a subdirectory!',
+        });
+      });
+    });
   });
 });
 

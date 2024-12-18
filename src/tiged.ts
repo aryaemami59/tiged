@@ -353,6 +353,10 @@ export class Tiged extends EventEmitter {
       } else {
         this.repo.subDirectory = '';
       }
+    } else if (this.subDirectory) {
+      this.repo.subDirectory = this.subDirectory.startsWith('/')
+        ? this.subDirectory
+        : `/${this.subDirectory}`;
     }
 
     this.directiveActions = {
