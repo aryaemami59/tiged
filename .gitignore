@@ -5,3 +5,4 @@ dist
 *.tgz
 tsconfig.vitest-temp.json
 .vscode
+coverage
