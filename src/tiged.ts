@@ -35,74 +35,235 @@ import {
 const { bold, cyan, magenta, red } = picocolors;
 
 /**
- * The {@linkcode Tiged} class is an {@linkcode EventEmitter}
- * that represents the Tiged tool.
- * It is designed for cloning repositories with specific options,
- * handling caching, proxy settings, and more.
+ * The {@linkcode Tiged} class is a tool for cloning repositories
+ * with customizable options.
+ *
+ * It supports features like {@linkcode disableCache | caching control},
+ * {@linkcode proxy | proxy configuration},
+ * {@linkcode subgroup} and
+ * {@linkcode subDirectory | sub-directory} handling,
+ * and automated repository manipulation using
+ * **`degit.json`** actions. As an extension of {@linkcode EventEmitter},
+ * it emits **`info`** and **`warn`** events for logging and debugging.
+ *
+ * @example
+ *
+ * ```ts
+ * import { Tiged } from 'tiged';
+ *
+ * const tiged = new Tiged('user/repo', { verbose: true });
+ *
+ * await tiged.clone('/destination');
+ * ```
  *
  * @extends EventEmitter
  *
  * @public
+ * @since 3.0.0
  */
 export class Tiged extends EventEmitter {
   /**
    * Disables the use of cache for operations,
    * ensuring data is always fetched anew.
+   *
+   * **CLI-Equivalent**: `-D`, `--disable-cache`, `--disableCache`
+   *
+   * @default false
    */
   declare public disableCache?: boolean;
 
   /**
-   * Forces the operation to proceed, despite non-empty destination directory
+   * Forces the operation to proceed, even if the
+   * destination directory is non-empty,
    * potentially overwriting existing files.
+   *
+   * This option enables the {@linkcode clone | cloning}
+   * operation to bypass safety checks that would otherwise prevent
+   * overwriting files in the destination directory, ensuring the operation
+   * continues without manual intervention.
+   *
+   * **CLI-Equivalent**: `-f`, `--force`
+   *
+   * @default false
    */
   declare public force?: boolean;
 
   /**
    * Enables verbose output for more detailed logging information.
+   *
+   * **CLI-Equivalent**: `-v`, `--verbose`
+   *
+   * @default false
    */
   declare public verbose?: boolean;
 
   /**
    * Specifies the proxy server to be used for network requests.
+   *
+   * This option allows routing network traffic through a
+   * specified proxy server, which can be useful in environments
+   * with restricted internet access or for debugging purposes.
+   *
+   * **CLI-Equivalent**: `-p`, `--proxy`
+   *
+   * @default process.env.https_proxy || process.env.HTTPS_PROXY
    */
   declare public proxy?: string;
 
   /**
-   * Indicates if the repository is a subgroup,
-   * affecting repository parsing (GitLab only).
+   * Specifies whether to retrieve a repository that includes
+   * a subgroup (specific to **GitLab**).
+   *
+   * **CLI-Equivalent**: `-s`, `--subgroup`
+   *
+   * @default false
    */
   declare public subgroup?: boolean;
 
   /**
-   * Specifies a subdirectory within the repository to focus on (GitLab only).
+   * Specifies a sub-directory within the repository to clone and extract.
+   *
+   * If this property is set, the cloning process will focus only on the
+   * specified sub-directory of the repository rather than the
+   * entire repository. The contents of the specified sub-directory
+   * will be extracted to the target destination directory.
+   * This can be useful for working with monorepos or
+   * repositories where only a portion of the content is needed.
+   *
+   * If not specified, the entire repository will be cloned.
+   *
+   * **CLI-Equivalent**: `-d`, `--sub-directory`, `--subDirectory`
+   *
+   * @default undefined
    */
   declare public subDirectory?: string;
 
   /**
    * Holds the parsed repository information.
+   *
+   * This property contains details about the repository,
+   * such as its {@linkcode Repo.url | URL}, {@linkcode Repo.name | name},
+   * branch or tag {@linkcode Repo.ref | reference},
+   * and other metadata. It is derived from the {@linkcode src}
+   * parameter provided during the instance initialization.
    */
   declare public repo: Repo;
 
   /**
-   * Indicates the mode of operation,
+   * Specifies the mode of operation,
    * which determines how the repository is cloned.
-   * Valid modes are `'tar'` and `'git'`.
+   *
+   * Possible values are:
+   *
+   * - **`'tar'`**: Downloads the repository as a tarball.
+   * - **`'git'`**: Clones the repository using Git.
+   *
+   * **CLI-Equivalent**: `-m`, `--mode`, `--mode=git`
+   *
+   * @default 'tar'
    */
   declare public mode: ValidModes;
 
+  /**
+   * The file path to the temporary directory.
+   *
+   * This directory is utilized for storing temporary files during operations
+   * such as {@linkcode stashFiles | stashing} and
+   * {@linkcode unStashFiles | un-stashing} while working with directives.
+   * It serves as a workspace for intermediate data and ensures
+   * that the main working directory remains unaffected.
+   */
   declare public tempDirectoryPath: string;
 
   /**
-   * Defines actions for directives such as
-   * cloning and removing files or directories.
+   * Defines actions for processing directives,
+   * such as {@linkcode Tiged.clone | cloning}
+   * and {@linkcode Tiged.remove | removing}
+   * files or directories.
+   *
+   * Actions allow manipulation of repositories after they have
+   * been cloned, as specified in the **`degit.json`** file
+   * located at the top level of the working directory.
+   * These actions enable automated repository customization,
+   * such as extracting specific files or removing unwanted content.
+   *
+   * Currently, two actions are supported:
+   *
+   * - **{@linkcode Tiged.clone | clone}**: Copies repository files from a cache directory to a target destination.
+   * - **{@linkcode Tiged.remove | remove}**: Removes specified files or directories from the target destination.
    */
-  declare public directiveActions: {
+  declare public readonly directiveActions: {
+    /**
+     * Executes the `clone` action to clone another
+     * repository into the working directory.
+     *
+     * The `clone` action, as defined in the **`degit.json`** file,
+     * allows you to clone an additional repository into the current
+     * working directory without overwriting its existing contents.
+     * This is particularly useful for injecting starter files,
+     * additional configuration, or documentation (e.g., a new `README.md`)
+     * into a repository that you do not control.
+     *
+     * The cloned repository may itself contain a **`degit.json`**
+     * file with further actions, enabling nested customization workflows.
+     *
+     * @param repositoryCacheDirectoryPath - The absolute path to the cache directory where the cloned repository is temporarily stored.
+     * @param destinationDirectoryPath - The absolute path to the working directory where the cloned repository's contents will be added.
+     * @param action - An object defining the parameters for the `clone` action, including the `src` field, which specifies the source repository to clone (e.g., `"user/another-repo"`).
+     * @returns A {@linkcode Promise | promise} that resolves when the cloning process is complete or rejects with an error if the cloning operation fails.
+     *
+     * @example
+     * <caption>#### Usage in **`degit.json`**</caption>
+     *
+     * ```json
+     * [
+     *   {
+     *     "action": "clone",
+     *     "src": "user/another-repo"
+     *   }
+     * ]
+     * ```
+     */
     clone: (
       repositoryCacheDirectoryPath: string,
       destinationDirectoryPath: string,
       action: TigedAction,
     ) => Promise<void>;
 
+    /**
+     * Executes the `remove` action to delete specified files or
+     * directories from the working directory.
+     *
+     * The `remove` action, as defined in the **`degit.json`** file,
+     * allows you to remove specific files or directories from
+     * the working directory after cloning a repository. This is useful
+     * for cleaning up unnecessary files, such as licenses, example files,
+     * or other content that should not be included in the final output.
+     *
+     * @param repositoryCacheDirectoryPath - The absolute path to the cache directory where the repository is temporarily stored.
+     * @param destinationDirectoryPath - The absolute path to the working directory where the files or directories will be removed.
+     * @param action - An object defining the parameters for the `remove` action, including the `files` field specifying an array of file or directory paths to remove.
+     * @returns A {@linkcode Promise | promise} that resolves when the specified files or directories have been successfully removed or rejects with an error if the removal operation fails.
+     *
+     * @example
+     * <caption>#### Usage in **`degit.json`**</caption>
+     *
+     * ```json
+     * [
+     *   {
+     *     "action": "remove",
+     *     "files": ["LICENSE", "examples/"]
+     *   }
+     * ]
+     * ```
+     *
+     * @remarks
+     *
+     * The {@linkcode RemoveAction.files | files} field specifies an
+     * array of paths to files or directories
+     * to be removed. These paths are relative to the
+     * {@linkcode destinationDirectoryPath}.
+     */
     remove: (
       repositoryCacheDirectoryPath: string,
       destinationDirectoryPath: string,
@@ -110,22 +271,55 @@ export class Tiged extends EventEmitter {
     ) => Promise<void>;
   };
 
+  /**
+   * Registers an event listener for specific events,
+   * such as **`info`** or **`warn`**.
+   *
+   * @param event - The event type to listen for. Can be either **`info`** or **`warn`**.
+   * @param callback - A function that will be executed when the specified event is triggered, receiving an **`info`** object as its argument.
+   * @returns The current instance to allow method chaining.
+   *
+   * @example
+   *
+   * ```ts
+   * tiged.on('info', (info) => {
+   *   console.log('Info event triggered:', info);
+   * });
+   * ```
+   */
   declare public on: (
     event: 'info' | 'warn',
     callback: (info: Info) => void,
   ) => this;
 
   /**
-   * Flags whether stash operations have been performed to avoid duplication.
+   * Flags whether {@linkcode stashFiles | stash} operations
+   * have been performed to avoid duplication.
+   *
+   * @remarks
+   * This property is used internally to track if a
+   * {@linkcode stashFiles | stash} operation has already been executed,
+   * preventing repeated or redundant stash actions
+   * within the same workflow.
    */
   private hasStashed = false;
 
   /**
-   * Constructs a new {@linkcode Tiged} instance
-   * with the specified source and options.
+   * Constructs a new {@linkcode Tiged} instance with the
+   * specified source and options.
    *
    * @param src - A string representing the repository source. This must be a URL, path, or other descriptor that can be parsed to extract repository information.
-   * @param tigedOptions - Optional configuration for Tiged, overriding default options.
+   * @param tigedOptions - Optional configuration for {@linkcode Tiged}, allowing customization of default behaviors such as {@linkcode disableCache | caching}, {@linkcode verbose | verbosity}, and repository extraction options.
+   *
+   * @example
+   *
+   * ```ts
+   * import { Tiged } from 'tiged';
+   *
+   * const tiged = new Tiged('user/repo', { verbose: true });
+   *
+   * await tiged.clone('/destination');
+   * ```
    */
   public constructor(
     public src: string,

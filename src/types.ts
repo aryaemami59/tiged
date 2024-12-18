@@ -28,7 +28,9 @@ export type Options = {
   force?: boolean;
 
   /**
-   * Specifies the mode for the operation.
+   * Specifies the mode of operation,
+   * which determines how the repository is cloned.
+   *
    * Possible values are:
    *
    * - **`'tar'`**: Downloads the repository as a tarball.
@@ -41,7 +43,7 @@ export type Options = {
   mode?: ValidModes;
 
   /**
-   * Whether to output extra information during the operation.
+   * Enables verbose output for more detailed logging information.
    *
    * **CLI-Equivalent**: `-v`, `--verbose`
    *
@@ -50,7 +52,8 @@ export type Options = {
   verbose?: boolean;
 
   /**
-   * Specifies whether to disable caching.
+   * Disables the use of cache for operations,
+   * ensuring data is always fetched anew.
    *
    * **CLI-Equivalent**: `-D`, `--disable-cache`, `--disableCache`
    *
@@ -59,7 +62,8 @@ export type Options = {
   disableCache?: boolean;
 
   /**
-   * Specifies whether to use subgrouping.
+   * Specifies whether to get a repository
+   * that has a subgroup (**GitLab** only).
    *
    * **CLI-Equivalent**: `-s`, `--subgroup`
    *
@@ -68,7 +72,16 @@ export type Options = {
   subgroup?: boolean;
 
   /**
-   * Specifies the sub-directory for the operation (GitLab only).
+   * Specifies a sub-directory within the repository to clone and extract.
+   *
+   * If this property is set, the cloning process will focus only on the
+   * specified sub-directory of the repository rather than the
+   * entire repository. The contents of the specified sub-directory
+   * will be extracted to the target destination directory.
+   * This can be useful for working with monorepos or
+   * repositories where only a portion of the content is needed.
+   *
+   * If not specified, the entire repository will be cloned.
    *
    * **CLI-Equivalent**: `-d`, `--sub-directory`, `--subDirectory`
    *
@@ -77,7 +90,7 @@ export type Options = {
   subDirectory?: string | undefined;
 
   /**
-   * Specifies the proxy to use for the operation.
+   * Specifies the proxy server to be used for network requests.
    *
    * **CLI-Equivalent**: `-p`, `--proxy`
    *
