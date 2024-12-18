@@ -211,17 +211,17 @@ export async function downloadTarball(
 /**
  * Stashes files from a directory to a temporary directory.
  *
- * @param repositoryCacheDirectoryPath - The source directory containing the files to be stashed.
+ * @param stashDestinationDirectoryPath - The source directory containing the files to be stashed.
  * @param stashSourceDirectoryPath - The destination directory where the stashed files will be stored.
  * @returns A {@linkcode Promise | promise} that resolves when the stashing process is complete.
  *
  * @internal
  */
 export async function stashFiles(
-  repositoryCacheDirectoryPath: string,
+  stashDestinationDirectoryPath: string,
   stashSourceDirectoryPath: string,
 ): Promise<void> {
-  await fs.cp(stashSourceDirectoryPath, repositoryCacheDirectoryPath, {
+  await fs.cp(stashSourceDirectoryPath, stashDestinationDirectoryPath, {
     recursive: true,
   });
 
@@ -231,21 +231,21 @@ export async function stashFiles(
 /**
  * Un-stashes files from a temporary directory to a destination directory.
  *
- * @param repositoryCacheDirectoryPath - The directory where the temporary directory is located.
+ * @param unStashSourceDirectoryPath - The directory where the temporary directory is located.
  * @param unStashDestinationDirectoryPath - The destination directory where the files will be un-stashed.
  * @returns A {@linkcode Promise | promise} that resolves when the un-stashing process is complete.
  *
  * @internal
  */
 export async function unStashFiles(
-  repositoryCacheDirectoryPath: string,
+  unStashSourceDirectoryPath: string,
   unStashDestinationDirectoryPath: string,
 ): Promise<void> {
-  await fs.cp(repositoryCacheDirectoryPath, unStashDestinationDirectoryPath, {
+  await fs.cp(unStashSourceDirectoryPath, unStashDestinationDirectoryPath, {
     recursive: true,
   });
 
-  await fs.rm(repositoryCacheDirectoryPath, { force: true, recursive: true });
+  await fs.rm(unStashSourceDirectoryPath, { force: true, recursive: true });
 }
 
 /**
