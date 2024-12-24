@@ -66,7 +66,7 @@ export class TigedError extends Error implements Error, TigedErrorOptions {
  *
  * @param filePath - The path to the module file.
  * @param options - Optional options for requiring the module.
- * @param opts.clearCache - If `true`, clears the module cache before requiring the module.
+ * @param options.clearCache - If `true`, clears the module cache before requiring the module.
  * @returns The required module or `null` if it cannot be required.
  *
  * @internal
@@ -159,18 +159,18 @@ export async function downloadTarball(
 ): Promise<void> {
   const parsedUrl = new URL(url);
 
+  const requestOptions: https.RequestOptions = {
+    hostname: parsedUrl.hostname,
+    port: parsedUrl.port,
+    path: parsedUrl.pathname,
+    headers: {
+      Connection: 'close',
+    },
+
+    agent: proxy ? new HttpsProxyAgent(proxy) : undefined,
+  };
+
   return new Promise<void>((fulfill, reject) => {
-    const requestOptions: https.RequestOptions = {
-      hostname: parsedUrl.hostname,
-      port: parsedUrl.port,
-      path: parsedUrl.pathname,
-      headers: {
-        Connection: 'close',
-      },
-
-      agent: proxy ? new HttpsProxyAgent(proxy) : undefined,
-    };
-
     https
       .get(requestOptions, response => {
         if (response.statusCode == null) {
