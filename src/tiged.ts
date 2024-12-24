@@ -328,13 +328,17 @@ export class Tiged extends EventEmitter {
   ) {
     super();
 
+    const repo = extractRepositoryInfo(src);
+
     const resolvedTigedOptions = {
       ...tigedDefaultOptions,
       ...tigedOptions,
-      repo: extractRepositoryInfo(src),
+      repo,
     };
 
     Object.assign(this, resolvedTigedOptions);
+
+    this.subDirectory = addLeadingSlashIfMissing(this.subDirectory);
 
     if (this.subgroup) {
       this.repo.subgroup = true;
@@ -346,13 +350,11 @@ export class Tiged extends EventEmitter {
       this.repo.url += this.repo.subDirectory;
 
       this.repo.ssh = `${this.repo.ssh + this.repo.subDirectory}.git`;
-
-      this.repo.subDirectory = this.subDirectory
-        ? addLeadingSlashIfMissing(this.subDirectory)
-        : '';
-    } else if (this.subDirectory) {
-      this.repo.subDirectory = addLeadingSlashIfMissing(this.subDirectory);
+    } else {
+      this.subDirectory = this.subDirectory || this.repo.subDirectory;
     }
+
+    this.repo.subDirectory = this.subDirectory;
 
     this.directiveActions = {
       clone: async (

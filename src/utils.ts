@@ -157,9 +157,9 @@ export async function downloadTarball(
   tarballFilePath: string,
   proxy?: string,
 ): Promise<void> {
-  return new Promise<void>((fulfill, reject) => {
-    const parsedUrl = new URL(url);
+  const parsedUrl = new URL(url);
 
+  return new Promise<void>((fulfill, reject) => {
     const requestOptions: https.RequestOptions = {
       hostname: parsedUrl.hostname,
       port: parsedUrl.port,
@@ -337,7 +337,7 @@ export const ensureGitExists = async (): Promise<void> => {
  * Checks if the given host name is supported.
  *
  * @param hostName - The host name to check.
- * @returns A boolean indicating whether the host name is supported.
+ * @returns A `boolean` indicating whether the host name is supported.
  *
  * @internal
  * @since 3.0.0
@@ -362,7 +362,7 @@ const isHostNameSupported = (
  */
 export function extractRepositoryInfo(src: string): Repo {
   const match =
-    /^(?:(?:https:\/\/)?([^:/]+\.[^:/]+)\/|git@([^:/]+)[:/]|([^/]+):)?([^/\s]+)\/([^/\s#]+)(?:((?:\/[^/\s#]+)+))?(?:\/)?(?:#(.+))?/.exec(
+    /^(?:(?:https:\/\/)?(?<site>[^:/]+)(?:\.[^:/]+)\/|git@(?<siteName>[^:/]+)(?:\.[^:/]+)[:/]|(?<org>[^/:]+):)?(?<repo>[^/\s.]+)(?:\.git)?\/(?<repo2>(?:[^/\s#.]+|[^/\s#.]+)?)?(?:\.git)?(?:\/(?<repo3>(?:[^/\s#.]+)+))?(?:\.git)?(?:\/)?(?:#(?<commitHash>[^.]+)(?:\.git)?)?/.exec(
       src,
     );
 
@@ -374,7 +374,7 @@ export function extractRepositoryInfo(src: string): Repo {
   }
 
   const site = match[1] ?? match[2] ?? match[3] ?? 'github';
-  const topLevelDomainMatch = /\.([a-z]{2,})$/.exec(site);
+  const topLevelDomainMatch = /\.([a-z]{3,})$/.exec(site);
   const topLevelDomain = topLevelDomainMatch ? topLevelDomainMatch[0] : null;
   const siteName = topLevelDomain
     ? site.replace(new RegExp(`${topLevelDomain}$`), '')
@@ -382,14 +382,15 @@ export function extractRepositoryInfo(src: string): Repo {
 
   const user = match[4] ?? '';
   const name = match[5]?.replace(/\.git$/, '') ?? '';
-  const subDirectory = match[6] ?? '';
+  const subDirectory = addLeadingSlashIfMissing(match[6]);
   const ref = match[7] ?? 'HEAD';
 
   if (!isHostNameSupported(siteName)) {
     throw new TigedError(
       `tiged supports the following: ${Object.values(supportedHosts)
         .map(({ name }) => name)
-        .join(', ')}.`,
+        .join(', ')}.
+        But received ${siteName}.`,
       {
         code: 'UNSUPPORTED_HOST',
         ref,
@@ -405,14 +406,7 @@ export function extractRepositoryInfo(src: string): Repo {
   const url = `https://${domain}/${user}/${name}`;
   const ssh = `git@${domain}:${user}/${name}`;
 
-  const mode =
-    siteName === 'huggingface'
-      ? 'git'
-      : supportedHosts[siteName].topLevelDomain
-        ? 'tar'
-        : 'git';
-
-  return { site: siteName, user, name, ref, url, ssh, subDirectory, mode, src };
+  return { site: siteName, user, name, ref, url, ssh, subDirectory };
 }
 
 /**
@@ -624,5 +618,12 @@ export const getOldHash = async (repo: Repo): Promise<string> => {
  * @internal
  * @since 3.0.0
  */
-export const addLeadingSlashIfMissing = (subDirectory: string): string =>
-  subDirectory.startsWith('/') ? subDirectory : `/${subDirectory}`;
+export const addLeadingSlashIfMissing = (
+  subDirectory: string | undefined,
+): string => {
+  if (!subDirectory) {
+    return '';
+  }
+
+  return subDirectory.startsWith('/') ? subDirectory : `/${subDirectory}`;
+};
