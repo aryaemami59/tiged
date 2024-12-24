@@ -328,33 +328,31 @@ export class Tiged extends EventEmitter {
   ) {
     super();
 
-    const repo = extractRepositoryInfo(src);
-
     const resolvedTigedOptions = {
       ...tigedDefaultOptions,
       ...tigedOptions,
-      repo,
     };
 
-    Object.assign(this, resolvedTigedOptions);
+    const subDirectory = addLeadingSlashIfMissing(
+      resolvedTigedOptions.subDirectory,
+    );
 
-    this.subDirectory = addLeadingSlashIfMissing(this.subDirectory);
+    const repo = extractRepositoryInfo(
+      src,
+      resolvedTigedOptions.subgroup,
+      subDirectory,
+    );
 
-    if (this.subgroup) {
-      this.repo.subgroup = true;
+    Object.assign(this, resolvedTigedOptions, {
+      repo,
+      subDirectory,
+    });
 
-      this.repo.name = this.repo.subDirectory
-        ? this.repo.subDirectory.slice(1) || ''
-        : '';
-
-      this.repo.url += this.repo.subDirectory;
-
-      this.repo.ssh = `${this.repo.ssh + this.repo.subDirectory}.git`;
-    } else {
-      this.subDirectory = this.subDirectory || this.repo.subDirectory;
+    if (!this.subgroup) {
+      this.subDirectory = this.repo.subDirectory;
     }
 
-    this.repo.subDirectory = this.subDirectory;
+    this.repo.subDirectory = this.subDirectory || this.repo.subDirectory;
 
     this.directiveActions = {
       clone: async (
@@ -812,8 +810,8 @@ export class Tiged extends EventEmitter {
       });
     }
 
-    const subDirectory = repo.subDirectory
-      ? `${repo.name}-${hash}${repo.subDirectory}`
+    const subDirectory = this.subDirectory
+      ? `${repo.name}-${hash}${this.subDirectory}`
       : '';
 
     const tarballFileName = `${hash}.tar.gz`;
@@ -889,9 +887,9 @@ export class Tiged extends EventEmitter {
     _repositoryCacheDirectoryPath: string,
     destinationDirectoryPath: string,
   ): Promise<void> {
-    const { repo } = this;
+    const { repo, subDirectory } = this;
 
-    const { subDirectory, url } = repo;
+    const { url } = repo;
 
     const ref = repo.ref.includes('#')
       ? repo.ref.split('#').reverse().join(' ')
