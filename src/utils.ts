@@ -360,7 +360,11 @@ const isHostNameSupported = (
  * @internal
  * @since 3.0.0
  */
-export function extractRepositoryInfo(src: string): Repo {
+export function extractRepositoryInfo(
+  src: string,
+  subgroup: boolean,
+  subDirectory: string,
+): Repo {
   const match =
     /^(?:(?:https:\/\/)?(?<site>[^:/]+)(?:\.[^:/]+)\/|git@(?<siteName>[^:/]+)(?:\.[^:/]+)[:/]|(?<org>[^/:]+):)?(?<repo>[^/\s.]+)(?:\.git)?\/(?<repo2>(?:[^/\s#.]+|[^/\s#.]+)?)?(?:\.git)?(?:\/(?<repo3>(?:[^/\s#.]+)+))?(?:\.git)?(?:\/)?(?:#(?<commitHash>[^.]+)(?:\.git)?)?/.exec(
       src,
@@ -382,7 +386,7 @@ export function extractRepositoryInfo(src: string): Repo {
 
   const user = match[4] ?? '';
   const name = match[5]?.replace(/\.git$/, '') ?? '';
-  const subDirectory = addLeadingSlashIfMissing(match[6]);
+  const repoSubDirectory = addLeadingSlashIfMissing(match[6]);
   const ref = match[7] ?? 'HEAD';
 
   if (!isHostNameSupported(siteName)) {
@@ -406,7 +410,22 @@ export function extractRepositoryInfo(src: string): Repo {
   const url = `https://${domain}/${user}/${name}`;
   const ssh = `git@${domain}:${user}/${name}`;
 
-  return { site: siteName, user, name, ref, url, ssh, subDirectory };
+  return {
+    site: siteName,
+    user,
+    name: subgroup
+      ? repoSubDirectory
+        ? repoSubDirectory.slice(1) || ''
+        : ''
+      : name,
+    ref,
+    url: subgroup ? `${url}${repoSubDirectory}` : url,
+    ssh: subgroup ? `${ssh}${repoSubDirectory}.git` : ssh,
+    subDirectory: subgroup
+      ? repoSubDirectory
+      : subDirectory || repoSubDirectory,
+    subgroup,
+  };
 }
 
 /**
