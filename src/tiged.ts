@@ -18,6 +18,7 @@ import type {
 } from './types.js';
 import {
   TigedError,
+  addLeadingSlashIfMissing,
   downloadTarball,
   ensureGitExists,
   exec,
@@ -346,17 +347,11 @@ export class Tiged extends EventEmitter {
 
       this.repo.ssh = `${this.repo.ssh + this.repo.subDirectory}.git`;
 
-      if (this.subDirectory) {
-        this.repo.subDirectory = this.subDirectory.startsWith('/')
-          ? this.subDirectory
-          : `/${this.subDirectory}`;
-      } else {
-        this.repo.subDirectory = '';
-      }
+      this.repo.subDirectory = this.subDirectory
+        ? addLeadingSlashIfMissing(this.subDirectory)
+        : '';
     } else if (this.subDirectory) {
-      this.repo.subDirectory = this.subDirectory.startsWith('/')
-        ? this.subDirectory
-        : `/${this.subDirectory}`;
+      this.repo.subDirectory = addLeadingSlashIfMissing(this.subDirectory);
     }
 
     this.directiveActions = {
@@ -754,7 +749,7 @@ export class Tiged extends EventEmitter {
    * @returns The commit hash that matches the selector, or `undefined` if no match is found.
    */
   private selectRef(
-    refs: { type: string; name?: string | undefined; hash: string }[],
+    refs: { type: string; name: string; hash: string }[],
     selector: string,
   ): string | undefined {
     for (const ref of refs) {

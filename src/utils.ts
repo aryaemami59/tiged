@@ -425,21 +425,14 @@ export function extractRepositoryInfo(src: string): Repo {
  * @internal
  */
 export async function fetchRefs(repo: Repo): Promise<
-  (
-    | {
-        type: string;
-        hash: string;
-        name?: undefined;
-      }
-    | {
-        type: string;
-        name: string;
-        hash: string;
-      }
-  )[]
+  {
+    type: string;
+    name: string;
+    hash: string;
+  }[]
 > {
   try {
-    const { stdout } = await exec(`git ls-remote ${repo.url}`);
+    const { stdout } = await exec(`git ls-remote ${repo.url} ${repo.ref}`);
 
     return stdout
       .trim()
@@ -450,7 +443,8 @@ export async function fetchRefs(repo: Repo): Promise<
 
         if (ref === 'HEAD') {
           return {
-            type: 'HEAD',
+            name: hash,
+            type: ref,
             hash,
           };
         }
@@ -604,3 +598,31 @@ export const getOldHash = async (repo: Repo): Promise<string> => {
 
   return stdout.trim().split('\n')[0] ?? '';
 };
+
+/**
+ * Ensures that the provided sub-directory path has a leading slash (`/`).
+ * If the sub-directory already starts with a slash, it is returned unchanged.
+ * Otherwise, a leading slash is added to the sub-directory.
+ *
+ * @param subDirectory - The sub-directory path to normalize with a leading slash.
+ * @returns The sub-directory path guaranteed to have a leading slash.
+ *
+ * @example
+ * <caption>#### Adds a leading slash if missing</caption>
+ *
+ * ```ts
+ * addLeadingSlashIfMissing('subdir'); // Returns '/subdir'
+ * ```
+ *
+ * @example
+ * <caption>#### Returns unchanged if the leading slash is already present</caption>
+ *
+ * ```ts
+ * addLeadingSlashIfMissing('/subdir'); // Returns '/subdir'
+ * ```
+ *
+ * @internal
+ * @since 3.0.0
+ */
+export const addLeadingSlashIfMissing = (subDirectory: string): string =>
+  subDirectory.startsWith('/') ? subDirectory : `/${subDirectory}`;
