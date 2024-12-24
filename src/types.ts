@@ -147,22 +147,6 @@ export type Repo = {
   subDirectory: string;
 
   /**
-   * Specifies the mode for the operation.
-   * Possible values are:
-   *
-   * - **`'tar'`**: Downloads the repository as a tarball.
-   * - **`'git'`**: Clones the repository using Git.
-   *
-   * @default 'tar'
-   */
-  mode: ValidModes;
-
-  /**
-   * The source URL or path for cloning the repository (e.g., https://github.com/tiged/tiged-test.git, https://github.com/tiged/tiged-test.git/subdir#b09755bc4cca3d3b398fbe5e411daeae79869581).
-   */
-  src: string;
-
-  /**
    * Optional. Indicates whether the repository belongs to a subgroup,
    * if supported by the hosting service.
    *
