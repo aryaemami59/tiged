@@ -384,12 +384,14 @@ export class Tiged extends EventEmitter {
         const tiged = createTiged(action.src, tigedOptions);
 
         tiged.on('info', event => {
-          console.error(cyan(`> ${event.message?.replace('options.', '--')}`));
+          console.error(
+            cyan(`> ${event.message?.replace('options.', '--') ?? ''}`),
+          );
         });
 
         tiged.on('warn', event => {
           console.error(
-            magenta(`! ${event.message?.replace('options.', '--')}`),
+            magenta(`! ${event.message?.replace('options.', '--') ?? ''}`),
           );
         });
 

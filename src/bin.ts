@@ -60,11 +60,13 @@ async function run(
   const tiged = createTiged(src, tigedOptions);
 
   tiged.on('info', event => {
-    console.error(cyan(`> ${event.message?.replace('options.', '--')}`));
+    console.error(cyan(`> ${event.message?.replace('options.', '--') ?? ''}`));
   });
 
   tiged.on('warn', event => {
-    console.error(magenta(`! ${event.message?.replace('options.', '--')}`));
+    console.error(
+      magenta(`! ${event.message?.replace('options.', '--') ?? ''}`),
+    );
   });
 
   try {
