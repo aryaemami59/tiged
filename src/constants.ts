@@ -1,6 +1,6 @@
 import { homedir, tmpdir } from 'node:os';
 import * as path from 'node:path';
-import type { Options, ValidModes } from './types.js';
+import type { TigedOptions, ValidModes } from './types.js';
 
 /**
  * Returns the home directory path of the current user if available,
@@ -87,7 +87,7 @@ export const tigedDefaultOptions = {
   subgroup: false,
   verbose: false,
   proxy: process.env.https_proxy || process.env.HTTPS_PROXY,
-} as const satisfies Options;
+} as const satisfies TigedOptions;
 
 /**
  * A constant object that maps supported git hosting
