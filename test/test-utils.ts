@@ -2,7 +2,7 @@ import type { ExecFileOptionsWithOtherEncoding } from 'node:child_process';
 import * as child_process from 'node:child_process';
 import * as path from 'node:path';
 import { promisify } from 'node:util';
-import type { Options, ValidModes } from 'tiged';
+import type { TigedOptions, ValidModes } from 'tiged';
 import { createTiged } from 'tiged';
 
 /**
@@ -91,7 +91,7 @@ const defaultExecFileOptions = {
  */
 const defaultTigedOptions = {
   disableCache: true,
-} as const satisfies Options;
+} as const satisfies TigedOptions;
 
 /**
  * Converts all non-alphanumeric characters in a string to hyphens (`-`).
@@ -222,7 +222,7 @@ export const runTigedCLI = async (
 export const runTigedAPI = (
   src: string,
   destinationDirectoryName: string,
-  tigedOptions: Options = {},
+  tigedOptions: TigedOptions = {},
 ) =>
   createTiged(src, { ...defaultTigedOptions, ...tigedOptions }).clone(
     destinationDirectoryName,

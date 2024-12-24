@@ -1,10 +1,10 @@
-export { Tiged, createTiged } from './tiged.js';
+export { createTiged, Tiged } from './tiged.js';
 export type {
   Info,
   InfoCode,
-  Options,
   RemoveAction,
   Repo,
   TigedAction,
+  TigedOptions,
   ValidModes,
 } from './types.js';

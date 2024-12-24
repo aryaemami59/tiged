@@ -10,10 +10,10 @@ import {
 } from './constants.js';
 import type {
   Info,
-  Options,
   RemoveAction,
   Repo,
   TigedAction,
+  TigedOptions,
   ValidModes,
 } from './types.js';
 import {
@@ -359,7 +359,7 @@ export class Tiged extends EventEmitter {
    */
   public constructor(
     public src: string,
-    tigedOptions: Options = {},
+    tigedOptions: TigedOptions = {},
   ) {
     super();
 
@@ -968,6 +968,6 @@ export class Tiged extends EventEmitter {
  *
  * @public
  */
-export function createTiged(src: string, tigedOptions?: Options): Tiged {
+export function createTiged(src: string, tigedOptions?: TigedOptions): Tiged {
   return new Tiged(src, tigedOptions);
 }

@@ -16,7 +16,7 @@ export type ValidModes = 'tar' | 'git';
  * @public
  * @since 3.0.0
  */
-export type Options = {
+export type TigedOptions = {
   /**
    * Forces the operation to proceed, despite non-empty destination directory
    * potentially overwriting existing files.

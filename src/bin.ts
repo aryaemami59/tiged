@@ -7,7 +7,7 @@ import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import picocolors from 'picocolors';
-import type { Options } from 'tiged';
+import type { TigedOptions } from 'tiged';
 import { createTiged } from 'tiged';
 import { glob } from 'tinyglobby';
 import { accessLogsFileName, cacheDirectoryPath } from './constants.js';
@@ -15,31 +15,34 @@ import { pathExists, tryRequire } from './utils.js';
 
 const { bold, cyan, magenta, red, underline } = picocolors;
 
-const CLIArguments = mri<Options & { help?: string }>(process.argv.slice(2), {
-  alias: {
-    f: 'force',
-    D: ['disable-cache', 'disableCache'],
-    v: 'verbose',
-    m: 'mode',
-    s: 'subgroup',
-    d: ['sub-directory', 'subDirectory'],
-    p: ['proxy'],
-    h: 'help',
+const CLIArguments = mri<TigedOptions & { help?: string }>(
+  process.argv.slice(2),
+  {
+    alias: {
+      f: 'force',
+      D: ['disable-cache', 'disableCache'],
+      v: 'verbose',
+      m: 'mode',
+      s: 'subgroup',
+      d: ['sub-directory', 'subDirectory'],
+      p: ['proxy'],
+      h: 'help',
+    },
+
+    boolean: [
+      'force',
+      'disableCache',
+      'verbose',
+      'subgroup',
+    ] as const satisfies (keyof TigedOptions)[],
+
+    string: [
+      'mode',
+      'subDirectory',
+      'proxy',
+    ] as const satisfies (keyof TigedOptions)[],
   },
-
-  boolean: [
-    'force',
-    'disableCache',
-    'verbose',
-    'subgroup',
-  ] as const satisfies (keyof Options)[],
-
-  string: [
-    'mode',
-    'subDirectory',
-    'proxy',
-  ] as const satisfies (keyof Options)[],
-});
+);
 
 const [src, dest] = CLIArguments._;
 
@@ -55,7 +58,7 @@ const [src, dest] = CLIArguments._;
 async function run(
   src: string,
   dest: string | undefined,
-  tigedOptions: Options,
+  tigedOptions: TigedOptions,
 ): Promise<void> {
   const tiged = createTiged(src, tigedOptions);
 
@@ -173,7 +176,7 @@ async function main(): Promise<void> {
       });
 
     const options = await enquirer.prompt<
-      { dest: string; src: string } & Options
+      { dest: string; src: string } & TigedOptions
     >([
       // FIXME: `suggest` is not in the type definition
       {
@@ -202,7 +205,7 @@ async function main(): Promise<void> {
       (await fs.readdir(options.dest, { encoding: 'utf-8' })).length === 0;
 
     if (!empty) {
-      const { force } = await enquirer.prompt<Options>([
+      const { force } = await enquirer.prompt<TigedOptions>([
         {
           type: 'toggle',
           name: 'force',
