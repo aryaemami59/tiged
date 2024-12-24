@@ -177,102 +177,6 @@ export class Tiged extends EventEmitter {
   declare public tempDirectoryPath: string;
 
   /**
-   * Defines actions for processing directives,
-   * such as {@linkcode Tiged.clone | cloning}
-   * and {@linkcode Tiged.remove | removing}
-   * files or directories.
-   *
-   * Actions allow manipulation of repositories after they have
-   * been cloned, as specified in the **`degit.json`** file
-   * located at the top level of the working directory.
-   * These actions enable automated repository customization,
-   * such as extracting specific files or removing unwanted content.
-   *
-   * Currently, two actions are supported:
-   *
-   * - **{@linkcode Tiged.clone | clone}**: Copies repository files from a cache directory to a target destination.
-   * - **{@linkcode Tiged.remove | remove}**: Removes specified files or directories from the target destination.
-   */
-  declare public readonly directiveActions: {
-    /**
-     * Executes the `clone` action to clone another
-     * repository into the working directory.
-     *
-     * The `clone` action, as defined in the **`degit.json`** file,
-     * allows you to clone an additional repository into the current
-     * working directory without overwriting its existing contents.
-     * This is particularly useful for injecting starter files,
-     * additional configuration, or documentation (e.g., a new `README.md`)
-     * into a repository that you do not control.
-     *
-     * The cloned repository may itself contain a **`degit.json`**
-     * file with further actions, enabling nested customization workflows.
-     *
-     * @param repositoryCacheDirectoryPath - The absolute path to the cache directory where the cloned repository is temporarily stored.
-     * @param destinationDirectoryPath - The absolute path to the working directory where the cloned repository's contents will be added.
-     * @param action - An object defining the parameters for the `clone` action, including the `src` field, which specifies the source repository to clone (e.g., `"user/another-repo"`).
-     * @returns A {@linkcode Promise | promise} that resolves when the cloning process is complete or rejects with an error if the cloning operation fails.
-     *
-     * @example
-     * <caption>#### Usage in **`degit.json`**</caption>
-     *
-     * ```json
-     * [
-     *   {
-     *     "action": "clone",
-     *     "src": "user/another-repo"
-     *   }
-     * ]
-     * ```
-     */
-    clone: (
-      repositoryCacheDirectoryPath: string,
-      destinationDirectoryPath: string,
-      action: TigedAction,
-    ) => Promise<void>;
-
-    /**
-     * Executes the `remove` action to delete specified files or
-     * directories from the working directory.
-     *
-     * The `remove` action, as defined in the **`degit.json`** file,
-     * allows you to remove specific files or directories from
-     * the working directory after cloning a repository. This is useful
-     * for cleaning up unnecessary files, such as licenses, example files,
-     * or other content that should not be included in the final output.
-     *
-     * @param repositoryCacheDirectoryPath - The absolute path to the cache directory where the repository is temporarily stored.
-     * @param destinationDirectoryPath - The absolute path to the working directory where the files or directories will be removed.
-     * @param action - An object defining the parameters for the `remove` action, including the `files` field specifying an array of file or directory paths to remove.
-     * @returns A {@linkcode Promise | promise} that resolves when the specified files or directories have been successfully removed or rejects with an error if the removal operation fails.
-     *
-     * @example
-     * <caption>#### Usage in **`degit.json`**</caption>
-     *
-     * ```json
-     * [
-     *   {
-     *     "action": "remove",
-     *     "files": ["LICENSE", "examples/"]
-     *   }
-     * ]
-     * ```
-     *
-     * @remarks
-     *
-     * The {@linkcode RemoveAction.files | files} field specifies an
-     * array of paths to files or directories
-     * to be removed. These paths are relative to the
-     * {@linkcode destinationDirectoryPath}.
-     */
-    remove: (
-      repositoryCacheDirectoryPath: string,
-      destinationDirectoryPath: string,
-      action: RemoveAction,
-    ) => Promise<void>;
-  };
-
-  /**
    * Registers an event listener for specific events,
    * such as **`info`** or **`warn`**.
    *
@@ -304,6 +208,137 @@ export class Tiged extends EventEmitter {
    * within the same workflow.
    */
   private hasStashed = false;
+
+  /**
+   * Defines actions for processing directives,
+   * such as {@linkcode Tiged.clone | cloning}
+   * and {@linkcode Tiged.remove | removing}
+   * files or directories.
+   *
+   * Actions allow manipulation of repositories after they have
+   * been cloned, as specified in the **`degit.json`** file
+   * located at the top level of the working directory.
+   * These actions enable automated repository customization,
+   * such as extracting specific files or removing unwanted content.
+   *
+   * Currently, two actions are supported:
+   *
+   * - **{@linkcode Tiged.clone | clone}**: Copies repository files from a cache directory to a target destination.
+   * - **{@linkcode Tiged.remove | remove}**: Removes specified files or directories from the target destination.
+   */
+  public readonly directiveActions = {
+    /**
+     * Executes the `clone` action to clone another
+     * repository into the working directory.
+     *
+     * The `clone` action, as defined in the **`degit.json`** file,
+     * allows you to clone an additional repository into the current
+     * working directory without overwriting its existing contents.
+     * This is particularly useful for injecting starter files,
+     * additional configuration, or documentation (e.g., a new `README.md`)
+     * into a repository that you do not control.
+     *
+     * The cloned repository may itself contain a **`degit.json`**
+     * file with further actions, enabling nested customization workflows.
+     *
+     * @param _repositoryCacheDirectoryPath - The absolute path to the cache directory where the cloned repository is temporarily stored.
+     * @param destinationDirectoryPath - The absolute path to the working directory where the cloned repository's contents will be added.
+     * @param action - An object defining the parameters for the `clone` action, including the `src` field, which specifies the source repository to clone (e.g., `"user/another-repo"`).
+     * @returns A {@linkcode Promise | promise} that resolves when the cloning process is complete or rejects with an error if the cloning operation fails.
+     *
+     * @example
+     * <caption>#### Usage in **`degit.json`**</caption>
+     *
+     * ```json
+     * [
+     *   {
+     *     "action": "clone",
+     *     "src": "user/another-repo"
+     *   }
+     * ]
+     * ```
+     */
+    clone: async (
+      _repositoryCacheDirectoryPath: string,
+      destinationDirectoryPath: string,
+      action: TigedAction,
+    ): Promise<void> => {
+      if (!this.hasStashed) {
+        await stashFiles(this.tempDirectoryPath, destinationDirectoryPath);
+
+        this.hasStashed = true;
+      }
+
+      const tigedOptions = {
+        disableCache:
+          action.cache === false
+            ? true
+            : (this.disableCache ?? tigedDefaultOptions.disableCache),
+        force: true,
+        verbose: action.verbose ?? this.verbose ?? tigedDefaultOptions.verbose,
+      };
+
+      const tiged = createTiged(action.src, tigedOptions);
+
+      tiged.on('info', event => {
+        console.error(
+          cyan(`> ${event.message?.replace('options.', '--') ?? ''}`),
+        );
+      });
+
+      tiged.on('warn', event => {
+        console.error(
+          magenta(`! ${event.message?.replace('options.', '--') ?? ''}`),
+        );
+      });
+
+      try {
+        await tiged.clone(destinationDirectoryPath);
+      } catch (error) {
+        if (error instanceof Error) {
+          console.error(red(`! ${error.message}`));
+
+          process.exit(1);
+        }
+      }
+    },
+
+    /**
+     * Executes the `remove` action to delete specified files or
+     * directories from the working directory.
+     *
+     * The `remove` action, as defined in the **`degit.json`** file,
+     * allows you to remove specific files or directories from
+     * the working directory after cloning a repository. This is useful
+     * for cleaning up unnecessary files, such as licenses, example files,
+     * or other content that should not be included in the final output.
+     *
+     * @param _repositoryCacheDirectoryPath - The absolute path to the cache directory where the repository is temporarily stored.
+     * @param destinationDirectoryPath - The absolute path to the working directory where the files or directories will be removed.
+     * @param action - An object defining the parameters for the `remove` action, including the `files` field specifying an array of file or directory paths to remove.
+     * @returns A {@linkcode Promise | promise} that resolves when the specified files or directories have been successfully removed or rejects with an error if the removal operation fails.
+     *
+     * @example
+     * <caption>#### Usage in **`degit.json`**</caption>
+     *
+     * ```json
+     * [
+     *   {
+     *     "action": "remove",
+     *     "files": ["LICENSE", "examples/"]
+     *   }
+     * ]
+     * ```
+     *
+     * @remarks
+     *
+     * The {@linkcode RemoveAction.files | files} field specifies an
+     * array of paths to files or directories
+     * to be removed. These paths are relative to the
+     * {@linkcode destinationDirectoryPath}.
+     */
+    remove: this.remove.bind(this),
+  };
 
   /**
    * Constructs a new {@linkcode Tiged} instance with the
@@ -353,56 +388,6 @@ export class Tiged extends EventEmitter {
     }
 
     this.repo.subDirectory = this.subDirectory || this.repo.subDirectory;
-
-    this.directiveActions = {
-      clone: async (
-        _repositoryCacheDirectoryPath,
-        destinationDirectoryPath,
-        action,
-      ) => {
-        if (!this.hasStashed) {
-          await stashFiles(this.tempDirectoryPath, destinationDirectoryPath);
-
-          this.hasStashed = true;
-        }
-
-        const tigedOptions = {
-          disableCache:
-            action.cache === false
-              ? true
-              : (this.disableCache ?? tigedDefaultOptions.disableCache),
-          force: true,
-          verbose:
-            action.verbose ?? this.verbose ?? tigedDefaultOptions.verbose,
-        };
-
-        const tiged = createTiged(action.src, tigedOptions);
-
-        tiged.on('info', event => {
-          console.error(
-            cyan(`> ${event.message?.replace('options.', '--') ?? ''}`),
-          );
-        });
-
-        tiged.on('warn', event => {
-          console.error(
-            magenta(`! ${event.message?.replace('options.', '--') ?? ''}`),
-          );
-        });
-
-        try {
-          await tiged.clone(destinationDirectoryPath);
-        } catch (error) {
-          if (error instanceof Error) {
-            console.error(red(`! ${error.message}`));
-
-            process.exit(1);
-          }
-        }
-      },
-
-      remove: this.remove.bind(this),
-    };
   }
 
   /**
