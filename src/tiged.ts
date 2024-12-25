@@ -32,7 +32,7 @@ import {
   unStashFiles,
 } from './utils.js';
 
-const { cyan, magenta, red, bold } = picocolors;
+const { bold, cyanBright, red, greenBright, blue, magentaBright } = picocolors;
 
 /**
  * The {@linkcode Tiged} class is a tool for cloning repositories
@@ -281,13 +281,13 @@ export class Tiged extends EventEmitter {
 
       tiged.on('info', event => {
         console.error(
-          cyan(`> ${event.message?.replace('options.', '--') ?? ''}`),
+          cyanBright(`> ${event.message?.replace('options.', '--') ?? ''}`),
         );
       });
 
       tiged.on('warn', event => {
         console.error(
-          magenta(`! ${event.message?.replace('options.', '--') ?? ''}`),
+          magentaBright(`! ${event.message?.replace('options.', '--') ?? ''}`),
         );
       });
 
@@ -450,7 +450,7 @@ export class Tiged extends EventEmitter {
     if (this.disableCache) {
       this.logVerbose({
         code: 'NO_CACHE',
-        message: `Not using cache. disableCache is set to true.`,
+        message: `Not using cache. ${bold('disableCache')} is set to ${greenBright('true')}.`,
         dest: destinationDirectoryPath,
         repo,
       });
@@ -461,7 +461,9 @@ export class Tiged extends EventEmitter {
         if (this.repo.site === 'huggingface') {
           this.logVerbose({
             code: 'HUGGING_FACE',
-            message: `Cannot clone Hugging Face using ${this.mode} mode. falling back to git mode`,
+            message: `Cannot clone Hugging Face using ${bold(greenBright(this.mode))} mode. falling back to ${bold(greenBright('git'))} mode`,
+            dest: destinationDirectoryPath,
+            repo,
           });
 
           await this.cloneWithGit(
@@ -491,7 +493,7 @@ export class Tiged extends EventEmitter {
 
     this.info({
       code: 'SUCCESS',
-      message: `cloned ${bold(`${repo.user}/${repo.name}`)}#${bold(repo.ref)} to ${destinationDirectoryPath}`,
+      message: `cloned ${bold(`${repo.user}/${repo.name}`)}#${bold(repo.ref)} to ${bold(blue(destinationDirectoryPath))}`,
       repo,
       dest: destinationDirectoryPath,
     });
@@ -554,8 +556,12 @@ export class Tiged extends EventEmitter {
         } else {
           this.warn(
             new TigedError(
-              `action wants to remove ${bold(fileToBeRemoved)} but it does not exist`,
-              { code: 'FILE_DOES_NOT_EXIST' },
+              `action wants to remove ${red(bold(fileToBeRemoved))} but it does not exist`,
+              {
+                code: 'FILE_DOES_NOT_EXIST',
+                ref: this.repo.ref,
+                url: this.repo.url,
+              },
             ),
           );
         }
@@ -585,7 +591,9 @@ export class Tiged extends EventEmitter {
         if (this.force) {
           this.info({
             code: 'DEST_NOT_EMPTY',
-            message: `destination directory is not empty. Using options.force, continuing`,
+            message: `destination directory is not empty. Using ${bold('options.force')}, continuing`,
+            dest: directoryPath,
+            repo: this.repo,
           });
 
           await fs.rm(directoryPath, {
@@ -606,6 +614,8 @@ export class Tiged extends EventEmitter {
         this.logVerbose({
           code: 'DEST_IS_EMPTY',
           message: `destination directory is empty`,
+          dest: directoryPath,
+          repo: this.repo,
         });
       }
     } catch (error) {
@@ -740,7 +750,7 @@ export class Tiged extends EventEmitter {
       if (ref.name === selector) {
         this.logVerbose({
           code: 'FOUND_MATCH',
-          message: `found matching commit hash: ${ref.hash}`,
+          message: `found matching commit hash: ${blue(ref.hash)}`,
         });
 
         return ref.hash;
@@ -815,13 +825,17 @@ export class Tiged extends EventEmitter {
     if (this.proxy) {
       this.logVerbose({
         code: 'PROXY',
-        message: `using proxy ${this.proxy}`,
+        message: `using proxy ${bold(this.proxy)}`,
+        dest: destinationDirectoryPath,
+        repo,
       });
     }
 
     this.logVerbose({
       code: 'DOWNLOADING',
-      message: `downloading ${url} to ${tarballFilePath}`,
+      message: `downloading ${bold(url)} to ${bold(tarballFilePath)}\n`,
+      dest: destinationDirectoryPath,
+      repo,
     });
 
     try {
@@ -838,8 +852,10 @@ export class Tiged extends EventEmitter {
     this.logVerbose({
       code: 'EXTRACTING',
       message: `extracting ${
-        subDirectory ? `the ${repo.subDirectory} sub-directory from ` : ''
-      }${tarballFilePath} to ${destinationDirectoryPath}.`,
+        subDirectory ? `the ${bold(subDirectory)} sub-directory from ` : ''
+      }${bold(tarballFilePath)} to ${bold(destinationDirectoryPath)}.\n`,
+      dest: destinationDirectoryPath,
+      repo,
     });
 
     const extractedFiles = await extractTarball(
@@ -884,8 +900,10 @@ export class Tiged extends EventEmitter {
     this.logVerbose({
       code: 'EXTRACTING',
       message: `extracting ${
-        subDirectory ? `the ${subDirectory} sub-directory from ` : ''
-      }${url} to ${destinationDirectoryPath}.`,
+        subDirectory ? `the ${bold(subDirectory)} sub-directory from ` : ''
+      }${bold(url)} to ${bold(destinationDirectoryPath)}.\n`,
+      dest: destinationDirectoryPath,
+      repo,
     });
 
     const cloneRepoDestination = subDirectory

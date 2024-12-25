@@ -13,7 +13,7 @@ import { glob } from 'tinyglobby';
 import { accessLogsFileName, cacheDirectoryPath } from './constants.js';
 import { pathExists, tryRequire } from './utils.js';
 
-const { bold, cyan, magenta, red, underline } = picocolors;
+const { bold, cyanBright, magentaBright, red, underline } = picocolors;
 
 const CLIArguments = mri<TigedOptions & { help?: string }>(
   process.argv.slice(2),
@@ -63,12 +63,14 @@ async function run(
   const tiged = createTiged(src, tigedOptions);
 
   tiged.on('info', event => {
-    console.error(cyan(`> ${event.message?.replace('options.', '--') ?? ''}`));
+    console.error(
+      cyanBright(`> ${event.message?.replace('options.', '--') ?? ''}`),
+    );
   });
 
   tiged.on('warn', event => {
     console.error(
-      magenta(`! ${event.message?.replace('options.', '--') ?? ''}`),
+      magentaBright(`! ${event.message?.replace('options.', '--') ?? ''}`),
     );
   });
 
@@ -114,7 +116,7 @@ async function main(): Promise<void> {
         underline(tigedTitle),
       )
       .replace(/`([^`]+)`/g, (_inlineCode, inlineCodeContent: string) =>
-        cyan(inlineCodeContent),
+        cyanBright(inlineCodeContent),
       ); //` syntax highlighter fix
 
     process.stdout.write(`\n${help}\n`);
@@ -214,7 +216,7 @@ async function main(): Promise<void> {
       ]);
 
       if (!force) {
-        console.error(magenta(`! Directory not empty — aborting`));
+        console.error(magentaBright(`! Directory not empty — aborting`));
 
         return;
       }
