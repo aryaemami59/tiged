@@ -6,7 +6,7 @@ import * as https from 'node:https';
 import { createRequire } from 'node:module';
 import * as path from 'node:path';
 import { promisify } from 'node:util';
-import { extract } from 'tar';
+import { extract, list } from 'tar';
 import type { SupportedHostNames } from './constants.js';
 import {
   accessLogsFileName,
@@ -103,6 +103,36 @@ export function tryRequire(
  */
 export const exec = promisify(child_process.exec);
 
+export async function isSubDirectoryAFile(
+  tarballFilePath: string,
+  destinationDirectoryPath: string,
+  subDirectory?: Repo['subDirectory'],
+) {
+  let isSubDirFile = false;
+
+  if (subDirectory) {
+    await list(
+      {
+        file: tarballFilePath,
+        cwd: destinationDirectoryPath,
+
+        onReadEntry: entry => {
+          if (
+            entry.type === 'File' &&
+            path.basename(entry.path) === path.basename(subDirectory)
+          ) {
+            isSubDirFile = true;
+          }
+        },
+      },
+
+      [subDirectory],
+    );
+  }
+
+  return isSubDirFile;
+}
+
 /**
  * Extracts the contents of a tar file to a specified destination.
  *
@@ -123,11 +153,24 @@ export async function extractTarball(
 ): Promise<string[]> {
   const extractedFiles: string[] = [];
 
+  const isSubDirFile = await isSubDirectoryAFile(
+    tarballFilePath,
+    destinationDirectoryPath,
+    subDirectory,
+  );
+
+  const strip = subDirectory
+    ? isSubDirFile
+      ? subDirectory.split('/').length - 1
+      : subDirectory.split('/').length
+    : 1;
+
   await extract(
     {
       file: tarballFilePath,
-      strip: subDirectory ? subDirectory.split('/').length : 1,
-      C: destinationDirectoryPath,
+      strip,
+      cwd: destinationDirectoryPath,
+
       onReadEntry: entry => {
         extractedFiles.push(entry.path);
       },

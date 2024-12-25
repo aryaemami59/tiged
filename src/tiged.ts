@@ -26,7 +26,6 @@ import {
   extractTarball,
   fetchRefs,
   getOldHash,
-  isDirectory,
   pathExists,
   stashFiles,
   tryRequire,
@@ -915,7 +914,7 @@ export class Tiged extends EventEmitter {
     if (subDirectory) {
       const tempSubDirectory = path.join(cloneRepoDestination, subDirectory);
 
-      if (!(await isDirectory(tempSubDirectory))) {
+      if (!(await pathExists(tempSubDirectory))) {
         throw new TigedError(
           'No files to extract. Make sure you typed in the sub-directory name correctly.',
           {
@@ -926,14 +925,20 @@ export class Tiged extends EventEmitter {
         );
       }
 
-      const filesToExtract = await fs.readdir(tempSubDirectory, {
+      const tempSubDirectoryStats = await fs.lstat(tempSubDirectory);
+
+      const resolvedTempSubDirectory = tempSubDirectoryStats.isFile()
+        ? path.dirname(tempSubDirectory)
+        : tempSubDirectory;
+
+      const filesToExtract = await fs.readdir(resolvedTempSubDirectory, {
         encoding: 'utf-8',
       });
 
       await Promise.all(
         filesToExtract.map(async fileToExtract =>
           fs.rename(
-            path.join(tempSubDirectory, fileToExtract),
+            path.join(resolvedTempSubDirectory, fileToExtract),
             path.join(destinationDirectoryPath, fileToExtract),
           ),
         ),

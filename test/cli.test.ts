@@ -542,6 +542,61 @@ describe('is able to clone correctly', () => {
   });
 });
 
+describe('can clone a single file', () => {
+  const testCases = [
+    'tiged/tiged-test-repo',
+    'github:tiged/tiged-test-repo.git',
+    'git@github.com:tiged/tiged-test-repo.git',
+    'https://github.com/tiged/tiged-test-repo.git',
+  ] as const;
+
+  describe.each(validModes)('using %s mode', mode => {
+    describe('with inferred sub-directory (repo/file.txt) syntax', () => {
+      it.for(testCases)('%s', async (src, { task, expect }) => {
+        const outputDirectory = getOutputDirectoryPath(
+          `${task.name}${task.id}`,
+        );
+
+        await expect(
+          runTigedCLI([
+            '--mode',
+            mode,
+            `${src}/subdir/file.txt`,
+            outputDirectory,
+          ]),
+        ).resolves.not.toThrow();
+
+        await expect(outputDirectory).toMatchFiles({
+          'file.txt': 'hello from a subdirectory!',
+        });
+      });
+    });
+
+    describe('using --sub-directory', () => {
+      it.for(testCases)('%s', async (src, { task, expect }) => {
+        const outputDirectory = getOutputDirectoryPath(
+          `${task.name}${task.id}`,
+        );
+
+        await expect(
+          runTigedCLI([
+            '--mode',
+            mode,
+            src,
+            outputDirectory,
+            '--sub-directory',
+            'subdir/file.txt',
+          ]),
+        ).resolves.not.toThrow();
+
+        await expect(outputDirectory).toMatchFiles({
+          'file.txt': 'hello from a subdirectory!',
+        });
+      });
+    });
+  });
+});
+
 describe('commit hash', () => {
   it('is able to clone non ref hash', async ({ task, expect }) => {
     const outputDirectory = getOutputDirectoryPath(`${task.name}${task.id}`);

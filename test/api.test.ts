@@ -478,13 +478,15 @@ describe('old hash', () => {
 });
 
 describe('is able to clone correctly', () => {
+  const testCases = [
+    'tiged/tiged-test',
+    'github:tiged/tiged-test.git',
+    'git@github.com:tiged/tiged-test.git',
+    'https://github.com/tiged/tiged-test.git',
+  ] as const;
+
   describe.each(validModes)('using %s mode', mode => {
-    it.for([
-      'tiged/tiged-test',
-      'github:tiged/tiged-test.git',
-      'git@github.com:tiged/tiged-test.git',
-      'https://github.com/tiged/tiged-test.git',
-    ] as const)('%s', async (src, { expect, task }) => {
+    it.for(testCases)('%s', async (src, { expect, task }) => {
       const outputDirectory = getOutputDirectoryPath(`${task.name}${task.id}`);
 
       await expect(
@@ -495,6 +497,52 @@ describe('is able to clone correctly', () => {
         subdir: null,
         'README.md': 'tiged is awesome',
         'subdir/file': 'Hello, buddy!',
+      });
+    });
+  });
+});
+
+describe('can clone a single file', () => {
+  const testCases = [
+    'tiged/tiged-test-repo',
+    'github:tiged/tiged-test-repo.git',
+    'git@github.com:tiged/tiged-test-repo.git',
+    'https://github.com/tiged/tiged-test-repo.git',
+  ] as const;
+
+  describe.each(validModes)('using %s mode', mode => {
+    describe('with inferred sub-directory (repo/file.txt) syntax', () => {
+      it.for(testCases)('%s', async (src, { task, expect }) => {
+        const outputDirectory = getOutputDirectoryPath(
+          `${task.name}${task.id}`,
+        );
+
+        await expect(
+          runTigedAPI(`${src}/subdir/file.txt`, outputDirectory, { mode }),
+        ).resolves.not.toThrow();
+
+        await expect(outputDirectory).toMatchFiles({
+          'file.txt': 'hello from a subdirectory!',
+        });
+      });
+    });
+
+    describe('using options.subDirectory', () => {
+      it.for(testCases)('%s', async (src, { task, expect }) => {
+        const outputDirectory = getOutputDirectoryPath(
+          `${task.name}${task.id}`,
+        );
+
+        await expect(
+          runTigedAPI(src, outputDirectory, {
+            mode,
+            subDirectory: 'subdir/file.txt',
+          }),
+        ).resolves.not.toThrow();
+
+        await expect(outputDirectory).toMatchFiles({
+          'file.txt': 'hello from a subdirectory!',
+        });
       });
     });
   });
