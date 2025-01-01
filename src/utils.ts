@@ -101,7 +101,7 @@ export function tryRequire(
  *
  * @internal
  */
-export const exec = promisify(child_process.exec);
+export const executeCommand = promisify(child_process.exec);
 
 export async function isSubDirectoryAFile(
   tarballFilePath: string,
@@ -364,7 +364,7 @@ export const isDirectory = async (filePath: string): Promise<boolean> => {
  */
 export const ensureGitExists = async (): Promise<void> => {
   try {
-    await exec('git --version');
+    await executeCommand('git --version');
   } catch (error) {
     throw new TigedError(
       'could not find git. Make the directory of your git executable is found in your PATH environment variable.',
@@ -488,7 +488,9 @@ export async function fetchRefs(repo: Repo): Promise<
   }[]
 > {
   try {
-    const { stdout } = await exec(`git ls-remote ${repo.url} ${repo.ref}`);
+    const { stdout } = await executeCommand(
+      `git ls-remote ${repo.url} ${repo.ref}`,
+    );
 
     return stdout
       .trim()
@@ -640,13 +642,13 @@ export const getOldHash = async (repo: Repo): Promise<string> => {
     ? repo.ref.split('#').reverse().join(' ')
     : repo.ref;
 
-  await exec('git init', { cwd: temporaryDirectory });
+  await executeCommand('git init', { cwd: temporaryDirectory });
 
-  await exec(`git fetch --depth 1 ${repo.url} ${ref}`, {
+  await executeCommand(`git fetch --depth 1 ${repo.url} ${ref}`, {
     cwd: temporaryDirectory,
   });
 
-  const { stdout } = await exec('git rev-list FETCH_HEAD', {
+  const { stdout } = await executeCommand('git rev-list FETCH_HEAD', {
     cwd: temporaryDirectory,
   });
 

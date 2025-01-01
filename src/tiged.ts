@@ -21,7 +21,7 @@ import {
   addLeadingSlashIfMissing,
   downloadTarball,
   ensureGitExists,
-  exec,
+  executeCommand,
   extractRepositoryInfo,
   extractTarball,
   fetchRefs,
@@ -913,15 +913,17 @@ export class Tiged extends EventEmitter {
     await fs.mkdir(cloneRepoDestination, { recursive: true });
 
     if (isWindows) {
-      await exec(
+      await executeCommand(
         `cd ${cloneRepoDestination} && git init && git remote add origin ${url} && git fetch --depth 1 origin ${ref} && git checkout FETCH_HEAD`,
       );
     } else if (ref && ref !== 'HEAD') {
-      await exec(
+      await executeCommand(
         `cd ${cloneRepoDestination}; git init; git remote add origin ${url}; git fetch --depth 1 origin ${ref}; git checkout FETCH_HEAD`,
       );
     } else {
-      await exec(`git clone --depth 1 ${url} ${cloneRepoDestination}`);
+      await executeCommand(
+        `git clone --depth 1 ${url} ${cloneRepoDestination}`,
+      );
     }
 
     await fs.rm(path.join(cloneRepoDestination, '.git'), {
