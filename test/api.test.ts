@@ -321,6 +321,46 @@ describe('sub-directories', () => {
         });
       });
     });
+
+    describe('does not throw if options.subDirectory is an empty string', () => {
+      it.for(testCases)('%s', async (src, { expect, task }) => {
+        const outputDirectory = getOutputDirectoryPath(
+          `${task.name}${task.id}`,
+        );
+
+        await expect(
+          runTigedAPI(src, outputDirectory, {
+            mode,
+            subDirectory: '',
+          }),
+        ).resolves.not.toThrow();
+
+        await expect(outputDirectory).toMatchFiles({
+          'file.txt': 'hello from github!',
+          subdir: null,
+          'subdir/file.txt': 'hello from a subdirectory!',
+        });
+      });
+    });
+
+    describe('if options.subDirectory is an empty string repo/subdir gets used', () => {
+      it.for(testCases)('%s', async (src, { expect, task }) => {
+        const outputDirectory = getOutputDirectoryPath(
+          `${task.name}${task.id}`,
+        );
+
+        await expect(
+          runTigedAPI(`${src}/subdir`, outputDirectory, {
+            mode,
+            subDirectory: '',
+          }),
+        ).resolves.not.toThrow();
+
+        await expect(outputDirectory).toMatchFiles({
+          'file.txt': 'hello from a subdirectory!',
+        });
+      });
+    });
   });
 });
 
