@@ -7,7 +7,7 @@ const vitestConfig = defineConfig({
   plugins: [
     tsconfigPaths({
       configNames: ['tsconfig.json'],
-      projects: ['./tsconfig.json'],
+      projects: [path.join(import.meta.dirname, 'tsconfig.json')],
       root: import.meta.dirname,
     }),
   ],
@@ -43,6 +43,11 @@ const vitestConfig = defineConfig({
           },
         ]
       : undefined,
+
+    typecheck: {
+      enabled: true,
+      tsconfig: path.join(import.meta.dirname, 'tsconfig.json'),
+    },
 
     watch: false,
     setupFiles: ['./test/vitest.setup.ts'],

@@ -1,16 +1,22 @@
 import * as path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { Options } from 'tsup';
 import { defineConfig } from 'tsup';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const tsupConfig = defineConfig((overrideOptions): Options[] => {
   const commonOptions = {
     clean: true,
+    entry: {
+      index: path.join(__dirname, 'src', 'index.ts'),
+    },
     removeNodeProtocol: false,
     shims: true,
     sourcemap: true,
     splitting: false,
     target: ['esnext', 'node20'],
-    tsconfig: path.resolve('tsconfig.build.json'),
+    tsconfig: path.join(__dirname, 'tsconfig.build.json'),
     ...overrideOptions,
   } satisfies Options;
 
@@ -18,19 +24,19 @@ const tsupConfig = defineConfig((overrideOptions): Options[] => {
     {
       ...commonOptions,
       name: 'Modern ESM',
-      entry: { index: 'src/index.ts' },
       format: ['esm'],
     },
     {
       ...commonOptions,
       name: 'CJS Development',
-      entry: { index: 'src/index.ts' },
       format: ['cjs'],
     },
     {
       ...commonOptions,
       name: 'CLI Development',
-      entry: { bin: 'src/bin.ts' },
+      entry: {
+        bin: path.join(__dirname, 'src', 'bin.ts'),
+      },
       external: ['tiged'],
       format: ['cjs', 'esm'],
       minify: true,
@@ -38,15 +44,17 @@ const tsupConfig = defineConfig((overrideOptions): Options[] => {
     {
       ...commonOptions,
       name: 'ESM Type Definitions',
-      dts: { only: true },
-      entry: { index: 'src/index.ts' },
+      dts: {
+        only: true,
+      },
       format: ['esm'],
     },
     {
       ...commonOptions,
       name: 'CJS Type Definitions',
-      dts: { only: true },
-      entry: { index: 'src/index.ts' },
+      dts: {
+        only: true,
+      },
       format: ['cjs'],
     },
   ];
