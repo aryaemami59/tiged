@@ -1,5 +1,5 @@
 import eslint from '@eslint/js';
-import prettierConfig from 'eslint-config-prettier';
+import prettierConfig from 'eslint-config-prettier/flat';
 import tsEslint from 'typescript-eslint';
 
 /**
@@ -40,10 +40,9 @@ export default tsEslint.config(
       '**/coverage/',
     ],
   },
-  { name: 'javascript', ...eslint.configs.recommended },
+  { name: eslint.meta.name, ...eslint.configs.recommended },
   ...tsEslint.configs.recommended,
   ...tsEslint.configs.stylistic,
-  { name: 'prettier-config', ...prettierConfig },
   {
     name: 'main',
     languageOptions: {
@@ -94,4 +93,5 @@ export default tsEslint.config(
       '@typescript-eslint/consistent-type-definitions': [0],
     },
   },
+  prettierConfig,
 );
