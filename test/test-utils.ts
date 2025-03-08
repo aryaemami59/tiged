@@ -174,7 +174,7 @@ const execFile = promisify(child_process.execFile);
  */
 export const runTigedCLI = async (
   CLIArguments: readonly string[] = [],
-  execFileOptions?: ExecFileOptionsWithOtherEncoding,
+  execFileOptions?: Partial<ExecFileOptionsWithOtherEncoding>,
 ): Promise<{
   stderr: string;
   stdout: string;
