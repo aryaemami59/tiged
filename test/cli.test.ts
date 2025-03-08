@@ -7,7 +7,7 @@ import {
 } from './test-utils.js';
 
 describe('GitHub', () => {
-  describe.each(validModes)('with %s mode', mode => {
+  describe.for(validModes)('with %s mode', mode => {
     it.for([
       'tiged/tiged-test-repo-compose',
       'tiged/tiged-test-repo',
@@ -31,7 +31,7 @@ describe('GitHub', () => {
 });
 
 describe('GitLab', () => {
-  describe.each(validModes)('with %s mode', mode => {
+  describe.for(validModes)('with %s mode', mode => {
     it.for([
       'gitlab:nake89/tiged-test-repo',
       'git@gitlab.com:nake89/tiged-test-repo',
@@ -132,7 +132,7 @@ describe('GitLab', () => {
 });
 
 describe('BitBucket', { timeout: 10_000 }, () => {
-  describe.each(validModes)('with %s mode', mode => {
+  describe.for(validModes)('with %s mode', mode => {
     it.for([
       'bitbucket:nake89/tiged-test-repo',
       'git@bitbucket.org:nake89/tiged-test-repo',
@@ -152,7 +152,7 @@ describe('BitBucket', { timeout: 10_000 }, () => {
 });
 
 describe('SourceHut', () => {
-  describe.each(validModes)('with %s mode', mode => {
+  describe.for(validModes)('with %s mode', mode => {
     it.for([
       'git.sr.ht/~satotake/degit-test-repo',
       'git@git.sr.ht:~satotake/degit-test-repo',
@@ -172,7 +172,7 @@ describe('SourceHut', () => {
 });
 
 describe('Codeberg', () => {
-  describe.each(validModes)('with %s mode', mode => {
+  describe.for(validModes)('with %s mode', mode => {
     it.for([
       'codeberg:joaopalmeiro/tiged-test-repo',
       'git@codeberg.org:joaopalmeiro/tiged-test-repo',
@@ -193,7 +193,7 @@ describe('Codeberg', () => {
 
 // TODO: This falls back to `git` mode if `tar` mode is explicitly set.
 describe('Hugging Face', () => {
-  describe.each(validModes)('with %s mode', mode => {
+  describe.for(validModes)('with %s mode', mode => {
     it.for([
       'huggingface:severo/degit-test-repo',
       'git@huggingface.co:severo/degit-test-repo',
@@ -223,7 +223,7 @@ describe('sub-directories', () => {
     'https://github.com/tiged/tiged-test-repo.git',
   ] as const;
 
-  describe.each(validModes)('with %s mode', mode => {
+  describe.for(validModes)('with %s mode', mode => {
     describe('using inferred sub-directory (repo/subdir) syntax', () => {
       it.for(testCases)('%s', async (src, { expect, task }) => {
         const outputDirectory = getOutputDirectoryPath(
@@ -402,7 +402,7 @@ describe('sub-directories', () => {
 });
 
 describe('non-empty directories', () => {
-  describe.each(validModes)('with %s mode', mode => {
+  describe.for(validModes)('with %s mode', mode => {
     const src = 'tiged/tiged-test-repo';
 
     const outputDirectory = getOutputDirectoryPath(
@@ -434,7 +434,7 @@ describe('non-empty directories', () => {
 });
 
 describe('actions', () => {
-  describe.each(validModes)('with %s mode', mode => {
+  describe.for(validModes)('with %s mode', mode => {
     it('removes specified file', async ({ task }) => {
       const outputDirectory = getOutputDirectoryPath(`${task.name}${task.id}`);
 
@@ -494,7 +494,7 @@ describe('actions', () => {
 });
 
 describe('old hash', () => {
-  describe.each(validModes)('with %s mode', mode => {
+  describe.for(validModes)('with %s mode', mode => {
     it.for([
       'tiged/tiged-test#525e8fef2c6b5e261511adc55f410d83ca5d8256',
       'github:tiged/tiged-test#525e8fef2c6b5e261511adc55f410d83ca5d8256',
@@ -568,7 +568,7 @@ describe('old hash', () => {
 });
 
 describe('is able to clone correctly', () => {
-  describe.each(validModes)('using %s mode', mode => {
+  describe.for(validModes)('using %s mode', mode => {
     it.for([
       'tiged/tiged-test',
       'github:tiged/tiged-test.git',
@@ -598,7 +598,7 @@ describe('can clone a single file', () => {
     'https://github.com/tiged/tiged-test-repo.git',
   ] as const;
 
-  describe.each(validModes)('using %s mode', mode => {
+  describe.for(validModes)('using %s mode', mode => {
     describe('with inferred sub-directory (repo/file.txt) syntax', () => {
       it.for(testCases)('%s', async (src, { task, expect }) => {
         const outputDirectory = getOutputDirectoryPath(
