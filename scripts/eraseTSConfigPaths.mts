@@ -103,6 +103,20 @@ const functions = {
  *
  * @returns A {@linkcode Promise | promise} that resolves when the update is complete.
  *
+ * @example
+ * <caption>#### Add the `tiged` path mappings (default when no subcommand is given)</caption>
+ *
+ * ```bash
+ * npx tsx scripts/eraseTSConfigPaths.mts add
+ * ```
+ *
+ * @example
+ * <caption>#### Remove the `tiged` path mappings</caption>
+ *
+ * ```bash
+ * npx tsx scripts/eraseTSConfigPaths.mts erase
+ * ```
+ *
  * @internal
  * @since 3.0.0
  */
