@@ -66,7 +66,7 @@ const CLIArguments = parseCliArgs<TigedOptions & { help?: string }>(
   },
 );
 
-const [src, destArg] = CLIArguments!._;
+const [src = '', destArg] = CLIArguments!._;
 
 /**
  * Runs the cloning process from the specified source
