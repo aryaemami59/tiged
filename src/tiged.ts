@@ -790,7 +790,7 @@ export class Tiged extends EventEmitter {
    * @throws A {@linkcode TigedError} If the tarball cannot be downloaded.
    * @returns A {@linkcode Promise | promise} that resolves when the cloning and extraction process is complete.
    */
-  private async cloneWithTar(
+  public async cloneWithTar(
     repositoryCacheDirectoryPath: string,
     destinationDirectoryPath: string,
   ): Promise<void> {
@@ -965,7 +965,7 @@ export class Tiged extends EventEmitter {
    * @param _repositoryCacheDirectoryPath - The source directory.
    * @param destinationDirectoryPath - The destination directory.
    */
-  private async cloneWithGit(
+  public async cloneWithGit(
     _repositoryCacheDirectoryPath: string,
     destinationDirectoryPath: string,
   ): Promise<void> {

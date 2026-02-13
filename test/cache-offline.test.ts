@@ -32,24 +32,32 @@ describe('cache + offline behavior (unit)', () => {
   let dir: string;
   let dest: string;
 
-  beforeEach(async () => {
-    dir = await mkTmpDir();
-    dest = await mkTmpDir();
-
-    vi.spyOn(utils, 'downloadTarball').mockImplementation(() => {
+  const downloadTarballSpy = vi
+    .spyOn(utils, 'downloadTarball')
+    .mockImplementation(() => {
       throw new Error('network fetch should not be called in this test');
     });
 
-    // Default exec mock: fail fast if we accidentally try to hit git.
-    vi.spyOn(utils, 'executeCommand').mockImplementation(() => {
+  // Default exec mock: fail fast if we accidentally try to hit git.
+  const executeCommandSpy = vi
+    .spyOn(utils, 'executeCommand')
+    .mockImplementation(() => {
       throw new Error('git exec should not be called in this test');
     });
+
+  beforeEach(async () => {
+    dir = await mkTmpDir();
+    dest = await mkTmpDir();
   });
 
   afterEach(async () => {
-    vi.restoreAllMocks();
+    vi.clearAllMocks();
     await fs.rm(dir, { recursive: true, force: true });
     await fs.rm(dest, { recursive: true, force: true });
+  });
+
+  afterAll(() => {
+    vi.restoreAllMocks();
   });
 
   it('offline mode without cached ref mapping fails with MISSING_REF (and never downloads)', async ({
@@ -61,11 +69,11 @@ describe('cache + offline behavior (unit)', () => {
       mode: 'tar',
     });
 
-    await expect(emitter.clone(dest)).rejects.toMatchObject({
+    await expect(emitter.cloneWithTar(dir, dest)).rejects.toMatchObject({
       code: 'MISSING_REF',
     });
 
-    expect(utils.downloadTarball).not.toHaveBeenCalled();
+    expect(downloadTarballSpy).not.toHaveBeenCalled();
   });
 
   it('offline mode never downloads; throws CACHE_MISS when tarball is missing', async ({
@@ -78,16 +86,15 @@ describe('cache + offline behavior (unit)', () => {
     );
 
     const emitter = createTiged('tiged/tiged-test-repo', {
-      force: true,
-      mode: 'tar',
       offlineMode: true,
+      force: true,
     });
 
-    await expect(emitter.clone(dest)).rejects.toMatchObject({
+    await expect(emitter.cloneWithTar(dir, dest)).rejects.toMatchObject({
       code: 'CACHE_MISS',
     });
 
-    expect(utils.downloadTarball).not.toHaveBeenCalled();
+    expect(downloadTarballSpy).not.toHaveBeenCalled();
   });
 
   it('offline mode accepts a full 40-char commit hash without map.json', async ({
@@ -102,13 +109,12 @@ describe('cache + offline behavior (unit)', () => {
       force: true,
     });
 
-    await expect(emitter.clone(dest)).resolves.toBeUndefined();
-    expect(utils.downloadTarball).not.toHaveBeenCalled();
+    await expect(emitter.cloneWithTar(dir, dest)).resolves.toBeUndefined();
+
+    expect(downloadTarballSpy).not.toHaveBeenCalled();
   });
 
-  it('updateCache does not delete old tarball when still referenced by another ref', async ({
-    expect,
-  }) => {
+  it('updateCache does not delete old tarball when still referenced by another ref', async () => {
     const oldHash = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
     const newHash = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
 
@@ -120,7 +126,7 @@ describe('cache + offline behavior (unit)', () => {
     await touch(path.join(dir, `${oldHash}.tar.gz`));
     await touch(path.join(dir, `${newHash}.tar.gz`));
 
-    vi.mocked(utils.executeCommand).mockResolvedValue({
+    vi.mocked(executeCommandSpy).mockResolvedValue({
       stdout: `${newHash}\trefs/heads/main\n`,
       stderr: '',
     });
@@ -128,10 +134,9 @@ describe('cache + offline behavior (unit)', () => {
     const emitter = createTiged('tiged/tiged-test-repo#main', {
       force: true,
       verbose: false,
-      mode: 'tar',
     });
 
-    await expect(emitter.clone(dest)).resolves.toBeUndefined();
+    await expect(emitter.cloneWithTar(dir, dest)).resolves.toBeUndefined();
 
     // Old tarball should remain because dev still points to it.
     await expect(
@@ -164,7 +169,7 @@ describe('cache + offline behavior (unit)', () => {
       verbose: false,
     });
 
-    await expect(emitter.clone(dest)).resolves.toBeUndefined();
+    await expect(emitter.cloneWithTar(dir, dest)).resolves.toBeUndefined();
 
     await expect(
       fs.stat(path.join(dir, `${oldHash}.tar.gz`)),

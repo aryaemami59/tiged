@@ -15,7 +15,9 @@ describe('GitHub', () => {
       'git@github.com:tiged/tiged-test-repo',
       'https://github.com/tiged/tiged-test-repo.git',
     ] as const)('%s', async (src, { expect, task }) => {
-      const outputDirectory = getOutputDirectoryPath(`${task.name}${task.id}`);
+      const outputDirectory = getOutputDirectoryPath(
+        `${task.fullName}-${task.id}`,
+      );
 
       await expect(
         runTigedCLI(['--mode', mode, src, outputDirectory]),
@@ -37,7 +39,9 @@ describe('GitLab', () => {
       'git@gitlab.com:nake89/tiged-test-repo',
       'https://gitlab.com/nake89/tiged-test-repo.git',
     ] as const)('%s', async (src, { expect, task }) => {
-      const outputDirectory = getOutputDirectoryPath(`${task.name}${task.id}`);
+      const outputDirectory = getOutputDirectoryPath(
+        `${task.fullName}-${task.id}`,
+      );
 
       await expect(
         runTigedCLI(['--mode', mode, src, outputDirectory]),
@@ -59,7 +63,7 @@ describe('GitLab', () => {
 
       it.for(testCases)('%s', async (src, { expect, task }) => {
         const outputDirectory = getOutputDirectoryPath(
-          `${task.name}${task.id}`,
+          `${task.fullName}-${task.id}`,
         );
 
         await expect(
@@ -79,7 +83,7 @@ describe('GitLab', () => {
       describe('with sub-directory', () => {
         it.for(testCases)('%s', async (src, { expect, task }) => {
           const outputDirectory = getOutputDirectoryPath(
-            `${task.name}${task.id}`,
+            `${task.fullName}-${task.id}`,
           );
 
           await expect(
@@ -106,7 +110,7 @@ describe('GitLab', () => {
       describe('with nested sub-directory', () => {
         it.for(testCases)('%s', async (src, { expect, task }) => {
           const outputDirectory = getOutputDirectoryPath(
-            `${task.name}${task.id}`,
+            `${task.fullName}-${task.id}`,
           );
 
           await expect(
@@ -138,7 +142,9 @@ describe('BitBucket', { timeout: 10_000 }, () => {
       'git@bitbucket.org:nake89/tiged-test-repo',
       'https://bitbucket.org/nake89/tiged-test-repo.git',
     ] as const)('%s', async (src, { expect, task }) => {
-      const outputDirectory = getOutputDirectoryPath(`${task.name}${task.id}`);
+      const outputDirectory = getOutputDirectoryPath(
+        `${task.fullName}-${task.id}`,
+      );
 
       await expect(
         runTigedCLI(['--mode', mode, src, outputDirectory]),
@@ -158,7 +164,9 @@ describe('SourceHut', () => {
       'git@git.sr.ht:~satotake/degit-test-repo',
       'https://git.sr.ht/~satotake/degit-test-repo.git',
     ] as const)('%s', async (src, { expect, task }) => {
-      const outputDirectory = getOutputDirectoryPath(`${task.name}${task.id}`);
+      const outputDirectory = getOutputDirectoryPath(
+        `${task.fullName}-${task.id}`,
+      );
 
       await expect(
         runTigedCLI(['--mode', mode, src, outputDirectory]),
@@ -178,7 +186,9 @@ describe('Codeberg', () => {
       'git@codeberg.org:joaopalmeiro/tiged-test-repo',
       'https://codeberg.org/joaopalmeiro/tiged-test-repo.git',
     ] as const)('%s', async (src, { expect, task }) => {
-      const outputDirectory = getOutputDirectoryPath(`${task.name}${task.id}`);
+      const outputDirectory = getOutputDirectoryPath(
+        `${task.fullName}-${task.id}`,
+      );
 
       await expect(
         runTigedCLI(['--mode', mode, src, outputDirectory]),
@@ -199,7 +209,9 @@ describe('Hugging Face', () => {
       'git@huggingface.co:severo/degit-test-repo',
       'https://huggingface.co/severo/degit-test-repo.git',
     ] as const)('%s', async (src, { expect, task }) => {
-      const outputDirectory = getOutputDirectoryPath(`${task.name}${task.id}`);
+      const outputDirectory = getOutputDirectoryPath(
+        `${task.fullName}-${task.id}`,
+      );
 
       await expect(
         runTigedCLI([src, '--mode', mode, outputDirectory]),
@@ -227,7 +239,7 @@ describe('sub-directories', () => {
     describe('using inferred sub-directory (repo/subdir) syntax', () => {
       it.for(testCases)('%s', async (src, { expect, task }) => {
         const outputDirectory = getOutputDirectoryPath(
-          `${task.name}${task.id}`,
+          `${task.fullName}-${task.id}`,
         );
 
         await expect(
@@ -243,7 +255,7 @@ describe('sub-directories', () => {
     describe('using --sub-directory', () => {
       it.for(testCases)('%s', async (src, { expect, task }) => {
         const outputDirectory = getOutputDirectoryPath(
-          `${task.name}${task.id}`,
+          `${task.fullName}-${task.id}`,
         );
 
         await expect(
@@ -267,7 +279,7 @@ describe('sub-directories', () => {
       describe('using inferred sub-directory (repo/subdir) syntax', () => {
         it.for(testCases)('%s', async (src, { expect, task }) => {
           const outputDirectory = getOutputDirectoryPath(
-            `${task.name}${task.id}`,
+            `${task.fullName}-${task.id}`,
           );
 
           await expect(
@@ -286,7 +298,7 @@ describe('sub-directories', () => {
       describe('using --sub-directory', () => {
         it.for(testCases)('%s', async (src, { expect, task }) => {
           const outputDirectory = getOutputDirectoryPath(
-            `${task.name}${task.id}`,
+            `${task.fullName}-${task.id}`,
           );
 
           await expect(
@@ -308,7 +320,7 @@ describe('sub-directories', () => {
     describe('using both --sub-directory and repo/subdir', () => {
       it.for(testCases)('%s', async (src, { expect, task }) => {
         const outputDirectory = getOutputDirectoryPath(
-          `${task.name}${task.id}`,
+          `${task.fullName}-${task.id}`,
         );
 
         await expect(
@@ -331,7 +343,7 @@ describe('sub-directories', () => {
     describe('--sub-directory overrides repo/subdir', () => {
       it.for(testCases)('%s', async (src, { expect, task }) => {
         const outputDirectory = getOutputDirectoryPath(
-          `${task.name}${task.id}`,
+          `${task.fullName}-${task.id}`,
         );
 
         await expect(
@@ -354,7 +366,7 @@ describe('sub-directories', () => {
     describe('does not throw if --sub-directory is an empty string', () => {
       it.for(testCases)('%s', async (src, { expect, task }) => {
         const outputDirectory = getOutputDirectoryPath(
-          `${task.name}${task.id}`,
+          `${task.fullName}-${task.id}`,
         );
 
         await expect(
@@ -379,7 +391,7 @@ describe('sub-directories', () => {
     describe('if --sub-directory is an empty string repo/subdir gets used', () => {
       it.for(testCases)('%s', async (src, { expect, task }) => {
         const outputDirectory = getOutputDirectoryPath(
-          `${task.name}${task.id}`,
+          `${task.fullName}-${task.id}`,
         );
 
         await expect(
@@ -421,7 +433,9 @@ describe('non-empty directories', () => {
       expect,
       task,
     }) => {
-      const outputDirectory = getOutputDirectoryPath(`${task.name}${task.id}`);
+      const outputDirectory = getOutputDirectoryPath(
+        `${task.fullName}-${task.id}`,
+      );
 
       await expect(
         runTigedCLI(['--mode', mode, src, outputDirectory]),
@@ -453,7 +467,7 @@ describe('non-empty directories', () => {
       { todo: mode === 'git' },
       async ({ expect, task }) => {
         const outputDirectory = getOutputDirectoryPath(
-          `${task.name}${task.id}`,
+          `${task.fullName}-${task.id}`,
         );
 
         await expect(
@@ -476,7 +490,7 @@ describe('non-empty directories', () => {
       let outputDirectory: string;
 
       it('fails without --force', async ({ expect, task }) => {
-        outputDirectory = getOutputDirectoryPath(`${task.name}${task.id}`);
+        outputDirectory = getOutputDirectoryPath(`${task.fullName}-${task.id}`);
 
         await fs.mkdir(outputDirectory, {
           recursive: true,
@@ -537,7 +551,9 @@ describe('non-empty directories', () => {
 describe('can clone one file', () => {
   describe.for(validModes.slice(0, 1))('with %s mode', mode => {
     it('can clone one file', async ({ expect, task }) => {
-      const outputDirectory = getOutputDirectoryPath(`${task.name}${task.id}`);
+      const outputDirectory = getOutputDirectoryPath(
+        `${task.fullName}-${task.id}`,
+      );
 
       await expect(
         runTigedCLI([
@@ -559,7 +575,9 @@ describe('can clone one file', () => {
 describe('actions', () => {
   describe.for(validModes)('with %s mode', mode => {
     it('removes specified file', async ({ task }) => {
-      const outputDirectory = getOutputDirectoryPath(`${task.name}${task.id}`);
+      const outputDirectory = getOutputDirectoryPath(
+        `${task.fullName}-${task.id}`,
+      );
 
       await expect(
         runTigedCLI([
@@ -574,7 +592,9 @@ describe('actions', () => {
     });
 
     it('clones repo and removes specified file', async ({ task }) => {
-      const outputDirectory = getOutputDirectoryPath(`${task.name}${task.id}`);
+      const outputDirectory = getOutputDirectoryPath(
+        `${task.fullName}-${task.id}`,
+      );
 
       await expect(
         runTigedCLI([
@@ -593,7 +613,9 @@ describe('actions', () => {
     });
 
     it('removes and adds nested files', async ({ task }) => {
-      const outputDirectory = getOutputDirectoryPath(`${task.name}${task.id}`);
+      const outputDirectory = getOutputDirectoryPath(
+        `${task.fullName}-${task.id}`,
+      );
 
       await expect(
         runTigedCLI([
@@ -625,7 +647,9 @@ describe('old hash', () => {
       'https://github.com/tiged/tiged-test#525e8fef2c6b5e261511adc55f410d83ca5d8256',
       'https://github.com/tiged/tiged-test.git#525e8fef2c6b5e261511adc55f410d83ca5d8256',
     ] as const)('%s', async (src, { expect, task }) => {
-      const outputDirectory = getOutputDirectoryPath(`${task.name}${task.id}`);
+      const outputDirectory = getOutputDirectoryPath(
+        `${task.fullName}-${task.id}`,
+      );
 
       await expect(
         runTigedCLI(['--mode', mode, src, outputDirectory]),
@@ -648,7 +672,7 @@ describe('old hash', () => {
         'https://github.com/tiged/tiged-test#HEAD#525e8fef2c6b5e261511adc55f410d83ca5d8256.git',
       ] as const)('%s', async (src, { expect, task }) => {
         const outputDirectory = getOutputDirectoryPath(
-          `${task.name}${task.id}`,
+          `${task.fullName}-${task.id}`,
         );
 
         await expect(
@@ -675,7 +699,7 @@ describe('old hash', () => {
         'https://github.com/tiged/tiged-test/subdir#HEAD#b09755bc4cca3d3b398fbe5e411daeae79869581.git',
       ] as const)('%s', async (src, { expect, task }) => {
         const outputDirectory = getOutputDirectoryPath(
-          `${task.name}${task.id}`,
+          `${task.fullName}-${task.id}`,
         );
 
         await expect(
@@ -698,7 +722,9 @@ describe('is able to clone correctly', () => {
       'git@github.com:tiged/tiged-test.git',
       'https://github.com/tiged/tiged-test.git',
     ] as const)('%s', async (src, { expect, task }) => {
-      const outputDirectory = getOutputDirectoryPath(`${task.name}${task.id}`);
+      const outputDirectory = getOutputDirectoryPath(
+        `${task.fullName}-${task.id}`,
+      );
 
       await expect(
         runTigedCLI(['--mode', mode, src, outputDirectory]),
@@ -725,7 +751,7 @@ describe('can clone a single file', () => {
     describe('with inferred sub-directory (repo/file.txt) syntax', () => {
       it.for(testCases)('%s', async (src, { expect, task }) => {
         const outputDirectory = getOutputDirectoryPath(
-          `${task.name}${task.id}`,
+          `${task.fullName}-${task.id}`,
         );
 
         await expect(
@@ -746,7 +772,7 @@ describe('can clone a single file', () => {
     describe('using --sub-directory', () => {
       it.for(testCases)('%s', async (src, { expect, task }) => {
         const outputDirectory = getOutputDirectoryPath(
-          `${task.name}${task.id}`,
+          `${task.fullName}-${task.id}`,
         );
 
         await expect(
@@ -770,7 +796,9 @@ describe('can clone a single file', () => {
 
 describe('commit hash', () => {
   it('is able to clone non ref hash', async ({ expect, task }) => {
-    const outputDirectory = getOutputDirectoryPath(`${task.name}${task.id}`);
+    const outputDirectory = getOutputDirectoryPath(
+      `${task.fullName}-${task.id}`,
+    );
 
     await expect(
       runTigedCLI([
