@@ -36,6 +36,23 @@ import {
 const { blue, bold, cyanBright, greenBright, magentaBright, red } = picocolors;
 
 /**
+ * Creates a new instance of the {@linkcode Tiged} class with
+ * the specified source and options.
+ *
+ * ### Note: This function was previously named **`tiged`**.
+ *
+ * @param src - The source path to clone from.
+ * @param tigedOptions - The optional configuration options.
+ * @returns A new instance of the {@linkcode Tiged} class.
+ *
+ * @public
+ * @since 3.0.0
+ */
+export function createTiged(src: string, tigedOptions?: TigedOptions): Tiged {
+  return new Tiged(src, tigedOptions);
+}
+
+/**
  * The {@linkcode Tiged} class is a tool for cloning repositories
  * with customizable options.
  *
@@ -355,6 +372,19 @@ export class Tiged extends EventEmitter {
   };
 
   /**
+   * Retrieves the HTTPS proxy from the environment variables.
+   *
+   * @returns The HTTPS proxy value, or `undefined` if not found.
+   */
+  public getHttpsProxy(): string | undefined {
+    const result = process.env.https_proxy;
+    if (!result) {
+      return process.env.HTTPS_PROXY;
+    }
+    return result;
+  }
+
+  /**
    * Constructs a new {@linkcode Tiged} instance with the
    * specified source and options.
    *
@@ -439,7 +469,7 @@ export class Tiged extends EventEmitter {
   /**
    * Clones the repository to the specified destination.
    *
-   * @param destinationDirectoryName - The destination directory where the repository will be cloned (default: **{@linkcode Tiged.repo.name}**).
+   * @param [destinationDirectoryName] - The destination directory where the repository will be cloned (default: **{@linkcode repo.name}**).
    */
   public async clone(destinationDirectoryName?: string): Promise<void> {
     const { repo } = this;
@@ -593,7 +623,7 @@ export class Tiged extends EventEmitter {
    *
    * @param directoryPath - The directory path to check.
    */
-  private async checkDirIsEmpty(directoryPath: string): Promise<void> {
+  public async checkDirIsEmpty(directoryPath: string): Promise<void> {
     try {
       const files = await fs.readdir(directoryPath, {
         encoding: 'utf-8',
@@ -626,7 +656,7 @@ export class Tiged extends EventEmitter {
         this.logVerbose({
           code: 'DEST_IS_EMPTY',
           dest: directoryPath,
-          message: `destination directory is empty`,
+          message: 'destination directory is empty',
           repo: this.repo,
         });
       }
@@ -808,10 +838,8 @@ export class Tiged extends EventEmitter {
     const hash = this.offlineMode
       ? isFullCommitHash
         ? repo.ref
-        : await this.getHashFromCache(repo, cached)
-      : this.disableCache
-        ? await this.getHash(repo, cached)
-        : await this.getHashFromCache(repo, cached);
+        : cached[repo.ref]
+      : await this.getHash(repo, cached);
 
     // const subdir = repo.subDirectory
     //   ? `${repo.name}-${hash}${repo.subDirectory}`
@@ -835,7 +863,7 @@ export class Tiged extends EventEmitter {
     const tarballFileName = `${hash}.tar.gz`;
 
     const tarballFilePath = path.join(
-      destinationDirectoryPath,
+      repositoryCacheDirectoryPath,
       tarballFileName,
     );
 
@@ -910,9 +938,10 @@ export class Tiged extends EventEmitter {
             message: `downloading ${bold(url)} to ${bold(tarballFilePath)}\n`,
             repo,
           });
+
+          await downloadTarball(url, tarballFilePath, this.proxy);
         }
       }
-      await downloadTarball(url, tarballFilePath, this.proxy);
     } catch (error) {
       if (error instanceof TigedError) {
         throw error;
@@ -1067,18 +1096,4 @@ export class Tiged extends EventEmitter {
       });
     }
   }
-}
-
-/**
- * Creates a new instance of the {@linkcode Tiged} class with
- * the specified source and options.
- *
- * @param src - The source path to clone from.
- * @param tigedOptions - The optional configuration options.
- * @returns A new instance of the {@linkcode Tiged} class.
- *
- * @public
- */
-export function createTiged(src: string, tigedOptions?: TigedOptions): Tiged {
-  return new Tiged(src, tigedOptions);
 }

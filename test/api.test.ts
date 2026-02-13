@@ -431,7 +431,7 @@ describe('non-empty directories', () => {
     });
 
     // TODO: Make sure this can work in git mode.
-    it('can clone a single file', { todo: true }, async ({ expect, task }) => {
+    it('can clone a single file', async ({ expect, task }) => {
       const outputDirectory = getOutputDirectoryPath(`${task.name}-${task.id}`);
 
       await expect(
@@ -444,7 +444,7 @@ describe('non-empty directories', () => {
     });
 
     // TODO: Make sure this can work in git mode.
-    describe('single file with options.force', { todo: true }, () => {
+    describe('single file with options.force', () => {
       const outputDirectory: string = getOutputDirectoryPath(
         `single-file-with-options.force-${mode}-mode`,
       );
@@ -535,7 +535,7 @@ describe('can clone one file', () => {
 
 describe('actions', () => {
   describe.for(validModes)('with %s mode', mode => {
-    it('removes specified file', async ({ task }) => {
+    it('removes specified file', async ({ expect, task }) => {
       const outputDirectory = getOutputDirectoryPath(`${task.name}-${task.id}`);
 
       await expect(
@@ -547,7 +547,7 @@ describe('actions', () => {
       await expect(outputDirectory).toMatchFiles({});
     });
 
-    it('clones repo and removes specified file', async ({ task }) => {
+    it('clones repo and removes specified file', async ({ expect, task }) => {
       const outputDirectory = getOutputDirectoryPath(`${task.name}-${task.id}`);
 
       await expect(
@@ -561,7 +561,7 @@ describe('actions', () => {
       });
     });
 
-    it('removes and adds nested files', async ({ task }) => {
+    it('removes and adds nested files', async ({ expect, task }) => {
       const outputDirectory = getOutputDirectoryPath(`${task.name}-${task.id}`);
 
       await expect(
