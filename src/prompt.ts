@@ -1,6 +1,6 @@
-import readline from 'node:readline';
-import readlinePromises from 'node:readline/promises';
 import { stdin as input, stdout as output } from 'node:process';
+import * as readline from 'node:readline';
+import * as readlinePromises from 'node:readline/promises';
 
 const defaultListLimit = 10;
 
@@ -116,7 +116,7 @@ export const promptAutocomplete = async (config: AutocompletePromptConfig) => {
       readline.clearScreenDown(output);
     }
 
-    const header = `${config.message}`;
+    const header = config.message;
     const inputLine = `Search or select number: ${inputValue}`;
     const body = currentChoices.length
       ? renderChoices(currentChoices)
