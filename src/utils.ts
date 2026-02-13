@@ -282,11 +282,9 @@ export async function downloadTarball(
     const requestWithRedirects = async (
       currentUrl: string,
       redirects: number,
-    ): Promise<{
-      statusCode: number;
-      statusText?: string;
-      body: Dispatcher.ResponseData['body'];
-    }> => {
+    ): Promise<
+      Pick<Dispatcher.ResponseData, 'body' | 'statusCode' | 'statusText'>
+    > => {
       if (redirects > maxRedirects) {
         throw new Error('Too many redirects');
       }

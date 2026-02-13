@@ -53,7 +53,9 @@ export type TigedOptions = {
   mode?: ValidModes;
 
   /**
-   * Specifies whether to enable offline mode.
+   * Enables offline mode, where operations rely on cached data.
+   *
+   * **CLI-Equivalent**: **`-o`**, **`--offline-mode`**, **`--offlineMode`**
    *
    * @default false
    */
@@ -114,50 +116,54 @@ export type TigedOptions = {
  */
 export type Repo = {
   /**
-   * The name of the repository (e.g., tiged-test-repo, degit-test-repo).
+   * The name of the repository (e.g., `tiged-test-repo`, `degit-test-repo`).
    */
   name: string;
 
   /**
-   * The reference to a specific branch, commit, or tag in the repository (e.g., HEAD, b09755bc4cca3d3b398fbe5e411daeae79869581).
+   * The reference to a specific branch, commit, or tag in the repository
+   * (e.g., `HEAD`, `b09755bc4cca3d3b398fbe5e411daeae79869581`).
    *
    * @default 'HEAD'
    */
   ref: string;
 
   /**
-   * The hosting service or site for the repository (e.g., github, gitlab).
+   * The hosting service or site for the repository (e.g., `github`, `gitlab`).
    *
    * @default 'github'
    */
   site: string;
 
   /**
-   * The SSH URL to access the repository for Git operations (e.g., git@github.com:tiged/tiged-test, git@github.com:tiged/tiged-test-repo).
+   * The SSH URL to access the repository for Git
+   * operations (e.g., `git@github.com:tiged/tiged-test`, `git@github.com:tiged/tiged-test-repo`).
    */
   ssh: string;
 
   /**
    * Optional. A specific subdirectory within the repository to work with,
-   * if applicable (e.g., /subdir, /test-repo).
+   * if applicable (e.g., `/subdir`, `/test-repo`).
    */
   subDirectory: string;
 
   /**
    * Optional. Indicates whether the repository belongs to a subgroup,
-   * if supported by the hosting service.
+   * if supported by the hosting service (**GitLab only**).
    *
    * @default false
    */
   subgroup?: boolean;
 
   /**
-   * The URL to access the repository via HTTP or HTTPS (e.g., https://github.com/tiged/tiged-test, https://github.com/tiged/tiged-test-repo).
+   * The URL to access the repository via HTTP or HTTPS
+   * (e.g., `https://github.com/tiged/tiged-test`, `https://github.com/tiged/tiged-test-repo`).
    */
   url: string;
 
   /**
-   * The username or organization under which the repository is located (e.g., tiged, nake89).
+   * The username or organization under which the repository is located
+   * (e.g., `tiged`, `nake89`).
    */
   user: string;
 };
@@ -256,7 +262,7 @@ export type TigedAction = Action & {
 };
 
 /**
- * Represents a remove action.
+ * Represents a `remove` action.
  *
  * @public
  * @since 3.0.0
@@ -274,7 +280,7 @@ export type RemoveAction = Action & {
 };
 
 /**
- * Represents the possible error codes for the Tiged utility.
+ * Represents the possible error codes for the **`Tiged`** utility.
  *
  * @internal
  * @since 3.0.0
@@ -295,7 +301,7 @@ type TigedErrorCode =
   | 'UNSUPPORTED_HOST';
 
 /**
- * Represents the options for a Tiged error.
+ * Represents the options for a **`Tiged`** error.
  *
  * @internal
  * @since 3.0.0
@@ -322,6 +328,9 @@ export type TigedErrorOptions = ErrorOptions & {
   url?: string | undefined;
 };
 
+/**
+ * @internal
+ */
 export type DamerauLevenshteinResult = {
   steps: number;
   relative: number;

@@ -32,53 +32,40 @@ describe('cache + offline behavior (unit)', () => {
   let dir: string;
   let dest: string;
 
-  const downloadTarballSpy = vi
-    .spyOn(utils, 'downloadTarball')
-    .mockImplementation(() => {
-      throw new Error('network fetch should not be called in this test');
-    });
-
-  // Default exec mock: fail fast if we accidentally try to hit git.
-  const executeCommandSpy = vi
-    .spyOn(utils, 'executeCommand')
-    .mockImplementation(() => {
-      throw new Error('git exec should not be called in this test');
-    });
-
   beforeEach(async () => {
     dir = await mkTmpDir();
     dest = await mkTmpDir();
+
+    vi.spyOn(utils, 'downloadTarball').mockImplementation(() => {
+      throw new Error('network fetch should not be called in this test');
+    });
+
+    // Default exec mock: fail fast if we accidentally try to hit git.
+    vi.spyOn(utils, 'executeCommand').mockImplementation(() => {
+      throw new Error('git exec should not be called in this test');
+    });
   });
 
   afterEach(async () => {
-    vi.clearAllMocks();
+    vi.restoreAllMocks();
     await fs.rm(dir, { recursive: true, force: true });
     await fs.rm(dest, { recursive: true, force: true });
   });
 
-  afterAll(() => {
-    vi.restoreAllMocks();
-  });
-
-  it('offline mode without cached ref mapping fails with MISSING_REF (and never downloads)', async ({
-    expect,
-  }) => {
+  it('offline mode without cached ref mapping fails with MISSING_REF (and never downloads)', async () => {
     const emitter = createTiged('tiged/tiged-test-repo', {
-      force: true,
       offlineMode: true,
-      mode: 'tar',
+      force: true,
     });
 
     await expect(emitter.cloneWithTar(dir, dest)).rejects.toMatchObject({
       code: 'MISSING_REF',
     });
 
-    expect(downloadTarballSpy).not.toHaveBeenCalled();
+    expect(utils.downloadTarball).not.toHaveBeenCalled();
   });
 
-  it('offline mode never downloads; throws CACHE_MISS when tarball is missing', async ({
-    expect,
-  }) => {
+  it('offline mode never downloads; throws CACHE_MISS when tarball is missing', async () => {
     const hash = 'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee';
     await fs.writeFile(
       path.join(dir, 'map.json'),
@@ -94,12 +81,10 @@ describe('cache + offline behavior (unit)', () => {
       code: 'CACHE_MISS',
     });
 
-    expect(downloadTarballSpy).not.toHaveBeenCalled();
+    expect(utils.downloadTarball).not.toHaveBeenCalled();
   });
 
-  it('offline mode accepts a full 40-char commit hash without map.json', async ({
-    expect,
-  }) => {
+  it('offline mode accepts a full 40-char commit hash without map.json', async () => {
     const hash = '0123456789abcdef0123456789abcdef01234567';
     const tarPath = path.join(dir, `${hash}.tar.gz`);
     await touch(tarPath);
@@ -110,8 +95,7 @@ describe('cache + offline behavior (unit)', () => {
     });
 
     await expect(emitter.cloneWithTar(dir, dest)).resolves.toBeUndefined();
-
-    expect(downloadTarballSpy).not.toHaveBeenCalled();
+    expect(utils.downloadTarball).not.toHaveBeenCalled();
   });
 
   it('updateCache does not delete old tarball when still referenced by another ref', async () => {
@@ -126,10 +110,9 @@ describe('cache + offline behavior (unit)', () => {
     await touch(path.join(dir, `${oldHash}.tar.gz`));
     await touch(path.join(dir, `${newHash}.tar.gz`));
 
-    vi.mocked(executeCommandSpy).mockResolvedValue({
-      stdout: `${newHash}\trefs/heads/main\n`,
-      stderr: '',
-    });
+    const fetchRefsSpy = vi
+      .spyOn(utils, 'fetchRefs')
+      .mockResolvedValueOnce([{ hash: newHash, name: 'main', type: 'branch' }]);
 
     const emitter = createTiged('tiged/tiged-test-repo#main', {
       force: true,
@@ -142,11 +125,11 @@ describe('cache + offline behavior (unit)', () => {
     await expect(
       fs.stat(path.join(dir, `${oldHash}.tar.gz`)),
     ).resolves.toBeTypeOf('object');
+
+    fetchRefsSpy.mockRestore();
   });
 
-  it('updateCache deletes old tarball when no refs reference it anymore', async ({
-    expect,
-  }) => {
+  it('updateCache deletes old tarball when no refs reference it anymore', async () => {
     const oldHash = 'cccccccccccccccccccccccccccccccccccccccc';
     const newHash = 'dddddddddddddddddddddddddddddddddddddddd';
 
@@ -158,13 +141,11 @@ describe('cache + offline behavior (unit)', () => {
     await touch(path.join(dir, `${oldHash}.tar.gz`));
     await touch(path.join(dir, `${newHash}.tar.gz`));
 
-    vi.mocked(utils.executeCommand).mockResolvedValue({
-      stdout: `${newHash}\trefs/heads/main\n`,
-      stderr: '',
-    });
+    const fetchRefsSpy = vi
+      .spyOn(utils, 'fetchRefs')
+      .mockResolvedValueOnce([{ hash: newHash, name: 'main', type: 'branch' }]);
 
     const emitter = createTiged('tiged/tiged-test-repo#main', {
-      mode: 'tar',
       force: true,
       verbose: false,
     });
@@ -174,5 +155,7 @@ describe('cache + offline behavior (unit)', () => {
     await expect(
       fs.stat(path.join(dir, `${oldHash}.tar.gz`)),
     ).rejects.toMatchObject({ code: 'ENOENT' });
+
+    fetchRefsSpy.mockRestore();
   });
 });

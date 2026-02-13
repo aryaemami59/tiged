@@ -71,6 +71,8 @@ export class Tiged extends EventEmitter {
   /**
    * Enables offline mode, where operations rely on cached data.
    *
+   * **CLI-Equivalent**: **`-o`**, **`--offline-mode`**, **`--offlineMode`**
+   *
    * @default false
    */
   declare public offlineMode?: boolean;
@@ -407,7 +409,7 @@ export class Tiged extends EventEmitter {
    * @param destinationDirectoryPath - The destination path.
    * @returns An array of {@linkcode TigedAction} directives, or `false` if no directives are found.
    */
-  private async getDirectives(
+  public async getDirectives(
     destinationDirectoryPath: string,
   ): Promise<false | (TigedAction | RemoveAction)[]> {
     const directivesPath = path.join(
@@ -640,7 +642,7 @@ export class Tiged extends EventEmitter {
    *
    * @param info - The information to be emitted.
    */
-  private info(info: Info): void {
+  public info(info: Info): void {
     this.emit('info', info);
   }
 
@@ -663,7 +665,7 @@ export class Tiged extends EventEmitter {
    *
    * @param info - The information to be logged.
    */
-  private logVerbose(info: Info): void {
+  public logVerbose(info: Info): void {
     if (this.verbose) {
       this.info(info);
     }
@@ -676,7 +678,7 @@ export class Tiged extends EventEmitter {
    * @param cached - The cached records.
    * @returns The hash value.
    */
-  private async getHash(
+  public async getHash(
     repo: Repo,
     cached: Partial<Record<string, string>>,
   ): Promise<string | undefined> {
@@ -726,7 +728,7 @@ export class Tiged extends EventEmitter {
    * @param cached - The cached commit hashes.
    * @returns The commit hash if found in the cache; otherwise, `undefined`.
    */
-  private async getHashFromCache(
+  public async getHashFromCache(
     repo: Repo,
     cached: Partial<Record<string, string>>,
   ): Promise<string | undefined> {
@@ -752,7 +754,7 @@ export class Tiged extends EventEmitter {
    * @param selector - The selector used to match the desired reference.
    * @returns The commit hash that matches the selector, or `undefined` if no match is found.
    */
-  private selectRef(
+  public selectRef(
     refs: { hash: string; name: string; type: string }[],
     selector: string,
   ): string | undefined {

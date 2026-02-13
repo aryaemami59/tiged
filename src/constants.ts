@@ -40,7 +40,7 @@ export const stashDirectoryName = 'tmp';
 export const tigedConfigFileName = 'degit.json';
 
 /**
- * The absolute path to the cache directory used by the `tiged`.
+ * The absolute path to the cache directory used by **`tiged`**.
  *
  * @internal
  * @since 3.0.0
@@ -51,11 +51,11 @@ export const legacyCacheDirectoryPath = /* @__PURE__ */ path.join(
 );
 
 /**
- * A set of valid modes of operation for `tiged`.
+ * A set of valid modes of operation for **`tiged`**.
  *
  * This set includes the following modes:
- * - `'tar'`: Represents the tar mode.
- * - `'git'`: Represents the git mode.
+ * - **`'tar'`**: Represents the **`tar`** mode.
+ * - **`'git'`**: Represents the **`git`** mode.
  *
  * @internal
  * @since 3.0.0
@@ -75,7 +75,7 @@ export const validModes = /* @__PURE__ */ new Set([
 export const accessLogsFileName = 'access.json';
 
 /**
- * Default options used by `tiged`.
+ * Default options used by **`tiged`**.
  *
  * @internal
  * @since 3.0.0
@@ -99,7 +99,7 @@ export const tigedDefaultOptions = {
  * @since 3.0.0
  */
 export const supportedHosts = {
-  bitbucket: { name: 'BitBucket', topLevelDomain: '.com' },
+  bitbucket: { name: 'BitBucket', topLevelDomain: '.org' },
   codeberg: { name: 'Codeberg', topLevelDomain: '.org' },
   'git.sr': { name: 'SourceHut', topLevelDomain: '.ht' },
   github: { name: 'GitHub', topLevelDomain: '.com' },
