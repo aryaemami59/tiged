@@ -211,11 +211,15 @@ async function main(): Promise<void> {
       message: 'Repo to clone?',
       suggest(input: string, suggestChoices) {
         const query = input.trim();
-        if (!query) return suggestChoices;
+        if (!query) {
+          return suggestChoices;
+        }
         const queryLower = query.toLowerCase();
         return suggestChoices.filter(({ value }) => {
           const valueLower = value.toLowerCase();
-          if (valueLower.includes(queryLower)) return true;
+          if (valueLower.includes(queryLower)) {
+            return true;
+          }
           return damerauLevenshteinSimilarity(queryLower, valueLower) >= 0.5;
         });
       },

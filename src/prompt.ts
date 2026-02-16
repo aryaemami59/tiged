@@ -139,7 +139,9 @@ export const promptAutocomplete = async (config: AutocompletePromptConfig) => {
 
   let isClosed = false;
   const cleanup = () => {
-    if (isClosed) return;
+    if (isClosed) {
+      return;
+    }
     isClosed = true;
     if (input.isTTY) {
       input.setRawMode(false);
