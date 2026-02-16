@@ -334,7 +334,7 @@ export async function untarToDir(
       continue;
     }
 
-    let outRelPosix = '';
+    let outRelPosix: string;
     if (!subdirNorm) {
       // When extracting a full repo tarball, the archive usually contains a
       // top-level folder entry ("<repo>-<hash>/"). After stripping that, the
