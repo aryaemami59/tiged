@@ -1062,7 +1062,13 @@ export class Tiged extends EventEmitter {
 
       const tempSubDirectoryStats = await fs.lstat(tempSubDirectory);
 
-      const resolvedTempSubDirectory = tempSubDirectoryStats.isFile()
+      const isSubDirectoryFile = tempSubDirectoryStats.isFile();
+
+      const isRootFile =
+        isSubDirectoryFile &&
+        path.dirname(tempSubDirectory) === cloneRepoDestination;
+
+      const resolvedTempSubDirectory = isSubDirectoryFile
         ? path.dirname(tempSubDirectory)
         : tempSubDirectory;
 
@@ -1070,14 +1076,30 @@ export class Tiged extends EventEmitter {
         encoding: 'utf-8',
       });
 
-      await Promise.all(
-        filesToExtract.map(async fileToExtract =>
-          fs.rename(
-            path.join(resolvedTempSubDirectory, fileToExtract),
-            path.join(destinationDirectoryPath, fileToExtract),
+      if (isRootFile) {
+        await Promise.all(
+          filesToExtract
+            .filter(
+              fileToExtract =>
+                fileToExtract === path.basename(tempSubDirectory),
+            )
+            .map(async fileToExtract =>
+              fs.rename(
+                path.join(resolvedTempSubDirectory, fileToExtract),
+                path.join(destinationDirectoryPath, fileToExtract),
+              ),
+            ),
+        );
+      } else {
+        await Promise.all(
+          filesToExtract.map(async fileToExtract =>
+            fs.rename(
+              path.join(resolvedTempSubDirectory, fileToExtract),
+              path.join(destinationDirectoryPath, fileToExtract),
+            ),
           ),
-        ),
-      );
+        );
+      }
 
       await fs.rm(cloneRepoDestination, { force: true, recursive: true });
     }

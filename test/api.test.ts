@@ -18,7 +18,10 @@ describe('GitHub', () => {
       const outputDirectory = getOutputDirectoryPath(`${task.name}-${task.id}`);
 
       await expect(
-        runTigedAPI(src, outputDirectory, { mode }),
+        runTigedAPI(src, outputDirectory, {
+          mode,
+          verbose: true,
+        }),
       ).resolves.not.toThrowError();
 
       await expect(outputDirectory).toMatchFiles({
@@ -40,7 +43,10 @@ describe('GitLab', () => {
       const outputDirectory = getOutputDirectoryPath(`${task.name}-${task.id}`);
 
       await expect(
-        runTigedAPI(src, outputDirectory, { mode }),
+        runTigedAPI(src, outputDirectory, {
+          mode,
+          verbose: true,
+        }),
       ).resolves.not.toThrowError();
 
       await expect(outputDirectory).toMatchFiles({
@@ -63,7 +69,11 @@ describe('GitLab', () => {
         );
 
         await expect(
-          runTigedAPI(src, outputDirectory, { mode, subgroup: true }),
+          runTigedAPI(src, outputDirectory, {
+            mode,
+            subgroup: true,
+            verbose: true,
+          }),
         ).resolves.not.toThrowError();
 
         await expect(outputDirectory).toMatchFiles({
@@ -87,6 +97,7 @@ describe('GitLab', () => {
               mode,
               subDirectory: 'subdir1',
               subgroup: true,
+              verbose: true,
             }),
           ).resolves.not.toThrowError();
 
@@ -110,6 +121,7 @@ describe('GitLab', () => {
               mode,
               subDirectory: 'subdir1/subdir2',
               subgroup: true,
+              verbose: true,
             }),
           ).resolves.not.toThrowError();
 
@@ -133,7 +145,10 @@ describe('BitBucket', () => {
       const outputDirectory = getOutputDirectoryPath(`${task.name}-${task.id}`);
 
       await expect(
-        runTigedAPI(src, outputDirectory, { mode }),
+        runTigedAPI(src, outputDirectory, {
+          mode,
+          verbose: true,
+        }),
       ).resolves.not.toThrowError();
 
       await expect(outputDirectory).toMatchFiles({
@@ -153,7 +168,10 @@ describe('SourceHut', () => {
       const outputDirectory = getOutputDirectoryPath(`${task.name}-${task.id}`);
 
       await expect(
-        runTigedAPI(src, outputDirectory, { mode }),
+        runTigedAPI(src, outputDirectory, {
+          mode,
+          verbose: true,
+        }),
       ).resolves.not.toThrowError();
 
       await expect(outputDirectory).toMatchFiles({
@@ -173,7 +191,10 @@ describe('Codeberg', () => {
       const outputDirectory = getOutputDirectoryPath(`${task.name}-${task.id}`);
 
       await expect(
-        runTigedAPI(src, outputDirectory, { mode }),
+        runTigedAPI(src, outputDirectory, {
+          mode,
+          verbose: true,
+        }),
       ).resolves.not.toThrowError();
 
       await expect(outputDirectory).toMatchFiles({
@@ -194,7 +215,10 @@ describe('Hugging Face', () => {
       const outputDirectory = getOutputDirectoryPath(`${task.name}-${task.id}`);
 
       await expect(
-        runTigedAPI(src, outputDirectory, { mode }),
+        runTigedAPI(src, outputDirectory, {
+          mode,
+          verbose: true,
+        }),
       ).resolves.not.toThrowError();
 
       await expect(outputDirectory).toMatchFiles({
@@ -223,7 +247,10 @@ describe('sub-directories', () => {
         );
 
         await expect(
-          runTigedAPI(`${src}/subdir`, outputDirectory, { mode }),
+          runTigedAPI(`${src}/subdir`, outputDirectory, {
+            mode,
+            verbose: true,
+          }),
         ).resolves.not.toThrowError();
 
         await expect(outputDirectory).toMatchFiles({
@@ -242,6 +269,7 @@ describe('sub-directories', () => {
           runTigedAPI(src, outputDirectory, {
             mode,
             subDirectory: 'subdir',
+            verbose: true,
           }),
         ).resolves.not.toThrowError();
 
@@ -259,7 +287,10 @@ describe('sub-directories', () => {
           );
 
           await expect(
-            runTigedAPI(`${src}/non-existent-dir`, outputDirectory, { mode }),
+            runTigedAPI(`${src}/non-existent-dir`, outputDirectory, {
+              mode,
+              verbose: true,
+            }),
           ).rejects.toThrowError(
             /No files to extract\. Make sure you typed in the sub-directory name correctly\./,
           );
@@ -276,6 +307,7 @@ describe('sub-directories', () => {
             runTigedAPI(src, outputDirectory, {
               mode,
               subDirectory: 'non-existent-dir',
+              verbose: true,
             }),
           ).rejects.toThrowError(
             /No files to extract\. Make sure you typed in the sub-directory name correctly\./,
@@ -294,6 +326,7 @@ describe('sub-directories', () => {
           runTigedAPI(`${src}/subdir`, outputDirectory, {
             mode,
             subDirectory: 'subdir',
+            verbose: true,
           }),
         ).resolves.not.toThrowError();
 
@@ -313,6 +346,7 @@ describe('sub-directories', () => {
           runTigedAPI(`${src}/non-existent-dir`, outputDirectory, {
             mode,
             subDirectory: 'subdir',
+            verbose: true,
           }),
         ).resolves.not.toThrowError();
 
@@ -332,6 +366,7 @@ describe('sub-directories', () => {
           runTigedAPI(src, outputDirectory, {
             mode,
             subDirectory: '',
+            verbose: true,
           }),
         ).resolves.not.toThrowError();
 
@@ -353,6 +388,7 @@ describe('sub-directories', () => {
           runTigedAPI(`${src}/subdir`, outputDirectory, {
             mode,
             subDirectory: '',
+            verbose: true,
           }),
         ).resolves.not.toThrowError();
 
@@ -387,9 +423,7 @@ describe('non-empty directories', () => {
     }) => {
       const cwd = process.cwd();
 
-      const outputDirectory = getOutputDirectoryPath(
-        `no-dest-${mode}-${task.name}`,
-      );
+      const outputDirectory = getOutputDirectoryPath(`${task.name}-${task.id}`);
 
       await fs.rm(outputDirectory, { force: true, recursive: true });
 
@@ -400,7 +434,10 @@ describe('non-empty directories', () => {
       process.chdir(path.join(import.meta.dirname, '..', outputDirectory));
 
       await expect(
-        runTigedAPI(src, undefined, { mode, verbose: true }),
+        runTigedAPI(src, undefined, {
+          mode,
+          verbose: true,
+        }),
       ).resolves.not.toThrowError();
 
       process.chdir(cwd);
@@ -413,10 +450,8 @@ describe('non-empty directories', () => {
     });
 
     // TODO: Make sure this can work in git mode.
-    it('can clone a root file', { todo: true }, async ({ expect, task }) => {
-      const outputDirectory = getOutputDirectoryPath(
-        `${task.name}-${mode}-${task.id}`,
-      );
+    it('can clone a root file', async ({ expect, task }) => {
+      const outputDirectory = getOutputDirectoryPath(`${task.name}-${task.id}`);
 
       await expect(
         runTigedAPI(`${src}/file.txt`, outputDirectory, {
@@ -435,7 +470,10 @@ describe('non-empty directories', () => {
       const outputDirectory = getOutputDirectoryPath(`${task.name}-${task.id}`);
 
       await expect(
-        runTigedAPI(`${src}/subdir/file.txt`, outputDirectory, { mode }),
+        runTigedAPI(`${src}/subdir/file.txt`, outputDirectory, {
+          mode,
+          verbose: true,
+        }),
       ).resolves.not.toThrowError();
 
       await expect(outputDirectory).toMatchFiles({
@@ -498,7 +536,7 @@ describe('non-empty directories', () => {
       );
     });
 
-    it('succeeds with options.force', async () => {
+    it('succeeds with options.force', async ({ expect }) => {
       await expect(
         runTigedAPI(src, outputDirectory, {
           force: true,
@@ -513,23 +551,26 @@ describe('non-empty directories', () => {
 // TODO: Make sure this can work in git mode.
 describe('can clone one file', () => {
   describe.for(validModes)('with %s mode', mode => {
-    it('can clone one file', async ({ expect, task }) => {
-      const outputDirectory = getOutputDirectoryPath(
-        `${task.name}-${mode}-mode-${task.id}`,
-      );
+    it.for(['tiged/tiged-test-repo/subdir/file.txt'] as const)(
+      '%s',
+      async (src, { expect, task }) => {
+        const outputDirectory = getOutputDirectoryPath(
+          `${task.name}-${task.id}`,
+        );
 
-      await expect(
-        runTigedAPI('tiged/tiged-test-repo/subdir/file.txt', outputDirectory, {
-          force: true,
-          mode,
-          verbose: true,
-        }),
-      ).resolves.not.toThrowError();
+        await expect(
+          runTigedAPI(src, outputDirectory, {
+            force: true,
+            mode,
+            verbose: true,
+          }),
+        ).resolves.not.toThrowError();
 
-      await expect(outputDirectory).toMatchFiles({
-        'file.txt': 'hello from a subdirectory!',
-      });
-    });
+        await expect(outputDirectory).toMatchFiles({
+          'file.txt': 'hello from a subdirectory!',
+        });
+      },
+    );
   });
 });
 
@@ -541,6 +582,7 @@ describe('actions', () => {
       await expect(
         runTigedAPI('tiged/tiged-test-repo-remove-only', outputDirectory, {
           mode,
+          verbose: true,
         }),
       ).resolves.not.toThrowError();
 
@@ -551,7 +593,10 @@ describe('actions', () => {
       const outputDirectory = getOutputDirectoryPath(`${task.name}-${task.id}`);
 
       await expect(
-        runTigedAPI('tiged/tiged-test-repo-remove', outputDirectory, { mode }),
+        runTigedAPI('tiged/tiged-test-repo-remove', outputDirectory, {
+          mode,
+          verbose: true,
+        }),
       ).resolves.not.toThrowError();
 
       await expect(outputDirectory).toMatchFiles({
@@ -567,6 +612,7 @@ describe('actions', () => {
       await expect(
         runTigedAPI('tiged/tiged-test-repo-nested-actions', outputDirectory, {
           mode,
+          verbose: true,
         }),
       ).resolves.not.toThrowError();
 
@@ -594,7 +640,10 @@ describe('old hash', () => {
       const outputDirectory = getOutputDirectoryPath(`${task.name}-${task.id}`);
 
       await expect(
-        runTigedAPI(src, outputDirectory, { mode }),
+        runTigedAPI(src, outputDirectory, {
+          mode,
+          verbose: true,
+        }),
       ).resolves.not.toThrowError();
 
       await expect(outputDirectory).toMatchFiles({
@@ -618,7 +667,10 @@ describe('old hash', () => {
         );
 
         await expect(
-          runTigedAPI(src, outputDirectory, { mode }),
+          runTigedAPI(src, outputDirectory, {
+            mode,
+            verbose: true,
+          }),
         ).resolves.not.toThrowError();
 
         await expect(outputDirectory).toMatchFiles({
@@ -645,7 +697,10 @@ describe('old hash', () => {
         );
 
         await expect(
-          runTigedAPI(src, outputDirectory, { mode }),
+          runTigedAPI(src, outputDirectory, {
+            mode,
+            verbose: true,
+          }),
         ).resolves.not.toThrowError();
 
         await expect(outputDirectory).toMatchFiles({
@@ -669,7 +724,10 @@ describe('is able to clone correctly', () => {
       const outputDirectory = getOutputDirectoryPath(`${task.name}-${task.id}`);
 
       await expect(
-        runTigedAPI(src, outputDirectory, { mode }),
+        runTigedAPI(src, outputDirectory, {
+          mode,
+          verbose: true,
+        }),
       ).resolves.not.toThrowError();
 
       await expect(outputDirectory).toMatchFiles({
@@ -697,7 +755,10 @@ describe('can clone a single file', () => {
         );
 
         await expect(
-          runTigedAPI(`${src}/subdir/file.txt`, outputDirectory, { mode }),
+          runTigedAPI(`${src}/subdir/file.txt`, outputDirectory, {
+            mode,
+            verbose: true,
+          }),
         ).resolves.not.toThrowError();
 
         await expect(outputDirectory).toMatchFiles({
@@ -716,6 +777,7 @@ describe('can clone a single file', () => {
           runTigedAPI(src, outputDirectory, {
             mode,
             subDirectory: 'subdir/file.txt',
+            verbose: true,
           }),
         ).resolves.not.toThrowError();
 

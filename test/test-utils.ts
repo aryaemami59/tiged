@@ -68,8 +68,8 @@ const defaultCLICommand = process.env.TEST_DIST ? 'tiged' : 'tsx';
  * @since 3.0.0
  */
 const defaultCLIArguments = process.env.TEST_DIST
-  ? ['-D']
-  : [tigedCLIFilePath, '-D'];
+  ? (['-D'] as const satisfies readonly string[])
+  : ([tigedCLIFilePath, '-D'] as const satisfies readonly string[]);
 
 /**
  * The default options for the {@linkcode runTigedCLI} function.
@@ -151,6 +151,22 @@ export const getOutputDirectoryPath = (inputString: string): string => {
  */
 const exec = promisify(child_process.exec);
 
+type TigedOptionsStringKeys = keyof {
+  [key in keyof Required<TigedOptions> as [
+    NonNullable<TigedOptions[key]>,
+  ] extends [string]
+    ? key
+    : never]: TigedOptions[key];
+};
+
+type TigedOptionsBooleanKeys = keyof {
+  [key in keyof Required<TigedOptions> as [boolean] extends [
+    NonNullable<TigedOptions[key]>,
+  ]
+    ? key
+    : never]: TigedOptions[key];
+};
+
 /**
  * Executes the Tiged CLI with the provided arguments and options.
  *
@@ -170,7 +186,17 @@ const exec = promisify(child_process.exec);
  * @since 3.0.0
  */
 export const runTigedCLI = async (
-  CLIArguments: readonly string[] = [],
+  CLIArguments: readonly (
+    | (string & Record<never, never>)
+    | `--${keyof TigedOptions | 'help' | 'disable-cache' | 'sub-directory' | 'offline-mode'}`
+    | `-${'D' | 'd' | 'f' | 'h' | 'm' | 'o' | 'p' | 's' | 'v'}`
+    | `--${TigedOptionsBooleanKeys | 'disable-cache' | 'offline-mode'}=${boolean}`
+    | `-${'D' | 'f' | 'h' | 'o' | 's' | 'v'}=${boolean}`
+    | `--${'mode'}=${ValidModes}`
+    | `-${'m'}=${ValidModes}`
+    | `--${Exclude<TigedOptionsStringKeys, 'mode'> | 'sub-directory'}=`
+    | `-${'d' | 'p'}=`
+  )[] = [],
   execOptions?: Partial<ExecOptionsWithStringEncoding>,
 ): Promise<{
   stderr: string;
@@ -225,11 +251,12 @@ export const runTigedCLI = async (
  * @internal
  * @since 3.0.0
  */
-export const runTigedAPI = (
+export const runTigedAPI = async (
   src: string,
   destinationDirectoryName?: string,
   tigedOptions: TigedOptions = {},
-) =>
-  createTiged(src, { ...defaultTigedOptions, ...tigedOptions }).clone(
-    destinationDirectoryName,
-  );
+): Promise<void> => {
+  const tiged = createTiged(src, { ...defaultTigedOptions, ...tigedOptions });
+
+  return tiged.clone(destinationDirectoryName);
+};
