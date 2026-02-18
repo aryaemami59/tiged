@@ -1,6 +1,11 @@
 import { homedir, tmpdir } from 'node:os';
 import * as path from 'node:path';
-import type { TigedOptions, ValidModes } from './types.js';
+import type {
+  SupportedHostNames,
+  SupportedHosts,
+  TigedOptions,
+  ValidModes,
+} from './types.js';
 
 /**
  * Returns the home directory path of the current user if available,
@@ -105,7 +110,7 @@ export const supportedHosts = {
   github: { name: 'GitHub', topLevelDomain: '.com' },
   gitlab: { name: 'GitLab', topLevelDomain: '.com' },
   huggingface: { name: 'Hugging Face', topLevelDomain: '.co' },
-} as const;
+} as const satisfies SupportedHosts;
 
 export const supportedHostNames = [
   'github',
@@ -114,6 +119,4 @@ export const supportedHostNames = [
   'git.sr',
   'huggingface',
   'codeberg',
-] as const satisfies readonly (keyof typeof supportedHosts)[];
-
-export type SupportedHostNames = (typeof supportedHostNames)[number];
+] as const satisfies readonly SupportedHostNames[];

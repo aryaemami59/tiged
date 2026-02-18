@@ -557,7 +557,7 @@ export function extractRepositoryInfo(
   subDirectory: string,
 ): Repo {
   const match =
-    /^(?:(?:https:\/\/)?(?<site>[^:/]+)(?:\.[^:/]+)\/|git@(?<siteName>[^:/]+)(?:\.[^:/]+)[:/]|(?<org>[^/:]+):)?(?<repo>[^/\s.]+)(?:\.git)?\/(?<repo2>(?:[^/\s#.]+|[^/\s#.]+)?)?(?:\.git)?(?:\/(?<repo3>(?:[^/\s#.]+)+(?:\.\w+)?))?(?:\.git)?(?:\/)?(?:#(?<commitHash>[^.]+)(?:\.git)?)?/.exec(
+    /^(?:(?:https:\/\/)?(?<site>[^:/]+)(?:\.[^:/]+)\/|git@(?<siteName>[^:/]+)(?:\.[^:/]+)[:/]|(?<org>[^/:]+):)?(?<repo>[^/\s.]+)(?:\.git)?\/(?<repo2>(?:[^/\s#.]+|[^/\s#.]+)?)?(?:\.git)?(?:\/(?<repo3>(?:[^/\s#.]+)+))?(?:\.git)?(?:\/)?(?:#(?<commitHash>[^.]+)(?:\.git)?)?/.exec(
       src,
     );
 
@@ -577,9 +577,7 @@ export function extractRepositoryInfo(
 
   const user = match[4] ?? '';
   const name = match[5]?.replace(/\.git$/, '') ?? '';
-  const repoSubDirectory = addLeadingSlashIfMissing(
-    match[6]?.replace(/\.git$/, ''),
-  );
+  const repoSubDirectory = addLeadingSlashIfMissing(match[6]);
   const ref = match[7] ?? 'HEAD';
 
   if (!isHostNameSupported(siteName)) {
