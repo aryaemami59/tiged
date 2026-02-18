@@ -4,10 +4,10 @@ import * as fs from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import * as path from 'node:path';
 import { pipeline } from 'node:stream/promises';
+import { URL } from 'node:url';
 import { promisify } from 'node:util';
 import type { Dispatcher } from 'undici';
 import { ProxyAgent, request } from 'undici';
-import type { SupportedHostNames } from './constants.js';
 import {
   accessLogsFileName,
   homeOrTmpDirectoryPath,
@@ -17,21 +17,34 @@ import {
 import type {
   DamerauLevenshteinResult,
   Repo,
+  SupportedHostNames,
   TigedErrorOptions,
 } from './types.js';
 
+/**
+ * @internal
+ * @since 3.0.0
+ */
 export type AppDirs = {
   data: string;
   config: string;
   cache: string;
 };
 
+/**
+ * @internal
+ * @since 3.0.0
+ */
 export type ResolveAppDirsOptions = {
   platform?: NodeJS.Platform;
   env?: NodeJS.ProcessEnv;
   home?: string;
 };
 
+/**
+ * @internal
+ * @since 3.0.0
+ */
 export const resolveAppDirs = (
   appName: string,
   options: ResolveAppDirsOptions = {},
@@ -188,7 +201,9 @@ export async function downloadTarball(
   proxy?: string,
 ): Promise<void> {
   await fs.mkdir(path.dirname(tarballFilePath), { recursive: true });
+
   const dispatcher = proxy ? new ProxyAgent(proxy) : undefined;
+
   try {
     const maxRedirects = 10;
     const requestHeaders = {
@@ -200,10 +215,13 @@ export async function downloadTarball(
       if (!location) {
         return null;
       }
+
       const value = Array.isArray(location) ? location[0] : location;
+
       if (!value) {
         return null;
       }
+
       return value;
     };
 
@@ -284,7 +302,10 @@ export async function stashFiles(
     recursive: true,
   });
 
-  await fs.rm(stashSourceDirectoryPath, { force: true, recursive: true });
+  await fs.rm(stashSourceDirectoryPath, {
+    force: true,
+    recursive: true,
+  });
 }
 
 /**
@@ -304,7 +325,10 @@ export async function unStashFiles(
     recursive: true,
   });
 
-  await fs.rm(unStashSourceDirectoryPath, { force: true, recursive: true });
+  await fs.rm(unStashSourceDirectoryPath, {
+    force: true,
+    recursive: true,
+  });
 }
 
 /**
@@ -361,13 +385,29 @@ export const isDirectory = async (filePath: string): Promise<boolean> => {
   }
 };
 
+/**
+ * @internal
+ * @since 3.0.0
+ */
 const appDirs = /* @__PURE__ */ resolveAppDirs('tiged');
 
+/**
+ * @internal
+ * @since 3.0.0
+ */
 export const base = appDirs.cache;
 
+/**
+ * @internal
+ * @since 3.0.0
+ */
 const getIndex = (rowWidth: number, x: number, y: number) =>
   (y + 1) * rowWidth + (x + 1);
 
+/**
+ * @internal
+ * @since 3.0.0
+ */
 const initializeDPMatrix = (
   a: string,
   b: string,
@@ -388,6 +428,10 @@ const initializeDPMatrix = (
   return { rowWidth, d };
 };
 
+/**
+ * @internal
+ * @since 3.0.0
+ */
 const calculateStringDistance = (
   a: string,
   b: string,
@@ -427,6 +471,10 @@ const calculateStringDistance = (
   return getD(getIndex(rowWidth, aTrimmed.length, bTrimmed.length));
 };
 
+/**
+ * @internal
+ * @since 3.0.0
+ */
 export const damerauLevenshtein = (
   str1: string,
   str2: string,
@@ -438,6 +486,10 @@ export const damerauLevenshtein = (
   return { steps, relative, similarity };
 };
 
+/**
+ * @internal
+ * @since 3.0.0
+ */
 export const damerauLevenshteinSimilarity = (
   str1: string,
   str2: string,
@@ -743,19 +795,23 @@ export async function updateCache(
  * @since 3.0.0
  */
 export const getOldHash = async (repo: Repo): Promise<string> => {
-  await fs.mkdir(base, { recursive: true });
+  await fs.mkdir(base, {
+    recursive: true,
+  });
 
   const temporaryDirectory = await fs.mkdtemp(`${path.join(base)}${path.sep}`, {
     encoding: 'utf-8',
   });
 
-  const ref = repo.ref.includes('#')
-    ? repo.ref.split('#').reverse().join(' ')
-    : repo.ref;
+  const { ref, url } = repo;
+
+  const resolvedRef = ref.includes('#')
+    ? ref.split('#').reverse().join(' ')
+    : ref;
 
   await executeCommand('git init', { cwd: temporaryDirectory });
 
-  await executeCommand(`git fetch --depth 1 ${repo.url} ${ref}`, {
+  await executeCommand(`git fetch --depth 1 ${url} ${resolvedRef}`, {
     cwd: temporaryDirectory,
   });
 
@@ -763,7 +819,10 @@ export const getOldHash = async (repo: Repo): Promise<string> => {
     cwd: temporaryDirectory,
   });
 
-  await fs.rm(temporaryDirectory, { force: true, recursive: true });
+  await fs.rm(temporaryDirectory, {
+    force: true,
+    recursive: true,
+  });
 
   return stdout.trim().split('\n')[0] ?? '';
 };

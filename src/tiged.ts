@@ -10,10 +10,10 @@ import {
 import { untarToDir } from './tar.js';
 import type {
   Info,
-  RemoveAction,
   Repo,
-  TigedAction,
+  TigedCloneAction,
   TigedOptions,
+  TigedRemoveAction,
   ValidModes,
 } from './types.js';
 import {
@@ -229,6 +229,55 @@ export class Tiged extends EventEmitter {
   ) => this;
 
   /**
+   * Constructs a new {@linkcode Tiged} instance with the
+   * specified source and options.
+   *
+   * @param src - A string representing the repository source. This must be a URL, path, or other descriptor that can be parsed to extract repository information.
+   * @param [tigedOptions] - Optional configuration for {@linkcode Tiged}, allowing customization of default behaviors such as {@linkcode disableCache | caching}, {@linkcode verbose | verbosity}, and repository extraction options.
+   *
+   * @example
+   *
+   * ```ts
+   * import { Tiged } from 'tiged';
+   *
+   * const tiged = new Tiged('user/repo', { verbose: true });
+   *
+   * await tiged.clone('/destination');
+   * ```
+   */
+  public constructor(src: string, tigedOptions: TigedOptions = {}) {
+    super();
+
+    this.src = src;
+
+    const resolvedTigedOptions = {
+      ...tigedDefaultOptions,
+      ...tigedOptions,
+    };
+
+    const subDirectory = addLeadingSlashIfMissing(
+      resolvedTigedOptions.subDirectory,
+    );
+
+    const repo = extractRepositoryInfo(
+      src,
+      resolvedTigedOptions.subgroup,
+      subDirectory,
+    );
+
+    Object.assign(this, resolvedTigedOptions, {
+      repo,
+      subDirectory,
+    });
+
+    if (!this.subgroup) {
+      this.subDirectory = this.repo.subDirectory;
+    }
+
+    this.repo.subDirectory = this.subDirectory || this.repo.subDirectory;
+  }
+
+  /**
    * Flags whether {@linkcode stashFiles | stash} operations
    * have been performed to avoid duplication.
    *
@@ -292,7 +341,7 @@ export class Tiged extends EventEmitter {
     clone: async (
       _repositoryCacheDirectoryPath: string,
       destinationDirectoryPath: string,
-      action: TigedAction,
+      action: TigedCloneAction,
     ): Promise<void> => {
       if (!this.hasStashed) {
         await stashFiles(this.tempDirectoryPath, destinationDirectoryPath);
@@ -363,7 +412,7 @@ export class Tiged extends EventEmitter {
      *
      * @remarks
      *
-     * The {@linkcode RemoveAction.files | files} field specifies an
+     * The {@linkcode TigedRemoveAction.files | files} field specifies an
      * array of paths to files or directories
      * to be removed. These paths are relative to the
      * {@linkcode destinationDirectoryPath}.
@@ -378,70 +427,23 @@ export class Tiged extends EventEmitter {
    */
   public getHttpsProxy(): string | undefined {
     const result = process.env.https_proxy;
+
     if (!result) {
       return process.env.HTTPS_PROXY;
     }
+
     return result;
-  }
-
-  /**
-   * Constructs a new {@linkcode Tiged} instance with the
-   * specified source and options.
-   *
-   * @param src - A string representing the repository source. This must be a URL, path, or other descriptor that can be parsed to extract repository information.
-   * @param tigedOptions - Optional configuration for {@linkcode Tiged}, allowing customization of default behaviors such as {@linkcode disableCache | caching}, {@linkcode verbose | verbosity}, and repository extraction options.
-   *
-   * @example
-   *
-   * ```ts
-   * import { Tiged } from 'tiged';
-   *
-   * const tiged = new Tiged('user/repo', { verbose: true });
-   *
-   * await tiged.clone('/destination');
-   * ```
-   */
-  public constructor(src: string, tigedOptions: TigedOptions = {}) {
-    super();
-
-    this.src = src;
-
-    const resolvedTigedOptions = {
-      ...tigedDefaultOptions,
-      ...tigedOptions,
-    };
-
-    const subDirectory = addLeadingSlashIfMissing(
-      resolvedTigedOptions.subDirectory,
-    );
-
-    const repo = extractRepositoryInfo(
-      src,
-      resolvedTigedOptions.subgroup,
-      subDirectory,
-    );
-
-    Object.assign(this, resolvedTigedOptions, {
-      repo,
-      subDirectory,
-    });
-
-    if (!this.subgroup) {
-      this.subDirectory = this.repo.subDirectory;
-    }
-
-    this.repo.subDirectory = this.subDirectory || this.repo.subDirectory;
   }
 
   /**
    * Retrieves the directives from the specified destination.
    *
    * @param destinationDirectoryPath - The destination path.
-   * @returns An array of {@linkcode TigedAction} directives, or `false` if no directives are found.
+   * @returns An array of {@linkcode TigedCloneAction} directives, or `false` if no directives are found.
    */
   public async getDirectives(
     destinationDirectoryPath: string,
-  ): Promise<false | (TigedAction | RemoveAction)[]> {
+  ): Promise<false | (TigedCloneAction | TigedRemoveAction)[]> {
     const directivesPath = path.join(
       destinationDirectoryPath,
       tigedConfigFileName,
@@ -449,7 +451,7 @@ export class Tiged extends EventEmitter {
 
     const directives =
       (tryRequire(directivesPath, { clearCache: true }) as
-        | (TigedAction | RemoveAction)[]
+        | (TigedCloneAction | TigedRemoveAction)[]
         | undefined) ?? false;
 
     if (directives) {
@@ -547,12 +549,25 @@ export class Tiged extends EventEmitter {
     }
 
     for (const directive of directives) {
-      // TODO, can this be a loop with an index to pass for better error messages?
-      await this.directiveActions[directive.action](
-        repositoryCacheDirectoryPath,
-        destinationDirectoryPath,
-        directive as never,
-      );
+      switch (directive.action) {
+        case 'clone':
+          await this.directiveActions.clone(
+            repositoryCacheDirectoryPath,
+            destinationDirectoryPath,
+            directive,
+          );
+
+          break;
+
+        case 'remove':
+          await this.directiveActions.remove(
+            repositoryCacheDirectoryPath,
+            destinationDirectoryPath,
+            directive,
+          );
+
+          break;
+      }
     }
 
     if (this.hasStashed) {
@@ -573,7 +588,7 @@ export class Tiged extends EventEmitter {
   public async remove(
     _repositoryCacheDirectoryPath: string,
     destinationDirectoryPath: string,
-    action: RemoveAction,
+    action: TigedRemoveAction,
   ): Promise<void> {
     const filesToBeRemoved = Array.isArray(action.files)
       ? action.files
@@ -681,7 +696,7 @@ export class Tiged extends EventEmitter {
    *
    * @param tigedError - The information to be emitted.
    */
-  private warn(tigedError: TigedError): void {
+  public warn(tigedError: TigedError): void {
     this.emit('warn', tigedError);
 
     if (this.verbose && tigedError.original) {
@@ -728,6 +743,7 @@ export class Tiged extends EventEmitter {
       }
 
       const isCommitHash = /^[0-9a-f]{40}$/.test(repo.ref);
+
       if (isCommitHash) {
         return repo.ref;
       }
@@ -785,7 +801,11 @@ export class Tiged extends EventEmitter {
    * @returns The commit hash that matches the selector, or `undefined` if no match is found.
    */
   public selectRef(
-    refs: { hash: string; name: string; type: string }[],
+    refs: {
+      hash: string;
+      name: string;
+      type: string;
+    }[],
     selector: string,
   ): string | undefined {
     for (const ref of refs) {
@@ -889,6 +909,7 @@ export class Tiged extends EventEmitter {
 
         try {
           await fs.stat(tarballFilePath);
+
           this.logVerbose({
             code: 'FILE_EXISTS',
             message: `${tarballFilePath} already exists locally`,
@@ -911,10 +932,12 @@ export class Tiged extends EventEmitter {
               code: 'NO_CACHE',
               message: `Not using cache. disableCache set to true.`,
             });
+
             throw "don't use cache";
           }
 
           await fs.stat(tarballFilePath);
+
           this.logVerbose({
             code: 'FILE_EXISTS',
             message: `${tarballFilePath} already exists locally`,
@@ -984,7 +1007,10 @@ export class Tiged extends EventEmitter {
       });
     }
 
-    await fs.rm(tarballFilePath, { force: true, recursive: true });
+    await fs.rm(tarballFilePath, {
+      force: true,
+      recursive: true,
+    });
     // if (this.disableCache) {
     //   await fs.rm(tarballFilePath);
     // }
@@ -1101,7 +1127,10 @@ export class Tiged extends EventEmitter {
         );
       }
 
-      await fs.rm(cloneRepoDestination, { force: true, recursive: true });
+      await fs.rm(cloneRepoDestination, {
+        force: true,
+        recursive: true,
+      });
     }
 
     const extractedFiles = await fs.readdir(destinationDirectoryPath, {

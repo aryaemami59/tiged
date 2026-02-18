@@ -6,6 +6,8 @@ import {
   validModes,
 } from './test-utils.js';
 
+const cwd = process.cwd();
+
 describe('GitHub', () => {
   describe.for(validModes)('with %s mode', mode => {
     it.for([
@@ -421,8 +423,6 @@ describe('non-empty directories', () => {
       expect,
       task,
     }) => {
-      const cwd = process.cwd();
-
       const outputDirectory = getOutputDirectoryPath(`${task.name}-${task.id}`);
 
       await fs.rm(outputDirectory, { force: true, recursive: true });

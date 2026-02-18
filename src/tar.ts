@@ -32,7 +32,7 @@ const decodeCString = (bytes: Uint8Array) => {
 };
 
 const parseOctal = (bytes: Uint8Array) => {
-  const s = decodeCString(bytes).trim().replace(/\0/g, '');
+  const s = decodeCString(bytes).trim().replaceAll(/\0/g, '');
   if (!s) {
     return 0;
   }
@@ -70,7 +70,7 @@ const parsePax = (data: Uint8Array) => {
 };
 
 const normalizeTarPath = (input: string) => {
-  const replaced = input.replace(/\\/g, '/');
+  const replaced = input.replaceAll(/\\/g, '/');
   const trimmed = replaced.replace(/^\/+/, '').replace(/^\.\//, '');
   return path.posix.normalize(trimmed);
 };
@@ -160,13 +160,21 @@ const parseHeaderAt = (tar: Uint8Array, offset: number) => {
   return { header, dataStart, nextOffset };
 };
 
+/**
+ * @internal
+ * @since 3.0.0
+ */
 type ScanResult = {
+  isSubDirFile: boolean;
   rootPrefix: string;
   subdirRelNorm: string | null;
-  isSubDirFile: boolean;
+  tar: Uint8Array<ArrayBuffer>;
 };
 
-const scanTarGz = async (tgz: Uint8Array, subdirNorm: string | null) => {
+const scanTarGz = async (
+  tgz: Uint8Array,
+  subdirNorm: string | null,
+): Promise<ScanResult> => {
   const tar = new Uint8Array(await gunzipAsync(tgz));
 
   let rootPrefix = '';
@@ -256,7 +264,7 @@ export async function untarToDir(
   file: string,
   dest: string,
   subdir: string | null,
-) {
+): Promise<string[]> {
   const extractedFiles: string[] = [];
 
   const tgz = await fs.readFile(file);
