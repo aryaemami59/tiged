@@ -16,105 +16,142 @@ type TarHeader = {
   type: TarType;
 };
 
-const isZeroBlock = (block: Uint8Array) => {
-  for (const b of block) {
-    if (b !== 0) {
+const isZeroBlock = (block: Uint8Array): boolean => {
+  for (const byteValue of block) {
+    if (byteValue !== 0) {
       return false;
     }
   }
+
   return true;
 };
 
-const decodeCString = (bytes: Uint8Array) => {
+const decodeCString = (bytes: Uint8Array): string => {
   const end = bytes.indexOf(0);
+
   const slice = end === -1 ? bytes : bytes.subarray(0, end);
+
   return Buffer.from(slice).toString('utf8');
 };
 
-const parseOctal = (bytes: Uint8Array) => {
-  const s = decodeCString(bytes).trim().replaceAll(/\0/g, '');
-  if (!s) {
+const parseOctal = (bytes: Uint8Array): number => {
+  const decodedString = decodeCString(bytes).trim().replaceAll(/\0/g, '');
+
+  if (!decodedString) {
     return 0;
   }
-  const value = Number.parseInt(s, 8);
+
+  const value = Number.parseInt(decodedString, 8);
+
   return Number.isFinite(value) ? value : 0;
 };
 
-const parsePax = (data: Uint8Array) => {
+const parsePax = (data: Uint8Array): Record<string, string> => {
   // Records are: "%d key=value\n" where the length includes the whole record.
   const text = Buffer.from(data).toString('utf8');
+
   const result: Record<string, string> = {};
+
   let i = 0;
+
   while (i < text.length) {
     const space = text.indexOf(' ', i);
+
     if (space === -1) {
       break;
     }
+
     const lenStr = text.slice(i, space);
+
     const len = Number.parseInt(lenStr, 10);
+
     if (!Number.isFinite(len) || len <= 0) {
       break;
     }
+
     const record = text.slice(i, i + len);
+
     const eq = record.indexOf('=');
+
     if (eq !== -1) {
       const key = record.slice(space + 1, eq);
+
       const value = record.slice(eq + 1).replace(/\n$/, '');
+
       if (key) {
         result[key] = value;
       }
     }
+
     i += len;
   }
+
   return result;
 };
 
-const normalizeTarPath = (input: string) => {
+const normalizeTarPath = (input: string): string => {
   const replaced = input.replaceAll(/\\/g, '/');
+
   const trimmed = replaced.replace(/^\/+/, '').replace(/^\.\//, '');
+
   return path.posix.normalize(trimmed);
 };
 
-const splitRootPrefix = (fullPosixPath: string, rootPrefix: string) => {
-  const p = normalizeTarPath(fullPosixPath).replace(/\/+$/, '');
+const splitRootPrefix = (fullPosixPath: string, rootPrefix: string): string => {
+  const normalizedTarPath = normalizeTarPath(fullPosixPath).replace(/\/+$/, '');
+
   if (!rootPrefix) {
-    return p;
+    return normalizedTarPath;
   }
+
   const prefix = `${rootPrefix}/`;
-  if (p === rootPrefix) {
+
+  if (normalizedTarPath === rootPrefix) {
     return '';
   }
-  if (p.startsWith(prefix)) {
-    return p.slice(prefix.length);
+
+  if (normalizedTarPath.startsWith(prefix)) {
+    return normalizedTarPath.slice(prefix.length);
   }
-  return p;
+
+  return normalizedTarPath;
 };
 
-const ensureSafeOutPath = (destResolved: string, relativePosixPath: string) => {
+const ensureSafeOutPath = (
+  destResolved: string,
+  relativePosixPath: string,
+): string | null => {
   const rel = normalizeTarPath(relativePosixPath).replace(/^\/+/, '');
+
   if (!rel || path.posix.isAbsolute(rel)) {
     return null;
   }
-  const parts = rel.split('/').filter(Boolean);
-  if (parts.length === 0 || parts.some(p => p === '..')) {
+
+  const parts = rel.split('/').filter(part => !!part);
+
+  if (parts.length === 0 || parts.some(part => part === '..')) {
     return null;
   }
 
   const outPath = path.resolve(destResolved, ...parts);
+
   if (
     outPath === destResolved ||
     !outPath.startsWith(destResolved + path.sep)
   ) {
     return null;
   }
+
   return outPath;
 };
 
 const parseHeaderAt = (tar: Uint8Array, offset: number) => {
   const block = tar.subarray(offset, offset + 512);
+
   if (block.length < 512) {
     return null;
   }
+
   if (isZeroBlock(block)) {
     return { header: null, nextOffset: offset + 512 };
   }
@@ -122,15 +159,14 @@ const parseHeaderAt = (tar: Uint8Array, offset: number) => {
   const name = decodeCString(block.subarray(0, 100));
   const mode = parseOctal(block.subarray(100, 108));
   const size = parseOctal(block.subarray(124, 136));
-  const typeflag = block[156] ?? 0;
+  const typeFlag = block[156] ?? 0;
   const magic = decodeCString(block.subarray(257, 263));
   const prefix = decodeCString(block.subarray(345, 500));
 
-  const typeChar = typeflag === 0 ? '\0' : String.fromCharCode(typeflag);
+  const typeChar = typeFlag === 0 ? '\0' : String.fromCharCode(typeFlag);
 
-  const baseName = name;
   const fullName =
-    magic.startsWith('ustar') && prefix ? `${prefix}/${baseName}` : baseName;
+    magic.startsWith('ustar') && prefix ? `${prefix}/${name}` : name;
 
   const type: TarType =
     typeChar === '5'
@@ -149,7 +185,7 @@ const parseHeaderAt = (tar: Uint8Array, offset: number) => {
     size,
     type,
     typeChar,
-    rawName: baseName,
+    rawName: name,
     rawPrefix: prefix,
   };
 
@@ -186,6 +222,7 @@ const scanTarGz = async (
 
   for (let offset = 0; offset + 512 <= tar.length; ) {
     const parsed = parseHeaderAt(tar, offset);
+
     if (!parsed) {
       break;
     }
@@ -199,7 +236,9 @@ const scanTarGz = async (
 
     if (header.typeChar === 'g' || header.typeChar === 'x') {
       const data = tar.subarray(dataStart, dataStart + header.size);
+
       const pax = parsePax(data);
+
       if (header.typeChar === 'x') {
         pendingPax = pax;
       }
@@ -210,19 +249,20 @@ const scanTarGz = async (
 
     if (header.typeChar === 'L') {
       const data = tar.subarray(dataStart, dataStart + header.size);
+
       pendingLongName = decodeCString(data).trim();
+
       offset = nextOffset;
       continue;
     }
 
     // Apply PAX/longname if present.
-    let effectiveName = header.name;
-    if (pendingLongName) {
-      effectiveName = pendingLongName;
-    }
-    if (pendingPax?.path) {
-      effectiveName = pendingPax.path;
-    }
+    const effectiveName = pendingPax?.path
+      ? pendingPax.path
+      : pendingLongName
+        ? pendingLongName
+        : header.name;
+
     pendingLongName = null;
     pendingPax = null;
 
@@ -234,8 +274,10 @@ const scanTarGz = async (
       (header.type === 'file' || header.type === 'directory')
     ) {
       const first = nameNorm.split('/')[0];
+
       if (first && first !== '.' && first !== 'pax_global_header') {
         rootPrefix = first;
+
         subdirRelNorm = subdirNorm
           ? splitRootPrefix(subdirNorm, rootPrefix)
           : null;
@@ -244,6 +286,7 @@ const scanTarGz = async (
 
     if (subdirRelNorm && header.type === 'file') {
       const rel = splitRootPrefix(nameNorm, rootPrefix);
+
       if (rel === subdirRelNorm) {
         isSubDirFile = true;
       }
@@ -283,6 +326,7 @@ export async function untarToDir(
     if (!subdirRelNorm) {
       return true;
     }
+
     if (isSubDirFile) {
       return relPath === subdirRelNorm;
     }
@@ -309,9 +353,11 @@ export async function untarToDir(
     if (header.typeChar === 'g' || header.typeChar === 'x') {
       const data = tar.subarray(dataStart, dataStart + header.size);
       const pax = parsePax(data);
+
       if (header.typeChar === 'x') {
         pendingPax = pax;
       }
+
       offset = nextOffset;
       continue;
     }
@@ -323,13 +369,12 @@ export async function untarToDir(
       continue;
     }
 
-    let effectiveName = header.name;
-    if (pendingLongName) {
-      effectiveName = pendingLongName;
-    }
-    if (pendingPax?.path) {
-      effectiveName = pendingPax.path;
-    }
+    const effectiveName = pendingPax?.path
+      ? pendingPax.path
+      : pendingLongName
+        ? pendingLongName
+        : header.name;
+
     pendingLongName = null;
     pendingPax = null;
 
