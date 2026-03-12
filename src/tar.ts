@@ -197,13 +197,35 @@ const parseHeaderAt = (tar: Uint8Array, offset: number) => {
 };
 
 /**
+ * The result of a first pass over a decompressed tar archive, capturing the
+ * information needed to decide which entries to extract on the second pass.
+ *
  * @internal
  * @since 3.0.0
  */
 type ScanResult = {
+  /**
+   * Whether the requested sub-directory resolves to a single file rather than
+   * a directory.
+   */
   isSubDirFile: boolean;
+
+  /**
+   * The top-level folder prefix shared by every archive entry
+   * (e.g. `<repo>-<hash>`), or an empty string when none was detected.
+   */
   rootPrefix: string;
+
+  /**
+   * The requested sub-directory, normalized and made relative to
+   * {@linkcode ScanResult.rootPrefix | rootPrefix}, or `null` when the whole
+   * archive is being extracted.
+   */
   subdirRelNorm: string | null;
+
+  /**
+   * The decompressed tar archive bytes.
+   */
   tar: Uint8Array<ArrayBuffer>;
 };
 
@@ -220,7 +242,7 @@ const scanTarGz = async (
   let pendingPax: Record<string, string> | null = null;
   let pendingLongName: string | null = null;
 
-  for (let offset = 0; offset + 512 <= tar.length; ) {
+  for (let offset = 0; offset + 512 <= tar.length;) {
     const parsed = parseHeaderAt(tar, offset);
 
     if (!parsed) {
@@ -299,9 +321,17 @@ const scanTarGz = async (
 };
 
 /**
- * Extract a .tar.gz to dest, optionally extracting only a repo subdir.
+ * Extracts a **`.tar.gz`** archive to {@linkcode dest}, optionally limiting
+ * extraction to a single sub-directory of the repository.
  *
- * @returns a list of extracted relative paths.
+ * @param file - The path to the **`.tar.gz`** archive to extract.
+ * @param dest - The destination directory to extract the archive into.
+ * @param subdir - The repository sub-directory to extract, or `null` to extract the entire archive.
+ * @returns A {@linkcode Promise | promise} that resolves to a list of extracted relative paths.
+ * @throws A {@linkcode TigedError} If the archive contains an entry whose path would escape {@linkcode dest}.
+ *
+ * @internal
+ * @since 3.0.0
  */
 export async function untarToDir(
   file: string,
@@ -337,7 +367,7 @@ export async function untarToDir(
   let pendingPax: Record<string, string> | null = null;
   let pendingLongName: string | null = null;
 
-  for (let offset = 0; offset + 512 <= tar.length; ) {
+  for (let offset = 0; offset + 512 <= tar.length;) {
     const parsed = parseHeaderAt(tar, offset);
     if (!parsed) {
       break;

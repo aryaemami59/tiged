@@ -21,7 +21,7 @@ const vitestConfig = defineConfig({
             replacement: path.join(
               import.meta.dirname,
               'node_modules',
-              'tiged',
+              packageJson.name,
             ),
           },
         ]
@@ -35,13 +35,10 @@ const vitestConfig = defineConfig({
     globals: true,
     globalSetup: ['./test/vitest-global.setup.ts'],
     include: ['**/*.test.?(c|m)ts?(x)'],
+
     name: {
       label: packageJson.name,
     },
-
-    reporters: process.env.GITHUB_ACTIONS
-      ? [['default', { summary: false }], ['github-actions']]
-      : [['default']],
 
     root: import.meta.dirname,
     setupFiles: ['./test/vitest.setup.ts'],
@@ -53,6 +50,7 @@ const vitestConfig = defineConfig({
       tsconfig: path.join(import.meta.dirname, 'tsconfig.json'),
     },
 
+    unstubEnvs: true,
     watch: false,
   },
 });

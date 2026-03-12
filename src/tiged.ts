@@ -65,6 +65,7 @@ export function createTiged(src: string, tigedOptions?: TigedOptions): Tiged {
  * it emits **`info`** and **`warn`** events for logging and debugging.
  *
  * @example
+ * <caption>#### Clone a repository</caption>
  *
  * ```ts
  * import { Tiged } from 'tiged';
@@ -216,6 +217,7 @@ export class Tiged extends EventEmitter {
    * @returns The current instance to allow method chaining.
    *
    * @example
+   * <caption>#### Listen for **`info`** events</caption>
    *
    * ```ts
    * tiged.on('info', (info) => {
@@ -236,6 +238,7 @@ export class Tiged extends EventEmitter {
    * @param [tigedOptions] - Optional configuration for {@linkcode Tiged}, allowing customization of default behaviors such as {@linkcode disableCache | caching}, {@linkcode verbose | verbosity}, and repository extraction options.
    *
    * @example
+   * <caption>#### Create a new `Tiged` instance</caption>
    *
    * ```ts
    * import { Tiged } from 'tiged';
@@ -451,8 +454,7 @@ export class Tiged extends EventEmitter {
 
     const directives =
       (tryRequire(directivesPath, { clearCache: true }) as
-        | (TigedCloneAction | TigedRemoveAction)[]
-        | undefined) ?? false;
+        (TigedCloneAction | TigedRemoveAction)[] | undefined) ?? false;
 
     if (directives) {
       const tempDirectoryPath = await fs.mkdtemp(

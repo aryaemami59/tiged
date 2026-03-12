@@ -19,7 +19,7 @@ describe('GitHub', () => {
 
       await expect(
         runTigedCLI(['--mode', mode, src, outputDirectory, '--verbose']),
-      ).resolves.not.toThrowError();
+      ).resolves.not.toThrow();
 
       await expect(outputDirectory).toMatchFiles({
         'file.txt': 'hello from github!',
@@ -41,7 +41,7 @@ describe('GitLab', () => {
 
       await expect(
         runTigedCLI(['--mode', mode, src, outputDirectory, '--verbose']),
-      ).resolves.not.toThrowError();
+      ).resolves.not.toThrow();
 
       await expect(outputDirectory).toMatchFiles({
         'file.txt': 'hello from gitlab!',
@@ -71,7 +71,7 @@ describe('GitLab', () => {
             outputDirectory,
             '--verbose',
           ]),
-        ).resolves.not.toThrowError();
+        ).resolves.not.toThrow();
 
         await expect(outputDirectory).toMatchFiles({
           'main.tf': 'Subgroup test',
@@ -100,7 +100,7 @@ describe('GitLab', () => {
               outputDirectory,
               '--verbose',
             ]),
-          ).resolves.not.toThrowError();
+          ).resolves.not.toThrow();
 
           await expect(outputDirectory).toMatchFiles({
             '.gitkeep': '',
@@ -128,7 +128,7 @@ describe('GitLab', () => {
               outputDirectory,
               '--verbose',
             ]),
-          ).resolves.not.toThrowError();
+          ).resolves.not.toThrow();
 
           await expect(outputDirectory).toMatchFiles({
             '.gitkeep': '',
@@ -151,7 +151,7 @@ describe('BitBucket', { timeout: 10_000 }, () => {
 
       await expect(
         runTigedCLI(['--mode', mode, src, outputDirectory, '--verbose']),
-      ).resolves.not.toThrowError();
+      ).resolves.not.toThrow();
 
       await expect(outputDirectory).toMatchFiles({
         'file.txt': 'hello from bitbucket',
@@ -171,7 +171,7 @@ describe('SourceHut', () => {
 
       await expect(
         runTigedCLI(['--mode', mode, src, outputDirectory, '--verbose']),
-      ).resolves.not.toThrowError();
+      ).resolves.not.toThrow();
 
       await expect(outputDirectory).toMatchFiles({
         'file.txt': 'hello from sourcehut!',
@@ -191,7 +191,7 @@ describe('Codeberg', () => {
 
       await expect(
         runTigedCLI(['--mode', mode, src, outputDirectory, '--verbose']),
-      ).resolves.not.toThrowError();
+      ).resolves.not.toThrow();
 
       await expect(outputDirectory).toMatchFiles({
         'file.txt': 'hello from codeberg!',
@@ -212,7 +212,7 @@ describe('Hugging Face', () => {
 
       await expect(
         runTigedCLI([src, '--mode', mode, outputDirectory, '--verbose']),
-      ).resolves.not.toThrowError();
+      ).resolves.not.toThrow();
 
       await expect(outputDirectory).toMatchFiles({
         'file.txt': 'hello from Hugging Face',
@@ -247,7 +247,7 @@ describe('sub-directories', () => {
             outputDirectory,
             '--verbose',
           ]),
-        ).resolves.not.toThrowError();
+        ).resolves.not.toThrow();
 
         await expect(outputDirectory).toMatchFiles({
           'file.txt': 'hello from a subdirectory!',
@@ -271,7 +271,7 @@ describe('sub-directories', () => {
             outputDirectory,
             '--verbose',
           ]),
-        ).resolves.not.toThrowError();
+        ).resolves.not.toThrow();
 
         await expect(outputDirectory).toMatchFiles({
           'file.txt': 'hello from a subdirectory!',
@@ -294,7 +294,7 @@ describe('sub-directories', () => {
               outputDirectory,
               '--verbose',
             ]),
-          ).rejects.toThrowError(
+          ).rejects.toThrow(
             /No files to extract\. Make sure you typed in the sub-directory name correctly\./,
           );
         });
@@ -316,7 +316,7 @@ describe('sub-directories', () => {
               outputDirectory,
               '--verbose',
             ]),
-          ).rejects.toThrowError(
+          ).rejects.toThrow(
             /No files to extract\. Make sure you typed in the sub-directory name correctly\./,
           );
         });
@@ -339,7 +339,7 @@ describe('sub-directories', () => {
             'subdir',
             '--verbose',
           ]),
-        ).resolves.not.toThrowError();
+        ).resolves.not.toThrow();
 
         await expect(outputDirectory).toMatchFiles({
           'file.txt': 'hello from a subdirectory!',
@@ -363,7 +363,7 @@ describe('sub-directories', () => {
             'subdir',
             '--verbose',
           ]),
-        ).resolves.not.toThrowError();
+        ).resolves.not.toThrow();
 
         await expect(outputDirectory).toMatchFiles({
           'file.txt': 'hello from a subdirectory!',
@@ -387,7 +387,7 @@ describe('sub-directories', () => {
             '',
             '--verbose',
           ]),
-        ).resolves.not.toThrowError();
+        ).resolves.not.toThrow();
 
         await expect(outputDirectory).toMatchFiles({
           'file.txt': 'hello from github!',
@@ -413,7 +413,7 @@ describe('sub-directories', () => {
             '',
             '--verbose',
           ]),
-        ).resolves.not.toThrowError();
+        ).resolves.not.toThrow();
 
         await expect(outputDirectory).toMatchFiles({
           'file.txt': 'hello from a subdirectory!',
@@ -457,7 +457,7 @@ describe('non-empty directories', () => {
 
       await expect(
         runTigedCLI(['--mode', mode, src, '--verbose']),
-      ).resolves.not.toThrowError();
+      ).resolves.not.toThrow();
 
       process.chdir(cwd);
 
@@ -480,7 +480,7 @@ describe('non-empty directories', () => {
           outputDirectory,
           '--verbose',
         ]),
-      ).resolves.not.toThrowError();
+      ).resolves.not.toThrow();
 
       await expect(outputDirectory).toMatchFiles({
         'file.txt': 'hello from github!',
@@ -499,7 +499,7 @@ describe('non-empty directories', () => {
           outputDirectory,
           '--verbose',
         ]),
-      ).resolves.not.toThrowError();
+      ).resolves.not.toThrow();
 
       await expect(outputDirectory).toMatchFiles({
         'file.txt': 'hello from a subdirectory!',
@@ -543,7 +543,7 @@ describe('non-empty directories', () => {
             mode,
             '--verbose',
           ]),
-        ).rejects.toThrowError(/destination directory is not empty/);
+        ).rejects.toThrow(/destination directory is not empty/);
       });
 
       it('succeeds with --force', async ({ expect }) => {
@@ -556,7 +556,7 @@ describe('non-empty directories', () => {
             '--verbose',
             '--force',
           ]),
-        ).resolves.not.toThrowError();
+        ).resolves.not.toThrow();
 
         await expect(outputDirectory).toMatchFiles({
           'file.txt': 'hello from a subdirectory!',
@@ -567,7 +567,7 @@ describe('non-empty directories', () => {
     it('fails without --force', async ({ expect }) => {
       await expect(
         runTigedCLI(['--mode', mode, src, outputDirectory, '--verbose']),
-      ).rejects.toThrowError(
+      ).rejects.toThrow(
         /destination directory is not empty, aborting\. Use --force to override/,
       );
     });
@@ -582,7 +582,7 @@ describe('non-empty directories', () => {
           outputDirectory,
           '--verbose',
         ]),
-      ).resolves.not.toThrowError();
+      ).resolves.not.toThrow();
     });
   });
 });
@@ -599,7 +599,7 @@ describe('can clone one file', () => {
 
         await expect(
           runTigedCLI(['--verbose', '--mode', mode, src, outputDirectory]),
-        ).resolves.not.toThrowError();
+        ).resolves.not.toThrow();
 
         await expect(outputDirectory).toMatchFiles({
           'file.txt': 'hello from a subdirectory!',
@@ -622,7 +622,7 @@ describe('actions', () => {
           outputDirectory,
           '--verbose',
         ]),
-      ).resolves.not.toThrowError();
+      ).resolves.not.toThrow();
 
       await expect(outputDirectory).toMatchFiles({});
     });
@@ -638,7 +638,7 @@ describe('actions', () => {
           outputDirectory,
           '--verbose',
         ]),
-      ).resolves.not.toThrowError();
+      ).resolves.not.toThrow();
 
       await expect(outputDirectory).toMatchFiles({
         'other.txt': 'hello from github!',
@@ -658,7 +658,7 @@ describe('actions', () => {
           outputDirectory,
           '--verbose',
         ]),
-      ).resolves.not.toThrowError();
+      ).resolves.not.toThrow();
 
       await expect(outputDirectory).toMatchFiles({
         dir: null,
@@ -685,7 +685,7 @@ describe('old hash', () => {
 
       await expect(
         runTigedCLI(['--mode', mode, src, outputDirectory, '--verbose']),
-      ).resolves.not.toThrowError();
+      ).resolves.not.toThrow();
 
       await expect(outputDirectory).toMatchFiles({
         'README.md': '# tiged-test\nFor testing',
@@ -709,7 +709,7 @@ describe('old hash', () => {
 
         await expect(
           runTigedCLI(['--mode', mode, src, outputDirectory, '--verbose']),
-        ).resolves.not.toThrowError();
+        ).resolves.not.toThrow();
 
         await expect(outputDirectory).toMatchFiles({
           'README.md': '# tiged-test\nFor testing',
@@ -736,7 +736,7 @@ describe('old hash', () => {
 
         await expect(
           runTigedCLI(['--mode', mode, src, outputDirectory, '--verbose']),
-        ).resolves.not.toThrowError();
+        ).resolves.not.toThrow();
 
         await expect(outputDirectory).toMatchFiles({
           file: 'Hello, champ!',
@@ -758,7 +758,7 @@ describe('is able to clone correctly', () => {
 
       await expect(
         runTigedCLI(['--mode', mode, src, outputDirectory, '--verbose']),
-      ).resolves.not.toThrowError();
+      ).resolves.not.toThrow();
 
       await expect(outputDirectory).toMatchFiles({
         'README.md': 'tiged is awesome',
@@ -792,7 +792,7 @@ describe('can clone a single file', () => {
             outputDirectory,
             '--verbose',
           ]),
-        ).resolves.not.toThrowError();
+        ).resolves.not.toThrow();
 
         await expect(outputDirectory).toMatchFiles({
           'file.txt': 'hello from a subdirectory!',
@@ -814,7 +814,7 @@ describe('can clone a single file', () => {
             '--subDirectory=subdir/file.txt',
             '--verbose',
           ]),
-        ).resolves.not.toThrowError();
+        ).resolves.not.toThrow();
 
         await expect(outputDirectory).toMatchFiles({
           'file.txt': 'hello from a subdirectory!',
@@ -834,6 +834,6 @@ describe('commit hash', () => {
         outputDirectory,
         '--verbose',
       ]),
-    ).resolves.not.toThrowError();
+    ).resolves.not.toThrow();
   });
 });

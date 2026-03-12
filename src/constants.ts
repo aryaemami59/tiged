@@ -112,6 +112,13 @@ export const supportedHosts = {
   huggingface: { name: 'Hugging Face', topLevelDomain: '.co' },
 } as const satisfies SupportedHosts;
 
+/**
+ * The list of git hosting service names supported by **`tiged`**, derived from
+ * the keys of {@linkcode supportedHosts}.
+ *
+ * @internal
+ * @since 3.0.0
+ */
 export const supportedHostNames = [
   'github',
   'gitlab',

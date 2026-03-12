@@ -79,7 +79,7 @@ jobs:
           path: ./*.tgz
 
       - name: Run publint
-        run: npx publint@latest --strict
+        run: npm exec -- publint@latest --strict
 
       - name: Did we fail?
         if: failure()
@@ -171,4 +171,4 @@ jobs:
           name: artifact
 
       - name: Run are-the-types-wrong
-        run: npx @arethetypeswrong/cli@latest ${{ needs.build.outputs.artifact }} --format table
+        run: npm exec -- attw ${{ needs.build.outputs.artifact }} --format table

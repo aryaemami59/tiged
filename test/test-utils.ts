@@ -152,19 +152,23 @@ export const getOutputDirectoryPath = (inputString: string): string => {
 const exec = promisify(child_process.exec);
 
 type TigedOptionsStringKeys = keyof {
-  [key in keyof Required<TigedOptions> as [
-    NonNullable<TigedOptions[key]>,
-  ] extends [string]
-    ? key
-    : never]: TigedOptions[key];
+  [
+    key in keyof Required<TigedOptions> as [
+      NonNullable<TigedOptions[key]>,
+    ] extends [string]
+      ? key
+      : never
+  ]: TigedOptions[key];
 };
 
 type TigedOptionsBooleanKeys = keyof {
-  [key in keyof Required<TigedOptions> as [boolean] extends [
-    NonNullable<TigedOptions[key]>,
-  ]
-    ? key
-    : never]: TigedOptions[key];
+  [
+    key in keyof Required<TigedOptions> as [boolean] extends [
+      NonNullable<TigedOptions[key]>,
+    ]
+      ? key
+      : never
+  ]: TigedOptions[key];
 };
 
 /**
@@ -179,7 +183,7 @@ type TigedOptionsBooleanKeys = keyof {
  * ```ts
  * await expect(
  *   runTigedCLI(['--mode', mode, src, outputDirectory]),
- * ).resolves.not.toThrowError();
+ * ).resolves.not.toThrow();
  * ```
  *
  * @internal
@@ -245,7 +249,7 @@ export const runTigedCLI = async (
  * ```ts
  * await expect(
  *   runTigedAPI(src, outputDirectory, { mode }),
- * ).resolves.not.toThrowError();
+ * ).resolves.not.toThrow();
  * ```
  *
  * @internal

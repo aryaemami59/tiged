@@ -188,8 +188,9 @@ export type Repo = {
   ssh: string;
 
   /**
-   * Optional. A specific subdirectory within the repository to work with,
-   * if applicable (e.g., `/subdir`, `/test-repo`).
+   * A specific subdirectory within the repository to work with
+   * (e.g., `/subdir`, `/test-repo`), or an empty string when the entire
+   * repository is used.
    */
   subDirectory: string;
 
@@ -325,6 +326,13 @@ export type TigedRemoveAction = TigedAction & {
   files: string[];
 };
 
+/**
+ * Represents any supported **`degit.json`** directive action, i.e. either a
+ * {@linkcode TigedCloneAction} or a {@linkcode TigedRemoveAction}.
+ *
+ * @public
+ * @since 3.0.0
+ */
 export type AnyTigedAction = TigedCloneAction | TigedRemoveAction;
 
 /**
@@ -377,11 +385,29 @@ export type TigedErrorOptions = ErrorOptions & {
 };
 
 /**
+ * Represents the result of a Damerau-Levenshtein distance computation between
+ * two strings.
+ *
  * @internal
  * @since 3.0.0
  */
 export type DamerauLevenshteinResult = {
+  /**
+   * The raw edit distance, i.e. the number of single-character insertions,
+   * deletions, substitutions, or transpositions between the two strings.
+   */
   steps: number;
+
+  /**
+   * The {@linkcode DamerauLevenshteinResult.steps | steps} normalized by the
+   * length of the longer string, in the range `0` to `1`.
+   */
   relative: number;
+
+  /**
+   * The similarity score, computed as one minus
+   * {@linkcode DamerauLevenshteinResult.relative | relative}, in the range `0`
+   * to `1`.
+   */
   similarity: number;
 };
